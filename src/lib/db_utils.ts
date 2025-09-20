@@ -1,12 +1,7 @@
-
-
 import oracledb from 'oracledb';
 
-
-
 // دوال مساعدة للتعامل مع الجداول مباشرة
-
-import { executeQuery, executeReturningQuery } from "@/lib/database";
+import { executeQuery, executeReturningQuery } from '@/lib/database';
 
 /**
  * جلب جميع الأطباء
@@ -25,9 +20,8 @@ export async function getAllDoctors() {
   }>(`
     SELECT doctor_id, name, email, phone, specialty, 
            experience, qualification, image, bio 
-    FROM Doctors 
-    ORDER BY name`
-  ).then(result => result.rows);
+    FROM TAH57.DOCTORS 
+    ORDER BY name`).then((result) => result.rows);
 }
 
 /**
@@ -44,19 +38,19 @@ export async function getDoctorById(id: number) {
     QUALIFICATION: string;
     IMAGE: string;
     BIO: string;
-  }>(`
+  }>(
+    `
     SELECT doctor_id, name, email, phone, specialty, 
            experience, qualification, image, bio 
-    FROM Doctors 
+    FROM TAH57.DOCTORS 
     WHERE doctor_id = :id`,
     { id }
-  ).then(result => result.rows[0] || null);
+  ).then((result) => result.rows[0] || null);
 }
 
 /**
  * إضافة طبيب جديد
  */
-
 export async function createDoctor(doctor: {
   name: string;
   email: string;
@@ -67,11 +61,12 @@ export async function createDoctor(doctor: {
   image?: string;
   bio?: string;
 }) {
-  const result = await executeReturningQuery<any>(`
+  const result = await executeReturningQuery<{ doctor_id: number }>(
+    `
     INSERT INTO TAH57.DOCTORS (name, email, phone, specialty, experience, qualification, image, bio) 
     VALUES (:name, :email, :phone, :specialty, :experience, :qualification, :image, :bio) 
     RETURNING doctor_id INTO :id`,
-    { 
+    {
       name: doctor.name,
       email: doctor.email,
       phone: doctor.phone,
@@ -80,56 +75,58 @@ export async function createDoctor(doctor: {
       qualification: doctor.qualification || null,
       image: doctor.image || null,
       bio: doctor.bio || null,
-      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
     }
   );
-  
-  // الحصول على ID من outBinds
-  const newDoctorId = result.outBinds?.id?.[0];
-  
+
+  // الحصول على ID من outBinds بشكل آمن
+  const outBinds = result.outBinds as { id: number[] } | undefined;
+  const newDoctorId = outBinds?.id?.[0];
+
   if (!newDoctorId) {
     throw new Error('Failed to retrieve the new doctor ID');
   }
-  
+
   return newDoctorId;
 }
-
 
 /**
  * تحديث طبيب
  */
-
-export async function updateDoctor(id: number, doctor: {
-  name?: string;
-  email?: string;
-  phone?: string;
-  specialty?: string;
-  experience?: number;
-  qualification?: string;
-  image?: string;
-  bio?: string;
-}) {
+export async function updateDoctor(
+  id: number,
+  doctor: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    specialty?: string;
+    experience?: number;
+    qualification?: string;
+    image?: string;
+    bio?: string;
+  }
+) {
   // إنشاء كائن للربط بين اسم الجدول في DB واسم الحقل في JS
   const fieldMappings: Record<string, string> = {
     name: 'NAME',
-    email: 'EMAIL', 
+    email: 'EMAIL',
     phone: 'PHONE',
     specialty: 'SPECIALTY',
     experience: 'EXPERIENCE',
     qualification: 'QUALIFICATION',
     image: 'IMAGE',
-    bio: 'BIO'
+    bio: 'BIO',
   };
 
   const setClauses: string[] = [];
-  const bindParams: any = { id };
+  const bindParams: oracledb.BindParameters = { id }; // إصلاح المشكلة
 
   // بناء جمل SET وعوامل الربط
   Object.entries(doctor).forEach(([key, value]) => {
     if (value !== undefined && fieldMappings[key]) {
       const dbFieldName = fieldMappings[key];
       const bindParamName = key.toLowerCase();
-      
+
       setClauses.push(`${dbFieldName} = :${bindParamName}`);
       bindParams[bindParamName] = value;
     }
@@ -139,26 +136,25 @@ export async function updateDoctor(id: number, doctor: {
     throw new Error('No fields to update');
   }
 
-  const query = `UPDATE TAH57.DOCTORS SET ${setClauses.join(', ')} WHERE DOCTOR_ID = :id`;
+  const query = `UPDATE TAH57.DOCTORS SET ${setClauses.join(
+    ', '
+  )} WHERE DOCTOR_ID = :id`;
 
   const result = await executeQuery(query, bindParams);
   return result.rowsAffected || 0;
 }
 
-
-
 /**
  * حذف طبيب
  */
 export async function deleteDoctor(id: number) {
-  return executeQuery(`
-    DELETE FROM Doctors 
+  return executeQuery(
+    `
+    DELETE FROM TAH57.DOCTORS 
     WHERE doctor_id = :id`,
     { id }
-  ).then(result => result.rowsAffected || 0);
+  ).then((result) => result.rowsAffected || 0);
 }
-
-
 
 /**
  * جلب جميع المرضى
@@ -190,10 +186,9 @@ export async function getAllPatients() {
     PRIMARY_PHYSICIAN_NAME: string;
   }>(`
     SELECT p.*, d.name as primary_physician_name 
-    FROM Patients p 
-    LEFT JOIN Doctors d ON p.primaryPhysician = d.doctor_id 
-    ORDER BY p.name`
-  ).then(result => result.rows);
+    FROM TAH57.PATIENTS p 
+    LEFT JOIN TAH57.DOCTORS d ON p.primaryphysician = d.doctor_id 
+    ORDER BY p.name`).then((result) => result.rows);
 }
 
 /**
@@ -224,18 +219,18 @@ export async function getPatientById(id: number) {
     TREATMENTCONSENT: number;
     DISCLOSURECONSENT: number;
     PRIMARY_PHYSICIAN_NAME: string;
-  }>(`
+  }>(
+    `
     SELECT p.*, d.name as primary_physician_name 
-    FROM Patients p 
-    LEFT JOIN Doctors d ON p.primaryPhysician = d.doctor_id 
+    FROM TAH57.PATIENTS p 
+    LEFT JOIN TAH57.DOCTORS d ON p.primaryphysician = d.doctor_id 
     WHERE p.patient_id = :id`,
     { id }
-  ).then(result => result.rows[0] || null);
+  ).then((result) => result.rows[0] || null);
 }
 
-
 /**
- * إضافة مريض جديد (مصحح)
+ * إضافة مريض جديد
  */
 export async function createPatient(patient: {
   name: string;
@@ -261,18 +256,36 @@ export async function createPatient(patient: {
   disclosureConsent: boolean;
 }) {
   const {
-    name, email, phone, dateOfBirth, gender, address,
-    occupation, emergencyContactName, emergencyContactNumber,
-    primaryPhysician, insuranceProvider, insurancePolicyNumber,
-    allergies, currentMedication, familyMedicalHistory,
-    pastMedicalHistory, identificationType, identificationNumber,
-    privacyConsent, treatmentConsent, disclosureConsent
+    name,
+    email,
+    phone,
+    dateOfBirth,
+    gender,
+    address,
+    occupation,
+    emergencyContactName,
+    emergencyContactNumber,
+    primaryPhysician,
+    insuranceProvider,
+    insurancePolicyNumber,
+    allergies,
+    currentMedication,
+    familyMedicalHistory,
+    pastMedicalHistory,
+    identificationType,
+    identificationNumber,
+    privacyConsent,
+    treatmentConsent,
+    disclosureConsent,
   } = patient;
 
-     // تم تعديل هذا الجزء للتعامل مع الحالة التي يكون فيها dateOfBirth قيمة فارغة
-    const formattedDate = dateOfBirth ? dateOfBirth.toISOString().split('T')[0] : null;
+  // تم تعديل هذا الجزء للتعامل مع الحالة التي يكون فيها dateOfBirth قيمة فارغة
+  const formattedDate = dateOfBirth
+    ? dateOfBirth.toISOString().split('T')[0]
+    : null;
 
-  const result = await executeReturningQuery<any>(`
+  const result = await executeReturningQuery<{ patient_id: number }>(
+    `
     INSERT INTO TAH57.PATIENTS (
       name, email, phone, dateofbirth, gender, address,
       occupation, emergencycontactname, emergencycontactnumber,
@@ -288,11 +301,11 @@ export async function createPatient(patient: {
       :pastMedicalHistory, :identificationType, :identificationNumber,
       :privacyConsent, :treatmentConsent, :disclosureConsent
     ) RETURNING patient_id INTO :id`,
-    { 
+    {
       name,
       email,
       phone,
-      dateOfBirth: formattedDate , // استخدم null إذا كانت القيمة غير صالحة
+      dateOfBirth: formattedDate,
       gender,
       address: address || null,
       occupation: occupation || null,
@@ -310,24 +323,27 @@ export async function createPatient(patient: {
       privacyConsent: privacyConsent ? 1 : 0,
       treatmentConsent: treatmentConsent ? 1 : 0,
       disclosureConsent: disclosureConsent ? 1 : 0,
-      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
     }
   );
-  
-  // الحصول على ID من outBinds
-  const newPatientId = result.outBinds?.id?.[0];
-  
+
+  // الحصول على ID من outBinds بشكل آمن
+  const outBinds = result.outBinds as { id: number[] } | undefined;
+  const newPatientId = outBinds?.id?.[0];
+
   if (!newPatientId) {
     throw new Error('Failed to retrieve the new patient ID');
   }
-  
+
   return newPatientId;
 }
 
 /**
- * تحديث مريض (مصحح لأسماء الأعمدة)
+ * تحديث مريض
  */
-export async function updatePatient(id: number, patient: {
+export async function updatePatient(
+  id: number,
+  patient: {
     name?: string;
     email?: string;
     phone?: string;
@@ -349,83 +365,87 @@ export async function updatePatient(id: number, patient: {
     privacyConsent?: boolean;
     treatmentConsent?: boolean;
     disclosureConsent?: boolean;
-}) {
-    // إنشاء كائن للربط بين اسم الجدول في DB واسم الحقل في JS
-    const fieldMappings: Record<string, string> = {
-        name: 'NAME',
-        email: 'EMAIL',
-        phone: 'PHONE',
-        dateOfBirth: 'DATEOFBIRTH',
-        gender: 'GENDER',
-        address: 'ADDRESS',
-        occupation: 'OCCUPATION',
-        emergencyContactName: 'EMERGENCYCONTACTNAME',
-        // ⭐ تم تصحيح الخطأ هنا - إزالة النقطتين الزائدتين
-        emergencyContactNumber: 'EMERGENCYCONTACTNUMBER', 
-        primaryPhysician: 'PRIMARYPHYSICIAN',
-        insuranceProvider: 'INSURANCEPROVIDER',
-        insurancePolicyNumber: 'INSURANCEPOLICYNUMBER',
-        allergies: 'ALLERGIES',
-        currentMedication: 'CURRENTMEDICATION',
-        familyMedicalHistory: 'FAMILYMEDICALHISTORY',
-        pastMedicalHistory: 'PASTMEDICALHISTORY',
-        identificationType: 'IDENTIFICATIONTYPE',
-        identificationNumber: 'IDENTIFICATIONNUMBER',
-        privacyConsent: 'PRIVACYCONSENT',
-        treatmentConsent: 'TREATMENTCONSENT',
-        disclosureConsent: 'DISCLOSURECONSENT'
-    };
+  }
+) {
+  // إنشاء كائن للربط بين اسم الجدول في DB واسم الحقل في JS
+  const fieldMappings: Record<string, string> = {
+    name: 'NAME',
+    email: 'EMAIL',
+    phone: 'PHONE',
+    dateOfBirth: 'DATEOFBIRTH',
+    gender: 'GENDER',
+    address: 'ADDRESS',
+    occupation: 'OCCUPATION',
+    emergencyContactName: 'EMERGENCYCONTACTNAME',
+    emergencyContactNumber: 'EMERGENCYCONTACTNUMBER',
+    primaryPhysician: 'PRIMARYPHYSICIAN',
+    insuranceProvider: 'INSURANCEPROVIDER',
+    insurancePolicyNumber: 'INSURANCEPOLICYNUMBER',
+    allergies: 'ALLERGIES',
+    currentMedication: 'CURRENTMEDICATION',
+    familyMedicalHistory: 'FAMILYMEDICALHISTORY',
+    pastMedicalHistory: 'PASTMEDICALHISTORY',
+    identificationType: 'IDENTIFICATIONTYPE',
+    identificationNumber: 'IDENTIFICATIONNUMBER',
+    privacyConsent: 'PRIVACYCONSENT',
+    treatmentConsent: 'TREATMENTCONSENT',
+    disclosureConsent: 'DISCLOSURECONSENT',
+  };
 
-    const setClauses: string[] = [];
-    const bindParams: any = { id };
+  const setClauses: string[] = [];
+  const bindParams: oracledb.BindParameters = { id };
 
-    // بناء جمل SET وعوامل الربط
-    Object.entries(patient).forEach(([key, value]) => {
-        if (value !== undefined && fieldMappings[key]) {
-            const dbFieldName = fieldMappings[key];
-            const bindParamName = key; // استخدام نفس الاسم لسهولة القراءة
-            
-            // ⭐ تم تعديل هذه الكتلة لمعالجة كل نوع بيانات بشكل صحيح
-            if (key === 'dateOfBirth') {
-                if (typeof value === 'string' || value instanceof Date) {
-                    const dateValue = new Date(value);
-                    setClauses.push(`${dbFieldName} = TO_DATE(:${bindParamName}, 'YYYY-MM-DD')`);
-                    bindParams[bindParamName] = dateValue.toISOString().split('T')[0];
-                }
+  // بناء جمل SET وعوامل الربط
+  Object.entries(patient).forEach(([key, value]) => {
+    if (value !== undefined && fieldMappings[key]) {
+      const dbFieldName = fieldMappings[key];
+      const bindParamName = key;
 
-                
-            } else if (['privacyConsent', 'treatmentConsent', 'disclosureConsent'].includes(key)) {
-                setClauses.push(`${dbFieldName} = :${bindParamName}`);
-                bindParams[bindParamName] = value ? 1 : 0;
-            } else {
-                setClauses.push(`${dbFieldName} = :${bindParamName}`);
-                bindParams[bindParamName] = value;
-            }
+      if (key === 'dateOfBirth') {
+        if (typeof value === 'string' || value instanceof Date) {
+          const dateValue = new Date(value);
+          setClauses.push(
+            `${dbFieldName} = TO_DATE(:${bindParamName}, 'YYYY-MM-DD')`
+          );
+          bindParams[bindParamName] = dateValue.toISOString().split('T')[0];
         }
-    });
-
-    if (setClauses.length === 0) {
-        throw new Error('No fields to update');
+      } else if (
+        ['privacyConsent', 'treatmentConsent', 'disclosureConsent'].includes(
+          key
+        )
+      ) {
+        setClauses.push(`${dbFieldName} = :${bindParamName}`);
+        bindParams[bindParamName] =
+          typeof value === 'boolean' ? (value ? 1 : 0) : value;
+      } else {
+        setClauses.push(`${dbFieldName} = :${bindParamName}`);
+        // تأكد من أن القيمة متوافقة مع نوع Oracle binding parameter
+        bindParams[bindParamName] =
+          typeof value === 'boolean' ? (value ? 1 : 0) : value;
+      }
     }
+  });
 
-    const query = `UPDATE TAH57.PATIENTS SET ${setClauses.join(', ')} WHERE PATIENT_ID = :id`;
+  if (setClauses.length === 0) {
+    throw new Error('No fields to update');
+  }
 
-    const result = await executeQuery(query, bindParams);
-    return result.rowsAffected || 0;
+  const query = `UPDATE TAH57.PATIENTS SET ${setClauses.join(
+    ', '
+  )} WHERE PATIENT_ID = :id`;
+
+  const result = await executeQuery(query, bindParams);
+  return result.rowsAffected || 0;
 }
 
 /**
  * حذف مريض
  */
-
-
 export async function deletePatient(id: number) {
-  return executeQuery(
-    'DELETE FROM Patients WHERE patient_id = :id',
-    { id }
-  ).then(result => result.rowsAffected || 0);
+  return executeQuery('DELETE FROM TAH57.PATIENTS WHERE patient_id = :id', {
+    id,
+  }).then((result) => result.rowsAffected || 0);
 }
-
 
 /**
  * جلب جميع المواعيد
@@ -433,20 +453,20 @@ export async function deletePatient(id: number) {
 export async function getAllAppointments(doctorId?: number) {
   let query = `
     SELECT a.*, p.name as patient_name, d.name as doctor_name 
-    FROM Appointments a 
-    JOIN Patients p ON a.patient_id = p.patient_id 
-    JOIN Doctors d ON a.doctor_id = d.doctor_id 
+    FROM TAH57.APPOINTMENTS a 
+    JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
+    JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
   `;
-  
-  const params: any = {};
-  
+
+  const params: oracledb.BindParameters = {};
+
   if (doctorId) {
     query += ' WHERE a.doctor_id = :doctorId';
     params.doctorId = doctorId;
   }
-  
+
   query += ' ORDER BY a.schedule DESC';
-  
+
   return executeQuery<{
     APPOINTMENT_ID: number;
     PATIENT_ID: number;
@@ -458,9 +478,8 @@ export async function getAllAppointments(doctorId?: number) {
     CANCELLATIONREASON: string;
     PATIENT_NAME: string;
     DOCTOR_NAME: string;
-  }>(query, params).then(result => result.rows);
+  }>(query, params).then((result) => result.rows);
 }
-
 
 /**
  * جلب مواعيد المريض
@@ -477,15 +496,16 @@ export async function getPatientAppointments(patientId: number) {
     CANCELLATIONREASON: string;
     PATIENT_NAME: string;
     DOCTOR_NAME: string;
-  }>(`
+  }>(
+    `
     SELECT a.*, p.name as patient_name, d.name as doctor_name 
-    FROM Appointments a 
-    JOIN Patients p ON a.patient_id = p.patient_id 
-    JOIN Doctors d ON a.doctor_id = d.doctor_id 
+    FROM TAH57.APPOINTMENTS a 
+    JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
+    JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
     WHERE a.patient_id = :patientId
     ORDER BY a.schedule DESC`,
     { patientId }
-  ).then(result => result.rows);
+  ).then((result) => result.rows);
 }
 
 /**
@@ -503,20 +523,20 @@ export async function getAppointmentById(id: number) {
     CANCELLATIONREASON: string;
     PATIENT_NAME: string;
     DOCTOR_NAME: string;
-  }>(`
+  }>(
+    `
     SELECT a.*, p.name as patient_name, d.name as doctor_name 
-    FROM Appointments a 
-    JOIN Patients p ON a.patient_id = p.patient_id 
-    JOIN Doctors d ON a.doctor_id = d.doctor_id 
+    FROM TAH57.APPOINTMENTS a 
+    JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
+    JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
     WHERE a.appointment_id = :id`,
     { id }
-  ).then(result => result.rows[0] || null);
+  ).then((result) => result.rows[0] || null);
 }
 
 /**
  * إنشاء موعد جديد
  */
-
 export async function createAppointment(appointment: {
   patient_id: number;
   doctor_id: number;
@@ -531,14 +551,15 @@ export async function createAppointment(appointment: {
     schedule,
     reason,
     note,
-    status = 'pending'
+    status = 'pending',
   } = appointment;
 
   // تحويل التاريخ إلى تنسيق Oracle
   const oracleDate = schedule.toISOString().replace('T', ' ').replace('Z', '');
 
-  return executeReturningQuery(`
-    INSERT INTO Appointments (patient_id, doctor_id, schedule, reason, note, status) 
+  return executeReturningQuery(
+    `
+    INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status) 
     VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status) 
     RETURNING appointment_id INTO :id`,
     {
@@ -548,7 +569,7 @@ export async function createAppointment(appointment: {
       reason,
       note: note || null,
       status,
-      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
     }
   );
 }
@@ -556,17 +577,20 @@ export async function createAppointment(appointment: {
 /**
  * تحديث موعد
  */
-export async function updateAppointment(id: number, appointment: {
-  patient_id?: number;
-  doctor_id?: number;
-  schedule?: Date;
-  reason?: string;
-  note?: string;
-  status?: string;
-  cancellationReason?: string;
-}) {
+export async function updateAppointment(
+  id: number,
+  appointment: {
+    patient_id?: number;
+    doctor_id?: number;
+    schedule?: Date;
+    reason?: string;
+    note?: string;
+    status?: string;
+    cancellationReason?: string;
+  }
+) {
   const fields: string[] = [];
-  const params: any = { id };
+  const params: oracledb.BindParameters = { id }; // إصلاح المشكلة
 
   if (appointment.patient_id !== undefined) {
     fields.push('patient_id = :patient_id');
@@ -579,9 +603,13 @@ export async function updateAppointment(id: number, appointment: {
   }
 
   if (appointment.schedule !== undefined) {
-    // ✅ Corrected Oracle date format mask
-    fields.push('schedule = TO_TIMESTAMP(:schedule, \'YYYY-MM-DD HH24:MI:SS.FF\')');
-    params.schedule = appointment.schedule.toISOString().replace('T', ' ').replace('Z', '');
+    fields.push(
+      "schedule = TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF')"
+    );
+    params.schedule = appointment.schedule
+      .toISOString()
+      .replace('T', ' ')
+      .replace('Z', '');
   }
 
   if (appointment.reason !== undefined) {
@@ -609,17 +637,20 @@ export async function updateAppointment(id: number, appointment: {
   }
 
   return executeQuery(
-    `UPDATE Appointments SET ${fields.join(', ')} WHERE appointment_id = :id`,
+    `UPDATE TAH57.APPOINTMENTS SET ${fields.join(
+      ', '
+    )} WHERE appointment_id = :id`,
     params
-  ).then(result => result.rowsAffected || 0);
+  ).then((result) => result.rowsAffected || 0);
 }
 
+/**
 /**
  * حذف موعد
  */
 export async function deleteAppointment(id: number) {
   return executeQuery(
-    'DELETE FROM Appointments WHERE appointment_id = :id',
+    'DELETE FROM TAH57.APPOINTMENTS WHERE appointment_id = :id',
     { id }
-  ).then(result => result.rowsAffected || 0);
+  ).then((result) => result.rowsAffected || 0);
 }

@@ -1,0 +1,155 @@
+'use client';
+
+import { Calendar, Stethoscope, Users } from 'lucide-react';
+
+import { useAppointments, useDoctors, usePatients } from '@/hooks/useApiData';
+
+import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
+
+interface StatCardProps {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+  loading?: boolean;
+}
+
+function StatCard({ title, value, icon, color, loading }: StatCardProps) {
+  return (
+    <div className={`${color} rounded-lg shadow-lg p-6 text-white`}>
+      <div className='flex items-center justify-between'>
+        <div>
+          <p className='text-sm font-medium opacity-90'>{title}</p>
+          <div className='text-3xl font-bold'>
+            {loading ? (
+              <span className='animate-pulse bg-white/20 h-8 w-16 rounded inline-block'></span>
+            ) : (
+              value
+            )}
+          </div>
+        </div>
+        <div className='opacity-80'>{icon}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const {
+    data: patients,
+    loading: patientsLoading,
+    error: patientsError,
+  } = usePatients();
+  const {
+    data: doctors,
+    loading: doctorsLoading,
+    error: doctorsError,
+  } = useDoctors();
+  const {
+    data: appointments,
+    loading: appointmentsLoading,
+    error: appointmentsError,
+  } = useAppointments();
+
+  const _loading = patientsLoading || doctorsLoading || appointmentsLoading;
+  const error = patientsError || doctorsError || appointmentsError;
+
+  if (error) {
+    return (
+      <ErrorFallback
+        error={new Error(error)}
+        reset={() => window.location.reload()}
+      />
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <div className='space-y-6'>
+        <div>
+          <h1 className='text-3xl font-bold text-gray-900'>
+            Medical Clinic Dashboard
+          </h1>
+          <p className='text-gray-600 mt-2'>
+            Overview of your clinic's key statistics
+          </p>
+        </div>
+
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+          <StatCard
+            title='Total Patients'
+            value={Array.isArray(patients) ? patients.length : 0}
+            icon={<Users size={32} />}
+            color='bg-gradient-to-r from-blue-500 to-blue-600'
+            loading={patientsLoading}
+          />
+
+          <StatCard
+            title='Total Doctors'
+            value={Array.isArray(doctors) ? doctors.length : 0}
+            icon={<Stethoscope size={32} />}
+            color='bg-gradient-to-r from-green-500 to-green-600'
+            loading={doctorsLoading}
+          />
+
+          <StatCard
+            title='Total Appointments'
+            value={Array.isArray(appointments) ? appointments.length : 0}
+            icon={<Calendar size={32} />}
+            color='bg-gradient-to-r from-purple-500 to-purple-600'
+            loading={appointmentsLoading}
+          />
+        </div>
+
+        {/* Quick Actions Section */}
+        <div className='bg-white rounded-lg shadow p-6'>
+          <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+            Quick Actions
+          </h2>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+            <a
+              href='/patients'
+              className='flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors'
+            >
+              <Users className='text-blue-500 mr-3' size={24} />
+              <div>
+                <h3 className='font-medium text-gray-900'>Manage Patients</h3>
+                <p className='text-sm text-gray-600'>
+                  View and manage patient records
+                </p>
+              </div>
+            </a>
+
+            <a
+              href='/doctors'
+              className='flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors'
+            >
+              <Stethoscope className='text-green-500 mr-3' size={24} />
+              <div>
+                <h3 className='font-medium text-gray-900'>Manage Doctors</h3>
+                <p className='text-sm text-gray-600'>
+                  View and manage doctor profiles
+                </p>
+              </div>
+            </a>
+
+            <a
+              href='/appointments'
+              className='flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors'
+            >
+              <Calendar className='text-purple-500 mr-3' size={24} />
+              <div>
+                <h3 className='font-medium text-gray-900'>
+                  Manage Appointments
+                </h3>
+                <p className='text-sm text-gray-600'>
+                  Schedule and manage appointments
+                </p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </ErrorBoundary>
+  );
+}

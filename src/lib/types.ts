@@ -50,13 +50,14 @@ export interface Appointment {
 }
 
 // أضف هذه الأنواع في lib/database.ts أو في ملف types.ts
+// تحديث أنواع البيانات لإصلاح مشاكل any
 export interface OracleReturningResult {
   outBinds: {
     id?: number[];
     ID?: number[];
-    [key: string]: any;
+    [key: string]: number[] | string[] | undefined; // إصلاح مشكلة any
   };
-  rows: any[];
+  rows: unknown[]; // إصلاح مشكلة any
 }
 
 export interface DoctorReturningResult extends OracleReturningResult {
