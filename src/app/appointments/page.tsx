@@ -20,7 +20,7 @@ export default function AppointmentsPage() {
   const filteredAppointments =
     appointments?.filter((appointment: Appointment) => {
       if (filter === 'all') return true;
-      return appointment.status === filter;
+      return appointment.STATUS === filter;
     }) || [];
 
   const formatDateTime = (date: Date | string | null | undefined) => {
@@ -112,11 +112,10 @@ export default function AppointmentsPage() {
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  filter === status
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === status
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -130,37 +129,37 @@ export default function AppointmentsPage() {
             {filteredAppointments.map(
               (appointment: Appointment, index: number) => (
                 <div
-                  key={appointment.appointment_id || `appointment-${index}`}
+                  key={appointment.APPOINTMENT_ID || `appointment-${index}`}
                   className='bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow'
                 >
                   <div className='flex justify-between items-start mb-4'>
                     <div className='flex items-center space-x-2'>
                       <Calendar className='w-5 h-5 text-blue-600' />
                       <span className='font-semibold text-gray-900'>
-                        Appointment #{appointment.appointment_id}
+                        Appointment #{appointment.APPOINTMENT_ID}
                       </span>
                     </div>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        appointment.status
+                        appointment.STATUS
                       )}`}
                     >
-                      {appointment.status}
+                      {appointment.STATUS}
                     </span>
                   </div>
 
                   <div className='space-y-3'>
                     <div className='flex items-center text-sm text-gray-600'>
                       <Clock className='w-4 h-4 mr-2 text-gray-400' />
-                      <span>{formatDateTime(appointment.schedule)}</span>
+                      <span>{formatDateTime(appointment.SCHEDULE)}</span>
                     </div>
 
                     <div className='flex items-center text-sm text-gray-600'>
                       <User className='w-4 h-4 mr-2 text-gray-400' />
                       <span>
                         <strong>Patient:</strong>{' '}
-                        {appointment.patient_name ||
-                          `ID: ${appointment.patient_id}`}
+                        {appointment.PATIENT_NAME ||
+                          `ID: ${appointment.PATIENT_ID}`}
                       </span>
                     </div>
 
@@ -168,36 +167,60 @@ export default function AppointmentsPage() {
                       <User className='w-4 h-4 mr-2 text-gray-400' />
                       <span>
                         <strong>Doctor:</strong>{' '}
-                        {appointment.doctor_name ||
-                          `ID: ${appointment.doctor_id}`}
+                        {appointment.DOCTOR_NAME ||
+                          `ID: ${appointment.DOCTOR_ID}`}
                       </span>
                     </div>
 
-                    {appointment.reason && (
+                    {appointment.REASON && (
                       <div className='flex items-start text-sm text-gray-600'>
                         <FileText className='w-4 h-4 mr-2 text-gray-400 mt-0.5' />
                         <div>
-                          <strong>Reason:</strong> {appointment.reason}
+                          <strong>Reason:</strong> {appointment.REASON}
                         </div>
                       </div>
                     )}
 
-                    {appointment.note && (
+                    {appointment.NOTE && (
                       <div className='flex items-start text-sm text-gray-600'>
                         <FileText className='w-4 h-4 mr-2 text-gray-400 mt-0.5' />
                         <div>
-                          <strong>Note:</strong> {appointment.note}
+                          <strong>Note:</strong> {appointment.NOTE}
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className='flex justify-end mt-4 pt-4 border-t'>
+                  <div className='flex justify-between items-center mt-4 pt-4 border-t'>
+                    <div className='flex gap-2'>
+                      <Link
+                        href={`/appointments/${appointment.APPOINTMENT_ID}`}
+                        className='text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors'
+                      >
+                        View Details
+                      </Link>
+                      {appointment.DOCTOR_ID && (
+                        <Link
+                          href={`/doctors/${appointment.DOCTOR_ID}`}
+                          className='text-green-600 hover:text-green-800 font-medium text-sm transition-colors'
+                        >
+                          View Doctor
+                        </Link>
+                      )}
+                      {appointment.PATIENT_ID && (
+                        <Link
+                          href={`/patients/${appointment.PATIENT_ID}`}
+                          className='text-purple-600 hover:text-purple-800 font-medium text-sm transition-colors'
+                        >
+                          View Patient
+                        </Link>
+                      )}
+                    </div>
                     <Link
-                      href={`/appointments/${appointment.appointment_id}`}
-                      className='text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors'
+                      href={`/appointments/new?doctorId=${appointment.DOCTOR_ID}&patientId=${appointment.PATIENT_ID}`}
+                      className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors'
                     >
-                      View Details
+                      Book Similar
                     </Link>
                   </div>
                 </div>

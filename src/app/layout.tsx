@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   // ! copy to /favicon folder
   icons: {
     icon: '/favicon/favicon.ico',
-    shortcut: '/favicon/favicon-16x16.png',
-    apple: '/favicon/apple-touch-icon.png',
+    shortcut: '/favicon/favicon-512x512.png',
+    apple: '/favicon/favicon-192x192.png',
   },
   manifest: `/favicon/site.webmanifest`,
   openGraph: {
@@ -59,6 +59,8 @@ export default function RootLayout({
     <html>
       {/* <body>{children}</body> */}
       <body>
+
+
          <Navigation />
         <main className="container mx-auto p-4">
           {children}

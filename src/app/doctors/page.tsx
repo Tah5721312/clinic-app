@@ -46,7 +46,7 @@ export default function DoctorsPage() {
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
             {doctors.map((doctor: Doctor, index: number) => (
               <DoctorCard
-                key={doctor.doctor_id || `doctor-${index}`}
+                key={doctor.DOCTOR_ID || `doctor-${index}`}
                 doctor={doctor}
               />
             ))}

@@ -16,7 +16,7 @@ export default function PatientsPage() {
   if (loading) {
     return (
       <div className='flex justify-center items-center h-64'>
-        <LoadingSpinner size='lg' text='Loading patients...' />
+        <LoadingSpinner size='lg' text='جاري تحميل بيانات المرضى...' />
       </div>
     );
   }
@@ -31,13 +31,13 @@ export default function PatientsPage() {
         {/* Header */}
         <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900'>Patients</h1>
+            <h1 className='text-3xl font-bold text-gray-900'>المرضى</h1>
             <p className='text-gray-600 mt-1'>
-              Manage and view patient records
+              إدارة وعرض سجلات المرضى
             </p>
           </div>
           <ButtonLink href='/patients/new' variant='primary' leftIcon={Plus}>
-            Add New Patient
+            إضافة مريض جديد
           </ButtonLink>
         </div>
 
@@ -46,7 +46,7 @@ export default function PatientsPage() {
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
             {patients.map((patient: Patient, index: number) => (
               <PatientCard
-                key={patient.patient_id || `patient-${index}`}
+                key={patient.PATIENT_ID || `patient-${index}`}
                 patient={patient}
               />
             ))}
@@ -57,13 +57,13 @@ export default function PatientsPage() {
               <Plus className='w-8 h-8 text-gray-400' />
             </div>
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
-              No patients found
+              لا توجد بيانات مرضى
             </h3>
             <p className='text-gray-600 mb-6'>
-              Get started by adding your first patient to the system.
+              ابدأ بإضافة أول مريض إلى النظام.
             </p>
             <ButtonLink href='/patients/new' variant='primary' leftIcon={Plus}>
-              Add First Patient
+              إضافة أول مريض
             </ButtonLink>
           </div>
         )}

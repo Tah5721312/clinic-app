@@ -132,46 +132,46 @@ export default function DoctorDetailPage() {
       <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
-            {doctor.image && (
+            {doctor.IMAGE && (
               <div className="flex-shrink-0">
                 <img
-                  src={doctor.image}
-                  alt={doctor.name}
+                  src={doctor.IMAGE}
+                  alt={doctor.NAME}
                   className="w-32 h-32 object-cover rounded-full border-4 border-blue-100"
                 />
               </div>
             )}
             <div className="flex-grow">
-              <h3 className="text-2xl font-bold mb-2">{doctor.name}</h3>
-              <p className="text-blue-600 font-medium text-lg mb-4">{doctor.specialty}</p>
+              <h3 className="text-2xl font-bold mb-2">{doctor.NAME}</h3>
+              <p className="text-blue-600 font-medium text-lg mb-4">{doctor.SPECIALTY}</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <p className="text-gray-600">
-                    <span className="font-medium">البريد الإلكتروني:</span> {doctor.email}
+                    <span className="font-medium">البريد الإلكتروني:</span> {doctor.EMAIL}
                   </p>
                   <p className="text-gray-600">
-                    <span className="font-medium">الهاتف:</span> {doctor.phone}
+                    <span className="font-medium">الهاتف:</span> {doctor.PHONE}
                   </p>
-                  {doctor.experience && (
+                  {doctor.QUALIFICATION && (
                     <p className="text-gray-600">
-                      <span className="font-medium">سنوات الخبرة:</span> {doctor.experience}
+                      <span className="font-medium">سنوات الخبرة:</span> {doctor.QUALIFICATION}
                     </p>
                   )}
                 </div>
                 <div>
-                  {doctor.qualification && (
+                  {doctor.QUALIFICATION && (
                     <p className="text-gray-600">
-                      <span className="font-medium">المؤهلات:</span> {doctor.qualification}
+                      <span className="font-medium">المؤهلات:</span> {doctor.QUALIFICATION}
                     </p>
                   )}
                 </div>
               </div>
               
-              {doctor.bio && (
+              {doctor.BIO && (
                 <div className="mt-4">
                   <p className="font-medium mb-2">السيرة الذاتية:</p>
-                  <p className="text-gray-700">{doctor.bio}</p>
+                  <p className="text-gray-700">{doctor.BIO}</p>
                 </div>
               )}
             </div>
@@ -222,30 +222,30 @@ export default function DoctorDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-gray-600">
-                <span className="font-medium">البريد الإلكتروني:</span> {doctor.email}
+                <span className="font-medium">البريد الإلكتروني:</span> {doctor.EMAIL}
               </p>
               <p className="text-gray-600">
-                <span className="font-medium">الهاتف:</span> {doctor.phone}
+                <span className="font-medium">الهاتف:</span> {doctor.PHONE}
               </p>
             </div>
             <div>
-              {doctor.experience && (
+              {doctor.EXPERIENCE && (
                 <p className="text-gray-600">
-                  <span className="font-medium">سنوات الخبرة:</span> {doctor.experience}
+                  <span className="font-medium">سنوات الخبرة:</span> {doctor.EXPERIENCE}
                 </p>
               )}
-              {doctor.qualification && (
+              {doctor.QUALIFICATION && (
                 <p className="text-gray-600">
-                  <span className="font-medium">المؤهلات:</span> {doctor.qualification}
+                  <span className="font-medium">المؤهلات:</span> {doctor.QUALIFICATION}
                 </p>
               )}
             </div>
           </div>
           
-          {doctor.bio && (
+          {doctor.BIO && (
             <div className="mt-6">
               <h4 className="text-lg font-medium mb-2">السيرة الذاتية</h4>
-              <p className="text-gray-700">{doctor.bio}</p>
+              <p className="text-gray-700">{doctor.BIO}</p>
             </div>
           )}
         </div>
@@ -285,32 +285,32 @@ export default function DoctorDetailPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {appointments.map((appointment) => (
-                      <tr key={appointment.appointment_id}>
+                      <tr key={appointment.APPOINTMENT_ID}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">
-                            {appointment.patient_name}
+                            {appointment.PATIENT_NAME}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
-                            {new Date(appointment.schedule).toLocaleDateString('ar-SA')}
+                            {new Date(appointment.SCHEDULE).toLocaleDateString('ar-SA')}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {new Date(appointment.schedule).toLocaleTimeString('ar-SA')}
+                            {new Date(appointment.SCHEDULE).toLocaleTimeString('ar-SA')}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {appointment.reason}
+                          {appointment.REASON}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                            ${appointment.status === 'scheduled' ? 'bg-green-100 text-green-800' : ''}
-                            ${appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                            ${appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
+                            ${appointment.STATUS === 'scheduled' ? 'bg-green-100 text-green-800' : ''}
+                            ${appointment.STATUS === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                            ${appointment.STATUS === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
                           `}>
-                            {appointment.status === 'scheduled' && 'مجدول'}
-                            {appointment.status === 'pending' && 'قيد الانتظار'}
-                            {appointment.status === 'cancelled' && 'ملغي'}
+                            {appointment.STATUS === 'scheduled' && 'مجدول'}
+                            {appointment.STATUS === 'pending' && 'قيد الانتظار'}
+                            {appointment.STATUS === 'cancelled' && 'ملغي'}
                           </span>
                         </td>
                       </tr>

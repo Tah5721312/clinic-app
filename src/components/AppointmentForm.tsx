@@ -41,6 +41,15 @@ export default function AppointmentForm({
     note: '',
   });
 
+  // Update form data when props change
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      patient_id: patientId ? parseInt(patientId) : prev.patient_id,
+      doctor_id: doctorId ? parseInt(doctorId) : prev.doctor_id,
+    }));
+  }, [doctorId, patientId]);
+
   useEffect(() => {
     // Fetch doctors and patients for dropdowns
     const fetchData = async () => {
@@ -163,10 +172,10 @@ export default function AppointmentForm({
               <option value={0}>Select a patient</option>
               {patients.map((patient, index) => (
                 <option
-                  key={patient.patient_id || `patient-${index}`}
-                  value={patient.patient_id}
+                  key={patient.PATIENT_ID || `patient-${index}`}
+                  value={patient.PATIENT_ID}
                 >
-                  {patient.name} ({patient.email})
+                  {patient.NAME} ({patient.EMAIL})
                 </option>
               ))}
             </select>
@@ -192,10 +201,10 @@ export default function AppointmentForm({
               <option value={0}>Select a doctor</option>
               {doctors.map((doctor, index) => (
                 <option
-                  key={doctor.doctor_id || `doctor-${index}`}
-                  value={doctor.doctor_id}
+                  key={doctor.DOCTOR_ID || `doctor-${index}`}
+                  value={doctor.DOCTOR_ID}
                 >
-                  Dr. {doctor.name} - {doctor.specialty}
+                  Dr. {doctor.NAME} - {doctor.SPECIALTY}
                 </option>
               ))}
             </select>

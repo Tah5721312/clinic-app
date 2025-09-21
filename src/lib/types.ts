@@ -1,52 +1,53 @@
 export interface Doctor {
-  doctor_id: number;
-  name: string;
-  email: string;
-  phone: string;
-  specialty: string;
-  experience?: number;
-  qualification?: string;
-  image?: string;
-  bio?: string;
+  DOCTOR_ID: number;
+  NAME: string;
+  EMAIL: string;
+  PHONE: string;
+  SPECIALTY: string;
+  EXPERIENCE: number | null;
+  QUALIFICATION: string | null;
+  IMAGE: string | null;
+  BIO: string | null;
 }
 
 export interface Patient {
-  patient_id: number;
-  name: string;
-  email: string;
-  phone: string;
-  dateOfBirth: Date;
-  gender: string;
-  address?: string;
-  occupation?: string;
-  emergencyContactName?: string;
-  emergencyContactNumber?: string;
-  primaryPhysician?: number;
-  insuranceProvider?: string;
-  insurancePolicyNumber?: string;
-  allergies?: string;
-  currentMedication?: string;
-  familyMedicalHistory?: string;
-  pastMedicalHistory?: string;
-  identificationType?: string;
-  identificationNumber?: string;
-  privacyConsent: boolean;
-  treatmentConsent: boolean;
-  disclosureConsent: boolean;
-  primaryPhysicianName?: string;
+  PATIENT_ID: number;
+  NAME: string;
+  EMAIL: string;
+  PHONE: string;
+  DATEOFBIRTH?: Date | string | null;
+  GENDER?: string | null;
+  ADDRESS?: string | null;
+  OCCUPATION?: string | null;
+  EMERGENCYCONTACTNAME?: string | null;
+  EMERGENCYCONTACTNUMBER?: string | null;
+  PRIMARYPHYSICIAN?: number | null;
+  INSURANCEPROVIDER?: string | null;
+  INSURANCEPOLICYNUMBER?: string | null;
+  ALLERGIES?: string | null;
+  CURRENTMEDICATION?: string | null;
+  FAMILYMEDICALHISTORY?: string | null;
+  PASTMEDICALHISTORY?: string | null;
+  IDENTIFICATIONTYPE?: string | null;
+  IDENTIFICATIONNUMBER?: string | null;
+  PRIVACYCONSENT?: number | null;
+  TREATMENTCONSENT?: number | null;
+  DISCLOSURECONSENT?: number | null;
+  PRIMARYPHYSICIANNAME?: string;
 }
 
 export interface Appointment {
-  appointment_id: number;
-  patient_id: number;
-  doctor_id: number;
-  schedule: Date;
-  reason: string;
-  note?: string;
-  status: 'pending' | 'scheduled' | 'cancelled';
-  cancellationReason?: string;
-  patient_name?: string;
-  doctor_name?: string;
+  APPOINTMENT_ID: number;
+  PATIENT_ID: number;
+  DOCTOR_ID: number;
+  SCHEDULE: Date;
+  REASON: string;
+  NOTE?: string;
+  CANCELLATIONREASON?:string;
+  STATUS: 'pending' | 'scheduled' | 'cancelled';
+  CANCELLATIONRESON?: string;
+  PATIENT_NAME?: string;
+  DOCTOR_NAME?: string;
 }
 
 // أضف هذه الأنواع في lib/database.ts أو في ملف types.ts
