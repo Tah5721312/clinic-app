@@ -1,13 +1,27 @@
 import oracledb from 'oracledb';
 
 // دوال مساعدة للتعامل مع الجداول مباشرة
-import { executeQuery, executeReturningQuery } from '@/lib/database';
+import { executeQuery, executeReturningQuery, getConnection } from '@/lib/database';
 import { Patient } from '@/lib/types';
 
 /**
  * جلب جميع الأطباء
  */
-export async function getAllDoctors() {
+export async function getAllDoctors(specialty?: string) {
+  let query = `
+    SELECT DOCTOR_ID, NAME, EMAIL, PHONE, SPECIALTY, 
+           EXPERIENCE, QUALIFICATION, IMAGE, BIO 
+    FROM TAH57.DOCTORS`;
+
+  const params: oracledb.BindParameters = {};
+
+  if (specialty && specialty.trim()) {
+    query += ' WHERE LOWER(SPECIALTY) = :specialty';
+    params.specialty = specialty.toLowerCase();
+  }
+
+  query += ' ORDER BY name';
+
   return executeQuery<{
     DOCTOR_ID: number;
     NAME: string;
@@ -18,11 +32,7 @@ export async function getAllDoctors() {
     QUALIFICATION: string;
     IMAGE: string;
     BIO: string;
-  }>(`
-    SELECT DOCTOR_ID, NAME, EMAIL, PHONE, SPECIALTY, 
-           EXPERIENCE, QUALIFICATION, IMAGE, BIO 
-    FROM TAH57.DOCTORS 
-    ORDER BY name`).then((result) => result.rows);
+  }>(query, params).then((result) => result.rows);
 }
 
 /**
@@ -158,16 +168,117 @@ export async function deleteDoctor(id: number) {
 }
 
 
+
+/**
+ *    حذف طبيب مرتبط بمواعيد
+ */
+// Enhanced deleteDoctor function that handles cascading within a transaction
+export async function deleteDoctorWithTransaction(id: number, cascade: boolean = false) {
+  let connection;
+
+  try {
+    connection = await getConnection();
+
+    if (cascade) {
+      // Start transaction by disabling autoCommit
+      // Delete appointments first
+      const deleteAppointmentsResult = await connection.execute(
+        `DELETE FROM TAH57.APPOINTMENTS WHERE DOCTOR_ID = :id`,
+        { id },
+        { autoCommit: false }
+      );
+
+      console.log(`Deleted ${deleteAppointmentsResult.rowsAffected} appointments for doctor ${id}`);
+
+      // Add other related table deletions here if needed
+      // Example: DELETE FROM DOCTOR_SCHEDULES, DOCTOR_RATINGS, etc.
+
+      // Now delete the doctor
+      const deleteDoctorResult = await connection.execute(
+        `DELETE FROM TAH57.DOCTORS WHERE DOCTOR_ID = :id`,
+        { id },
+        { autoCommit: false }
+      );
+
+      // Commit the transaction
+      await connection.commit();
+
+      return {
+        rowsAffected: deleteDoctorResult.rowsAffected || 0,
+        appointmentsDeleted: deleteAppointmentsResult.rowsAffected || 0
+      };
+
+    } else {
+      // Simple delete without cascade
+      const result = await connection.execute(
+        `DELETE FROM TAH57.DOCTORS WHERE DOCTOR_ID = :id`,
+        { id },
+        { autoCommit: true }
+      );
+
+      return {
+        rowsAffected: result.rowsAffected || 0,
+        appointmentsDeleted: 0
+      };
+    }
+
+  } catch (error) {
+    // Rollback on error
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Rollback failed:', rollbackError);
+      }
+    }
+    throw error;
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (closeError) {
+        console.error('Connection close failed:', closeError);
+      }
+    }
+  }
+}
+
+
 /**
  * جلب جميع المرضى
  */
 
-export async function getAllPatients() {
-  return executeQuery<Patient>(`
+export async function getAllPatients(filters?: { doctorId?: number; specialty?: string; identificationNumber?: string }) {
+  let query = `
     SELECT p.*, d.name as PRIMARYPHYSICIANNAME 
     FROM TAH57.PATIENTS p 
-    LEFT JOIN TAH57.DOCTORS d ON p.primaryphysician = d.doctor_id 
-    ORDER BY p.name`).then((result) => result.rows);
+    LEFT JOIN TAH57.DOCTORS d ON p.primaryphysician = d.doctor_id`;
+
+  const params: oracledb.BindParameters = {};
+  const where: string[] = [];
+
+  if (filters?.doctorId) {
+    where.push('p.primaryphysician = :doctorId');
+    params.doctorId = Number(filters.doctorId);
+  }
+
+  if (filters?.specialty && filters.specialty.trim()) {
+    where.push('LOWER(d.specialty) = :specialty');
+    params.specialty = filters.specialty.toLowerCase();
+  }
+
+  if (filters?.identificationNumber && filters.identificationNumber.trim()) {
+    where.push('p.identificationnumber LIKE :identificationNumber');
+    params.identificationNumber = `%${filters.identificationNumber}%`;
+  }
+
+  if (where.length > 0) {
+    query += ` WHERE ${where.join(' AND ')}`;
+  }
+
+  query += ' ORDER BY p.name';
+
+  return executeQuery<Patient>(query, params).then((result) => result.rows);
 }
 
 
@@ -375,7 +486,7 @@ export async function updatePatient(
   // خريطة لربط أسماء الحقول بأسماء الأعمدة في قاعدة البيانات
   const fieldToColumnMap: Record<string, string> = {
     'NAME': 'NAME',
-    'EMAIL': 'EMAIL', 
+    'EMAIL': 'EMAIL',
     'PHONE': 'PHONE',
     'DATEOFBIRTH': 'DATEOFBIRTH',
     'GENDER': 'GENDER',
@@ -470,19 +581,38 @@ export async function deletePatient(id: number) {
 /**
  * جلب جميع المواعيد
  */
-export async function getAllAppointments(doctorId?: number) {
+export async function getAllAppointments(filters?: {
+  doctorId?: number;
+  specialty?: string;
+  identificationNumber?: string;
+}) {
   let query = `
-    SELECT a.*, p.name as patient_name, d.name as doctor_name 
+    SELECT a.*, p.name as patient_name, d.name as doctor_name, p.identificationnumber
     FROM TAH57.APPOINTMENTS a 
     JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
     JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
   `;
 
   const params: oracledb.BindParameters = {};
+  const where: string[] = [];
 
-  if (doctorId) {
-    query += ' WHERE a.doctor_id = :doctorId';
-    params.doctorId = doctorId;
+  if (filters?.doctorId) {
+    where.push('a.doctor_id = :doctorId');
+    params.doctorId = filters.doctorId;
+  }
+
+  if (filters?.specialty && filters.specialty.trim()) {
+    where.push('LOWER(d.specialty) = :specialty');
+    params.specialty = filters.specialty.toLowerCase();
+  }
+
+  if (filters?.identificationNumber && filters.identificationNumber.trim()) {
+    where.push('p.identificationnumber LIKE :identificationNumber');
+    params.identificationNumber = `%${filters.identificationNumber}%`;
+  }
+
+  if (where.length > 0) {
+    query += ` WHERE ${where.join(' AND ')}`;
   }
 
   query += ' ORDER BY a.schedule DESC';
@@ -664,6 +794,33 @@ export async function updateAppointment(
   ).then((result) => result.rowsAffected || 0);
 }
 
+
+/**
+ * تحديث حالة الموعد فقط - دالة منفصلة للوضوح
+ */
+export async function updateAppointmentStatus(
+  appointmentId: number,
+  status: string
+): Promise<number> {
+  try {
+    const params: oracledb.BindParameters = {
+      id: appointmentId,
+      status: status
+    };
+
+    const result = await executeQuery(
+      `UPDATE TAH57.APPOINTMENTS 
+       SET status = :status
+       WHERE appointment_id = :id`,
+      params
+    );
+
+    return result.rowsAffected || 0;
+  } catch (error) {
+    console.error('Error updating appointment status in database:', error);
+    throw error;
+  }
+}
 /**
 /**
  * حذف موعد

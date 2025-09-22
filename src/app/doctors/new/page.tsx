@@ -2,12 +2,111 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon, FileText, Save, ArrowLeft } from 'lucide-react';
+import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon, FileText, Save, ArrowLeft, Camera, X, Upload } from 'lucide-react';
+import { useSpecialties } from '@/hooks/useApiData';
+
+// File Path Input Component
+interface FilePathInputProps {
+  onFileSelect: (fileName: string, filePath: string) => void;
+  currentFileName?: string;
+}
+
+function FilePathInput({ onFileSelect, currentFileName }: FilePathInputProps) {
+  const [fileName, setFileName] = useState(currentFileName || '');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+      setSelectedFile(file);
+
+      // Generate a simple file path (you can customize this)
+      const filePath = `/images/${file.name}`;
+      onFileSelect(file.name, filePath);
+    }
+  };
+
+  const clearFile = () => {
+    setFileName('');
+    setSelectedFile(null);
+    onFileSelect('', '');
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Hidden file input */}
+      <input
+        id="doctorFileInput"
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+
+      {/* File selection area */}
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+        {fileName ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-center text-green-600">
+              <ImageIcon className="w-8 h-8 mr-2" />
+              <span className="font-medium">تم اختيار الملف</span>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm font-medium text-green-800">{fileName}</p>
+              <p className="text-xs text-green-600">المسار: /images/{fileName}</p>
+            </div>
+
+            <div className="flex justify-center space-x-2">
+              <label
+                htmlFor="doctorFileInput"
+                className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 cursor-pointer transition-colors"
+              >
+                تغيير الملف
+              </label>
+              <button
+                type="button"
+                onClick={clearFile}
+                className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <Upload className="w-12 h-12 text-gray-400 mx-auto" />
+            <div>
+              <p className="text-gray-600 mb-2">اختر صورة الطبيب</p>
+              <label
+                htmlFor="doctorFileInput"
+                className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer transition-colors"
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                اختيار ملف
+              </label>
+            </div>
+            <p className="text-xs text-gray-500">
+              سيتم حفظ مسار الملف في قاعدة البيانات
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function AddDoctorPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedFileName, setSelectedFileName] = useState('');
+  const [selectedFilePath, setSelectedFilePath] = useState('');
+
+    // ✅ جلب التخصصات من قاعدة البيانات
+  const { data: specialties, loading: specialtiesLoading, error: specialtiesError } = useSpecialties();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,14 +114,14 @@ export default function AddDoctorPage() {
     specialty: '',
     experience: '',
     qualification: '',
-    image: '',
+    image: '', // This will store the file path, not base64
     bio: ''
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // مسح الخطأ عند التعديل
     if (errors[name]) {
       setErrors(prev => {
@@ -33,30 +132,40 @@ export default function AddDoctorPage() {
     }
   };
 
+  const handleFileSelect = (fileName: string, filePath: string) => {
+    setSelectedFileName(fileName);
+    setSelectedFilePath(filePath);
+
+    // Update form data with the file path (not base64)
+    setFormData(prev => ({ ...prev, image: filePath }));
+
+    console.log('File selected:', { fileName, filePath });
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.name.trim()) newErrors.name = 'اسم الطبيب مطلوب';
     if (!formData.email.trim()) newErrors.email = 'البريد الإلكتروني مطلوب';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'صيغة البريد الإلكتروني غير صحيحة';
     if (!formData.phone.trim()) newErrors.phone = 'رقم الهاتف مطلوب';
     if (!formData.specialty.trim()) newErrors.specialty = 'التخصص مطلوب';
-    
+
     if (formData.experience && isNaN(Number(formData.experience))) {
       newErrors.experience = 'يجب أن تكون سنوات الخبرة رقماً';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
-    
+
     try {
       const response = await fetch('/api/doctors', {
         method: 'POST',
@@ -70,19 +179,17 @@ export default function AddDoctorPage() {
           specialty: formData.specialty,
           experience: formData.experience ? Number(formData.experience) : null,
           qualification: formData.qualification || null,
-          image: formData.image || null,
+          image: selectedFilePath || formData.image || null, // Send file path only
           bio: formData.bio || null
         }),
       });
-      
+
       const result = await response.json();
-      
+
       if (response.ok) {
-        // نجحت الإضافة
         alert('تم إضافة الطبيب بنجاح!');
         router.push('/doctors');
       } else {
-        // هناك خطأ
         if (result.error === 'Duplicate entry') {
           setErrors({ general: 'هذا الطبيب مسجل بالفعل (البريد الإلكتروني أو الهاتف مستخدم مسبقاً)' });
         } else {
@@ -95,38 +202,27 @@ export default function AddDoctorPage() {
       setLoading(false);
     }
   };
+  // ✅ عرض رسالة خطأ إذا فشل تحميل التخصصات
+  if (specialtiesError) {
+    console.error('Error loading specialties:', specialtiesError);
+  }
 
-  const specialties = [
-    'طب الباطنة',
-    'طب الأطفال',
-    'طب النساء والتوليد',
-    'طب الجراحة',
-    'طب العظام',
-    'طب القلب',
-    'طب الأعصاب',
-    'طب العيون',
-    'طب الأنف والأذن والحنجرة',
-    'طب الجلدية',
-    'طب الأسنان',
-    'الطب النفسي',
-    'الطب الطبيعي والتأهيل',
-    'التخدير والعناية المركزة',
-    'الأشعة',
-    'المختبرات الطبية'
-  ];
+  // ✅ تحديد التخصصات المتاحة - من قاعدة البيانات أو fallback
+  const availableSpecialties = specialties || [];
+
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* رأس الصفحة */}
       <div className="mb-8">
-        <button 
-          onClick={() => router.back()} 
+        <button
+          onClick={() => router.back()}
           className="flex items-center text-blue-600 hover:text-blue-800 mb-4 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 ml-1" />
           رجوع
         </button>
-        
+
         <h1 className="text-3xl font-bold text-gray-800 mb-2">إضافة طبيب جديد</h1>
         <p className="text-gray-600">أدخل معلومات الطبيب لإضافته إلى النظام</p>
       </div>
@@ -138,6 +234,14 @@ export default function AddDoctorPage() {
             {errors.general}
           </div>
         )}
+
+   {/* ✅ عرض رسالة تحذير إذا فشل تحميل التخصصات */}
+        {specialtiesError && (
+          <div className="bg-yellow-50 text-yellow-700 p-4 rounded-lg mb-6 border border-yellow-200">
+            تعذر تحميل التخصصات من قاعدة البيانات. يرجى المحاولة مرة أخرى.
+          </div>
+        )}
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* الاسم */}
@@ -154,9 +258,8 @@ export default function AddDoctorPage() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="أدخل اسم الطبيب الكامل"
             />
             {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
@@ -175,16 +278,22 @@ export default function AddDoctorPage() {
               name="specialty"
               value={formData.specialty}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.specialty ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.specialty ? 'border-red-500' : 'border-gray-300'
+                }`}
             >
               <option value="">اختر التخصص</option>
-              {specialties.map((spec) => (
-                <option key={spec} value={spec}>{spec}</option>
+              {(specialties && specialties.length > 0 ? specialties : []).map((spec, index) => (
+                <option key={spec || `specialty-${index}`} value={spec}>{spec}</option>
               ))}
             </select>
             {errors.specialty && <p className="text-red-500 text-sm">{errors.specialty}</p>}
+
+               {/* ✅ عرض عدد التخصصات المحملة */}
+            {!specialtiesLoading && availableSpecialties.length > 0 && (
+              <p className="text-xs text-green-600">
+                تم تحميل {availableSpecialties.length} تخصص من قاعدة البيانات
+              </p>
+            )}
           </div>
 
           {/* البريد الإلكتروني */}
@@ -201,9 +310,8 @@ export default function AddDoctorPage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.email ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="example@clinic.com"
             />
             {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
@@ -223,9 +331,8 @@ export default function AddDoctorPage() {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.phone ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="+201234567890"
             />
             {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
@@ -247,9 +354,8 @@ export default function AddDoctorPage() {
               max="50"
               value={formData.experience}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.experience ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.experience ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="عدد السنوات"
             />
             {errors.experience && <p className="text-red-500 text-sm">{errors.experience}</p>}
@@ -275,23 +381,49 @@ export default function AddDoctorPage() {
           </div>
         </div>
 
-        {/* صورة الطبيب */}
+        {/* صورة الطبيب - File Path Only */}
         <div className="mb-6">
-          <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-            <div className="flex items-center">
-              <ImageIcon className="w-4 h-4 ml-1" />
-              صورة الطبيب (رابط)
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="flex items-center">
+                <ImageIcon className="w-4 h-4 ml-1" />
+                صورة الطبيب
+              </div>
+            </label>
+            <p className="text-sm text-gray-500 mb-3">
+              اختر صورة من جهازك - سيتم حفظ مسار الملف فقط في قاعدة البيانات
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* File Path Input */}
+            <div>
+              <FilePathInput
+                onFileSelect={handleFileSelect}
+                currentFileName={selectedFileName}
+              />
             </div>
-          </label>
-          <input
-            type="url"
-            id="image"
-            name="image"
-            value={formData.image}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-            placeholder="https://example.com/doctor-image.jpg"
-          />
+
+            {/* URL Input Alternative */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">
+                أو أدخل رابط الصورة
+              </label>
+              <input
+                type="url"
+                id="image"
+                name="image"
+                value={selectedFilePath ? '' : formData.image}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="https://example.com/doctor.jpg"
+                disabled={!!selectedFilePath}
+              />
+              <p className="text-xs text-gray-500">
+                {selectedFilePath ? 'تم اختيار ملف من الجهاز' : 'أو ألصق رابط الصورة هنا'}
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* السيرة الذاتية */}

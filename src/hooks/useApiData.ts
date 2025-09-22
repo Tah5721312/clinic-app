@@ -70,16 +70,37 @@ export function useApiData<T>(
 }
 
 // Specific hooks for common endpoints
-export function useDoctors() {
-  return useApiData<Doctor[]>('/api/doctors');
+export function useDoctors(specialty?: string) {
+  const endpoint = specialty && specialty.trim()
+    ? `/api/doctors?specialty=${encodeURIComponent(specialty)}`
+    : '/api/doctors';
+  return useApiData<Doctor[]>(endpoint);
 }
 
-export function usePatients() {
-  return useApiData<Patient[]>('/api/patients');
+export function usePatients(params?: { doctorId?: number | string; specialty?: string; identificationNumber?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.doctorId) qs.set('doctorId', String(params.doctorId));
+  if (params?.specialty && params.specialty.trim()) qs.set('specialty', params.specialty);
+  if (params?.identificationNumber && params.identificationNumber.trim()) qs.set('identificationNumber', params.identificationNumber);
+  const endpoint = qs.toString() ? `/api/patients?${qs.toString()}` : '/api/patients';
+  return useApiData<Patient[]>(endpoint);
 }
 
 export function useAppointments() {
   return useApiData<Appointment[]>('/api/appointments');
+}
+
+export function useAppointmentsWithFilters(params?: {
+  doctorId?: number | string;
+  specialty?: string;
+  identificationNumber?: string;
+}) {
+  const qs = new URLSearchParams();
+  if (params?.doctorId) qs.set('doctorId', String(params.doctorId));
+  if (params?.specialty && params.specialty.trim()) qs.set('specialty', params.specialty);
+  if (params?.identificationNumber && params.identificationNumber.trim()) qs.set('identificationNumber', params.identificationNumber);
+  const endpoint = qs.toString() ? `/api/appointments?${qs.toString()}` : '/api/appointments';
+  return useApiData<Appointment[]>(endpoint);
 }
 
 export function useAppointmentsByDoctor(doctorId: number | null) {
@@ -92,4 +113,10 @@ export function useAppointmentsByPatient(patientId: number | null) {
     ? `/api/appointments?patientId=${patientId}`
     : null;
   return useApiData<Appointment[]>(endpoint || '', { enabled: !!endpoint });
+}
+
+
+
+export function useSpecialties() {
+  return useApiData<string[]>('/api/specialties');
 }

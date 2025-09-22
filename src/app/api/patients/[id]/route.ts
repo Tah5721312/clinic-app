@@ -3,24 +3,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPatientById, updatePatient, deletePatient } from '@/lib/db_utils';
 
 interface Params {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET - جلب مريض محدد
 export async function GET(request: NextRequest, { params }: Params) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const patient = await getPatientById(Number(id));
-    
+
     if (!patient) {
       return NextResponse.json(
         { error: 'Patient not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(patient);
   } catch (error) {
     console.error('Error fetching patient:', error);
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function PUT(request: NextRequest, { params }: Params) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     console.log('Received update request for patient ID:', id);
@@ -83,27 +83,27 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const rowsAffected = await updatePatient(Number(id), cleanedBody);
 
     if (rowsAffected === 0) {
-      return NextResponse.json({ 
-        error: 'No rows were updated', 
-        details: 'Patient may not exist or no changes detected' 
+      return NextResponse.json({
+        error: 'No rows were updated',
+        details: 'Patient may not exist or no changes detected'
       }, { status: 404 });
     }
 
-    return NextResponse.json({ 
-      message: 'Patient updated successfully', 
+    return NextResponse.json({
+      message: 'Patient updated successfully',
       rowsAffected,
       updatedFields: Object.keys(cleanedBody)
     });
 
   } catch (error) {
     console.error('Error updating patient:', error);
-    
+
     let errorMessage = 'Unknown error';
     let statusCode = 500;
-    
+
     if (error instanceof Error) {
       errorMessage = error.message;
-      
+
       // معالجة أخطاء Oracle المحددة
       if (error.message.includes('ORA-00904')) {
         errorMessage = 'Invalid column name in database query';
@@ -124,34 +124,53 @@ export async function PUT(request: NextRequest, { params }: Params) {
       }, { status: 400 });
     }
 
-    return NextResponse.json({ 
-      error: 'Failed to update patient', 
-      details: errorMessage 
+    return NextResponse.json({
+      error: 'Failed to update patient',
+      details: errorMessage
     }, { status: statusCode });
   }
 }
 
 
-
-// DELETE - حذف مريض
+// تغيير دالة DELETE لتصبح مثل دالة الأطباء تماماً
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
-    const { id } = params;
-    
+    const { id } = await params;
+
     const rowsAffected = await deletePatient(Number(id));
-    
+
     if (rowsAffected === 0) {
       return NextResponse.json(
         { error: 'Patient not found' },
         { status: 404 }
       );
     }
-    
-    return NextResponse.json({ message: 'Patient deleted successfully' });
-  } catch (error) {
+
+    return NextResponse.json({
+      success: true,
+      message: 'Patient deleted successfully'
+    });
+
+  } catch (error: any) {
     console.error('Error deleting patient:', error);
+
+    // Handle Foreign Key Constraint Error (Oracle error 2292)
+    if (error?.errorNum === 2292) {
+      return NextResponse.json(
+        {
+          success: false,
+          cannotDelete: true,
+          message: 'لا يمكن حذف المريض قبل حذف أو نقل المواعيد المرتبطة به'
+        },
+        { status: 200 } // Return 200 instead of error status
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Failed to delete patient' },
+      {
+        success: false,
+        message: 'Failed to delete patient'
+      },
       { status: 500 }
     );
   }

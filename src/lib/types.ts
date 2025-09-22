@@ -43,7 +43,7 @@ export interface Appointment {
   SCHEDULE: Date;
   REASON: string;
   NOTE?: string;
-  CANCELLATIONREASON?:string;
+  CANCELLATIONREASON?: string;
   STATUS: 'pending' | 'scheduled' | 'cancelled';
   CANCELLATIONRESON?: string;
   PATIENT_NAME?: string;
@@ -77,3 +77,5 @@ export interface DoctorUpdateFields {
   image?: string;
   bio?: string;
 }
+
+

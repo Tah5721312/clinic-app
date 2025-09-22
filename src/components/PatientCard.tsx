@@ -61,7 +61,7 @@ export default function PatientCard({ patient }: PatientCardProps) {
               {patient.NAME}
             </h3>
             <p className='text-gray-600 text-sm text-right'>
-              {getGenderText(patient.GENDER)} • عمره {calculateAge(patient.DATE_OF_BIRTH)} سنة
+              {getGenderText(patient.GENDER)} • عمره {calculateAge(patient.DATEOFBIRTH)} سنة
             </p>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function PatientCard({ patient }: PatientCardProps) {
               <Calendar className='w-4 h-4 ml-2 text-purple-500' />
               <span className='text-gray-500'>تاريخ الميلاد</span>
             </div>
-            <span className='text-gray-800'>{formatDate(patient.DATE_OF_BIRTH)}</span>
+            <span className='text-gray-800'>{formatDate(patient.DATEOFBIRTH)}</span>
           </div>
         </div>
 
@@ -118,7 +118,7 @@ export default function PatientCard({ patient }: PatientCardProps) {
         )}
 
         {/* Medical Info */}
-        {(patient.ALLERGIES || patient.CURRENT_MEDICATION) && (
+        {(patient.ALLERGIES || patient.CURRENTMEDICATION) && (
           <div className='border-t pt-4 mb-4'>
             {patient.ALLERGIES && (
               <div className='flex items-start justify-between text-sm text-gray-600 mb-2'>
@@ -129,56 +129,56 @@ export default function PatientCard({ patient }: PatientCardProps) {
                 <span className='text-gray-800 text-right'>{patient.ALLERGIES}</span>
               </div>
             )}
-            {patient.CURRENT_MEDICATION && (
+            {patient.CURRENTMEDICATION && (
               <div className='flex items-start justify-between text-sm text-gray-600'>
                 <div className='flex items-start'>
                   <Pill className='w-4 h-4 ml-2 text-blue-500 mt-0.5' />
                   <span className='text-gray-500'>الأدوية الحالية</span>
                 </div>
-                <span className='text-gray-800 text-right'>{patient.CURRENT_MEDICATION}</span>
+                <span className='text-gray-800 text-right'>{patient.CURRENTMEDICATION}</span>
               </div>
             )}
           </div>
         )}
 
         {/* Emergency Contact */}
-        {(patient.EMERGENCY_CONTACT_NAME || patient.EMERGENCY_CONTACT_NUMBER) && (
+        {(patient.EMERGENCYCONTACTNAME || patient.EMERGENCYCONTACTNUMBER) && (
           <div className='border-t pt-4 mb-4'>
             <div className='flex items-center mb-2 text-sm font-medium text-gray-700'>
               <Heart className='w-4 h-4 ml-2 text-red-500' />
               جهة الاتصال في الطوارئ
             </div>
-            {patient.EMERGENCY_CONTACT_NAME && (
-              <p className='text-sm text-gray-600 mb-1 text-right'>{patient.EMERGENCY_CONTACT_NAME}</p>
+            {patient.EMERGENCYCONTACTNAME && (
+              <p className='text-sm text-gray-600 mb-1 text-right'>{patient.EMERGENCYCONTACTNAME}</p>
             )}
-            {patient.EMERGENCY_CONTACT_NUMBER && (
-              <p dir="ltr" className='text-sm text-gray-600 text-right'>{patient.EMERGENCY_CONTACT_NUMBER}</p>
+            {patient.EMERGENCYCONTACTNUMBER && (
+              <p dir="ltr" className='text-sm text-gray-600 text-right'>{patient.EMERGENCYCONTACTNUMBER}</p>
             )}
           </div>
         )}
 
         {/* Insurance Info */}
-        {(patient.INSURANCE_PROVIDER || patient.INSURANCE_POLICY_NUMBER) && (
+        {(patient.INSURANCEPROVIDER || patient.INSURANCEPOLICYNUMBER) && (
           <div className='border-t pt-4 mb-4'>
             <div className='flex items-center mb-2 text-sm font-medium text-gray-700'>
               <FileText className='w-4 h-4 ml-2 text-green-500' />
               معلومات التأمين
             </div>
-            {patient.INSURANCE_PROVIDER && (
-              <p className='text-sm text-gray-600 mb-1 text-right'>{patient.INSURANCE_PROVIDER}</p>
+            {patient.INSURANCEPROVIDER && (
+              <p className='text-sm text-gray-600 mb-1 text-right'>{patient.INSURANCEPROVIDER}</p>
             )}
-            {patient.INSURANCE_POLICY_NUMBER && (
-              <p className='text-sm text-gray-600 text-right'>{patient.INSURANCE_POLICY_NUMBER}</p>
+            {patient.INSURANCEPOLICYNUMBER && (
+              <p className='text-sm text-gray-600 text-right'>{patient.INSURANCEPOLICYNUMBER}</p>
             )}
           </div>
         )}
 
         {/* Primary Physician */}
-        {patient.PRIMARY_PHYSICIAN_NAME && (
+        {patient.PRIMARYPHYSICIANNAME && (
           <div className='border-t pt-4 mb-4'>
             <p className='text-sm text-gray-600'>
               <span className='font-medium text-gray-700'>الطبيب المعالج:</span>{' '}
-              <span className='text-right'>{patient.PRIMARY_PHYSICIAN_NAME}</span>
+              <span className='text-right'>{patient.PRIMARYPHYSICIANNAME}</span>
             </p>
           </div>
         )}

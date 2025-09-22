@@ -1,21 +1,47 @@
 'use client';
 
-import { Calendar, Clock, FileText, Plus, User } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { Appointment } from '@/lib/types';
-import { useAppointments } from '@/hooks/useApiData';
+import { useAppointmentsWithFilters, useDoctors, useSpecialties } from '@/hooks/useApiData';
 
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import ButtonLink from '@/components/links/ButtonLink';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function AppointmentsPage() {
-  const { data: appointments, loading, error, refetch } = useAppointments();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialSpecialty = searchParams.get('specialty') || '';
+  const initialDoctorId = searchParams.get('doctorId') || '';
+  const initialIdentificationNumber = searchParams.get('identificationNumber') || '';
+
+  const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty);
+  const [selectedDoctorId, setSelectedDoctorId] = useState(initialDoctorId);
+  const [identificationNumber, setIdentificationNumber] = useState(initialIdentificationNumber);
   const [filter, setFilter] = useState<
     'all' | 'pending' | 'scheduled' | 'cancelled'
   >('all');
+
+  const { data: appointments, loading, error, refetch } = useAppointmentsWithFilters({
+    doctorId: initialDoctorId || undefined,
+    specialty: initialSpecialty || undefined,
+    identificationNumber: initialIdentificationNumber || undefined,
+  });
+  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
+  const { data: specialties } = useSpecialties();
+
+  useEffect(() => {
+    const s = searchParams.get('specialty') || '';
+    const d = searchParams.get('doctorId') || '';
+    const i = searchParams.get('identificationNumber') || '';
+    setSelectedSpecialty(s);
+    setSelectedDoctorId(d);
+    setIdentificationNumber(i);
+  }, [searchParams]);
 
   const filteredAppointments =
     appointments?.filter((appointment: Appointment) => {
@@ -96,13 +122,101 @@ export default function AppointmentsPage() {
               Manage and view all appointments
             </p>
           </div>
-          <ButtonLink
-            href='/appointments/new'
-            variant='primary'
-            leftIcon={Plus}
-          >
-            Book New Appointment
-          </ButtonLink>
+          <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
+            <div className='flex items-center gap-2'>
+              <div className='relative w-full sm:w-56'>
+                <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
+                  <Stethoscope className='w-4 h-4' />
+                </span>
+                <select
+                  id='specialtyFilter'
+                  value={selectedSpecialty}
+                  onChange={(e) => {
+                    setSelectedSpecialty(e.target.value);
+                    setSelectedDoctorId('');
+                  }}
+                  className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                >
+                  <option value=''>اختر التخصص</option>
+                  {(specialties && specialties.length > 0 ? specialties : []).map((spec, index) => (
+                    <option key={spec || `specialty-${index}`} value={spec}>{spec}</option>
+                  ))}
+                </select>
+              </div>
+              <div className='relative w-full sm:w-56'>
+                <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
+                  <User className='w-4 h-4' />
+                </span>
+                <select
+                  id='doctorFilter'
+                  value={selectedDoctorId}
+                  onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  disabled={!selectedSpecialty}
+                >
+                  <option value=''>اختر الطبيب</option>
+                  {(doctors || []).map((d) => (
+                    <option key={d.DOCTOR_ID} value={d.DOCTOR_ID}>
+                      {d.NAME}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className='relative w-full sm:w-64'>
+                <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
+                  <Search className='w-4 h-4' />
+                </span>
+                <input
+                  type='text'
+                  placeholder='الرقم القومى'
+                  value={identificationNumber}
+                  onChange={(e) => setIdentificationNumber(e.target.value)}
+                  className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                />
+              </div>
+              <button
+                onClick={() => {
+                  const sp = new URLSearchParams(Array.from(searchParams.entries()));
+                  if (selectedSpecialty) sp.set('specialty', selectedSpecialty); else sp.delete('specialty');
+                  if (selectedDoctorId) sp.set('doctorId', selectedDoctorId); else sp.delete('doctorId');
+                  if (identificationNumber && identificationNumber.trim()) sp.set('identificationNumber', identificationNumber.trim()); else sp.delete('identificationNumber');
+                  const query = sp.toString();
+                  router.push(query ? `?${query}` : '?', { scroll: false });
+                }}
+                className='inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                title='بحث'
+              >
+                <Search className='w-4 h-4 ml-1' />
+                <span>بحث</span>
+              </button>
+              {(selectedSpecialty || selectedDoctorId || identificationNumber) && (
+                <button
+                  onClick={() => {
+                    setSelectedSpecialty('');
+                    setSelectedDoctorId('');
+                    setIdentificationNumber('');
+                    const sp = new URLSearchParams(Array.from(searchParams.entries()));
+                    sp.delete('specialty');
+                    sp.delete('doctorId');
+                    sp.delete('identificationNumber');
+                    const query = sp.toString();
+                    router.push(query ? `?${query}` : '?', { scroll: false });
+                  }}
+                  className='inline-flex items-center px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
+                  title='مسح'
+                >
+                  ALL
+                </button>
+              )}
+            </div>
+            <ButtonLink
+              href='/appointments/new'
+              variant='primary'
+              leftIcon={Plus}
+            >
+              Book New Appointment
+            </ButtonLink>
+          </div>
         </div>
 
         {/* Filter Tabs */}
@@ -113,8 +227,8 @@ export default function AppointmentsPage() {
                 key={status}
                 onClick={() => setFilter(status)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === status
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}

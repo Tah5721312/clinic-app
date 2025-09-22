@@ -1,26 +1,27 @@
 // app/api/doctors/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getDoctorById, updateDoctor, deleteDoctor } from '@/lib/db_utils';
+import { getDoctorById, updateDoctor, deleteDoctor, deleteDoctorWithTransaction } from '@/lib/db_utils';
+import { executeQuery } from '@/lib/database';
 
 interface Params {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET - جلب طبيب محدد
 export async function GET(request: NextRequest, { params }: Params) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const doctor = await getDoctorById(Number(id));
-    
+
     if (!doctor) {
       return NextResponse.json(
         { error: 'Doctor not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(doctor);
   } catch (error) {
     console.error('Error fetching doctor:', error);
@@ -37,9 +38,9 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function PUT(request: NextRequest, { params }: Params) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
-    
+
     // التحقق من أن الـ ID صحيح
     if (isNaN(Number(id))) {
       return NextResponse.json(
@@ -47,7 +48,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
         { status: 400 }
       );
     }
-    
+
     // التحقق من وجود حقول للتحديث
     if (Object.keys(body).length === 0) {
       return NextResponse.json(
@@ -55,7 +56,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
         { status: 400 }
       );
     }
-    
+
     // التحقق من صحة البريد الإلكتروني إذا كان موجوداً
     if (body.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -66,53 +67,53 @@ export async function PUT(request: NextRequest, { params }: Params) {
         );
       }
     }
-    
+
     const rowsAffected = await updateDoctor(Number(id), body);
-    
+
     if (rowsAffected === 0) {
       return NextResponse.json(
         { error: 'Doctor not found or no changes made' },
         { status: 404 }
       );
     }
-    
-    return NextResponse.json({ 
+
+    return NextResponse.json({
       success: true,
       message: 'Doctor updated successfully',
-      rowsAffected 
+      rowsAffected
     });
-    
+
   } catch (error: unknown) {
     console.error('Error updating doctor:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+
     // التحقق إذا كان الخطأ بسبب تكرار بيانات
     if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
       return NextResponse.json(
-        { 
+        {
           error: 'Duplicate entry',
-          details: 'A doctor with this email or phone already exists' 
+          details: 'A doctor with this email or phone already exists'
         },
         { status: 409 }
       );
     }
-    
+
     // التحقق إذا كان الخطأ بسبب عدم وجود حقول للتحديث
     if (errorMessage.includes('No fields to update')) {
       return NextResponse.json(
-        { 
+        {
           error: 'No fields to update',
-          details: 'Please provide at least one field to update' 
+          details: 'Please provide at least one field to update'
         },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to update doctor',
-        details: errorMessage 
+        details: errorMessage
       },
       { status: 500 }
     );
@@ -120,24 +121,46 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // DELETE - حذف طبيب
+// src/app/api/doctors/[id]/route.ts - Modified DELETE function
+
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
-    const { id } = params;
-    
+    const { id } = await params;
+
     const rowsAffected = await deleteDoctor(Number(id));
-    
+
     if (rowsAffected === 0) {
       return NextResponse.json(
         { error: 'Doctor not found' },
         { status: 404 }
       );
     }
-    
-    return NextResponse.json({ message: 'Doctor deleted successfully' });
-  } catch (error) {
+
+    return NextResponse.json({
+      success: true,
+      message: 'Doctor deleted successfully'
+    });
+
+  } catch (error: any) {
     console.error('Error deleting doctor:', error);
+
+    if (error?.errorNum === 2292) {
+      // Return success response with constraint message instead of error
+      return NextResponse.json(
+        {
+          success: false,
+          cannotDelete: true,
+          message: 'لا يمكن الحذف قبل حذف المواعيد المرتبطة بالدكتور'
+        },
+        { status: 200 } // Return 200 instead of error status
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Failed to delete doctor' },
+      {
+        success: false,
+        message: 'Failed to delete doctor'
+      },
       { status: 500 }
     );
   }

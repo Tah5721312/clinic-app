@@ -4,18 +4,20 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon, FileText, Save, ArrowLeft, Loader } from 'lucide-react';
 import { Doctor } from '@/lib/types';
+import { useSpecialties } from '@/hooks/useApiData';
 
 
 export default function EditDoctorPage() {
   const router = useRouter();
   const params = useParams();
   const doctorId = params.id as string;
-  
+
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [doctor, setDoctor] = useState<Doctor | null>(null);
-  
+  const { data: specialties } = useSpecialties();
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -33,14 +35,14 @@ export default function EditDoctorPage() {
       try {
         setLoading(true);
         const response = await fetch(`/api/doctors/${doctorId}`);
-        
+
         if (!response.ok) {
           throw new Error('فشل في تحميل بيانات الطبيب');
         }
-        
+
         const doctorData: Doctor = await response.json();
         setDoctor(doctorData);
-        
+
         // تعبئة النموذج ببيانات الطبيب
         setFormData({
           name: doctorData.NAME || '',
@@ -67,7 +69,7 @@ export default function EditDoctorPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // مسح الخطأ عند التعديل
     if (errors[name]) {
       setErrors(prev => {
@@ -80,28 +82,28 @@ export default function EditDoctorPage() {
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!formData.name.trim()) newErrors.name = 'اسم الطبيب مطلوب';
     if (!formData.email.trim()) newErrors.email = 'البريد الإلكتروني مطلوب';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'صيغة البريد الإلكتروني غير صحيحة';
     if (!formData.phone.trim()) newErrors.phone = 'رقم الهاتف مطلوب';
     if (!formData.specialty.trim()) newErrors.specialty = 'التخصص مطلوب';
-    
+
     if (formData.experience && isNaN(Number(formData.experience))) {
       newErrors.experience = 'يجب أن تكون سنوات الخبرة رقماً';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setUpdating(true);
-    
+
     try {
       const response = await fetch(`/api/doctors/${doctorId}`, {
         method: 'PUT',
@@ -119,9 +121,9 @@ export default function EditDoctorPage() {
           bio: formData.bio || null
         }),
       });
-      
+
       const result = await response.json();
-      
+
       if (response.ok) {
         // نجح التحديث
         alert('تم تحديث بيانات الطبيب بنجاح!');
@@ -143,24 +145,6 @@ export default function EditDoctorPage() {
     }
   };
 
-  const specialties = [
-    'طب الباطنة',
-    'طب الأطفال',
-    'طب النساء والتوليد',
-    'طب الجراحة',
-    'طب العظام',
-    'طب القلب',
-    'طب الأعصاب',
-    'طب العيون',
-    'طب الأنف والأذن والحنجرة',
-    'طب الجلدية',
-    'طب الأسنان',
-    'الطب النفسي',
-    'الطب الطبيعي والتأهيل',
-    'التخدير والعناية المركزة',
-    'الأشعة',
-    'المختبرات الطبية'
-  ];
 
   if (loading) {
     return (
@@ -179,8 +163,8 @@ export default function EditDoctorPage() {
         <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200">
           <p>لم يتم العثور على الطبيب المطلوب</p>
         </div>
-        <button 
-          onClick={() => router.push('/doctors')} 
+        <button
+          onClick={() => router.push('/doctors')}
           className="mt-4 flex items-center text-blue-600 hover:text-blue-800 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 ml-1" />
@@ -194,14 +178,14 @@ export default function EditDoctorPage() {
     <div className="max-w-4xl mx-auto p-6">
       {/* رأس الصفحة */}
       <div className="mb-8">
-        <button 
-          onClick={() => router.push('/doctors')} 
+        <button
+          onClick={() => router.push('/doctors')}
           className="flex items-center text-blue-600 hover:text-blue-800 mb-4 transition-colors"
         >
           <ArrowLeft className="w-5 h-5 ml-1" />
           العودة إلى قائمة الأطباء
         </button>
-        
+
         <h1 className="text-3xl font-bold text-gray-800 mb-2">تعديل بيانات الطبيب</h1>
         <p className="text-gray-600">قم بتعديل معلومات الطبيب {doctor.NAME}</p>
       </div>
@@ -229,9 +213,8 @@ export default function EditDoctorPage() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="أدخل اسم الطبيب الكامل"
             />
             {errors.name && <p className="text-red-500 text-sm">{errors.name}</p>}
@@ -250,13 +233,12 @@ export default function EditDoctorPage() {
               name="specialty"
               value={formData.specialty}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.specialty ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.specialty ? 'border-red-500' : 'border-gray-300'
+                }`}
             >
               <option value="">اختر التخصص</option>
-              {specialties.map((spec) => (
-                <option key={spec} value={spec}>{spec}</option>
+              {(specialties && specialties.length > 0 ? specialties : []).map((spec, index) => (
+                <option key={spec || `specialty-${index}`} value={spec}>{spec}</option>
               ))}
             </select>
             {errors.specialty && <p className="text-red-500 text-sm">{errors.specialty}</p>}
@@ -276,9 +258,8 @@ export default function EditDoctorPage() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.email ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="example@clinic.com"
             />
             {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
@@ -298,9 +279,8 @@ export default function EditDoctorPage() {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.phone ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="+201234567890"
             />
             {errors.phone && <p className="text-red-500 text-sm">{errors.phone}</p>}
@@ -322,9 +302,8 @@ export default function EditDoctorPage() {
               max="50"
               value={formData.experience}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                errors.experience ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.experience ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="عدد السنوات"
             />
             {errors.experience && <p className="text-red-500 text-sm">{errors.experience}</p>}

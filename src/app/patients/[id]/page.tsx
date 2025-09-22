@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Mail, Phone, Calendar, FileText, User, Clock, AlertCircle } from 'lucide-react';
+import { Mail, Phone, Calendar, FileText, User, Clock, AlertCircle, Trash2, Edit } from 'lucide-react';
 import { Appointment, Patient } from '@/lib/types';
 
 interface LoadingSpinnerProps {
@@ -39,7 +39,7 @@ const ButtonLink: React.FC<ButtonLinkProps> = ({ href, children, variant, onClic
     outline: "border border-gray-300 text-gray-700 hover:bg-gray-100",
     danger: "bg-red-600 hover:bg-red-700 text-white",
   };
-  
+
   if (onClick) {
     return (
       <button onClick={onClick} className={`${baseStyle} ${variants[variant]}`}>
@@ -47,7 +47,7 @@ const ButtonLink: React.FC<ButtonLinkProps> = ({ href, children, variant, onClic
       </button>
     );
   }
-  
+
   return (
     <a href={href} className={`${baseStyle} ${variants[variant]}`}>
       {children}
@@ -76,28 +76,30 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({ error, onRetry }) => {
 export default function PatientDetailPage() {
   const params = useParams();
   const patientId = params?.id as string;
-  
+
   const [patient, setPatient] = useState<Patient | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'details' | 'appointments'>('details');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingAppointment, setDeletingAppointment] = useState<number | null>(null);
+  const [cancellingAppointment, setCancellingAppointment] = useState<number | null>(null);
 
   const fetchPatientData = useCallback(async () => {
     if (!patientId) return;
-    
+
     try {
       setLoading(true);
       setError('');
-      
+
       const response = await fetch(`/api/patients/${patientId}`);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || `HTTP ${response.status}: فشل في تحميل بيانات المريض`);
       }
-      
+
       const patientData = await response.json();
       setPatient(patientData);
     } catch (err) {
@@ -111,11 +113,10 @@ export default function PatientDetailPage() {
 
   const fetchAppointments = useCallback(async () => {
     if (!patientId) return;
-    
+
     try {
-      // Fixed: Use appointments endpoint instead of patient endpoint
       const response = await fetch(`/api/appointments?patientId=${patientId}`);
-      
+
       if (response.ok) {
         const appointmentsData = await response.json();
         setAppointments(Array.isArray(appointmentsData) ? appointmentsData : []);
@@ -147,44 +148,119 @@ export default function PatientDetailPage() {
         method: 'DELETE',
       });
 
-      if (response.ok) {
-        alert('تم حذف المريض بنجاح');
-        window.location.href = '/patients';
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'فشل في حذف المريض');
+      const data = await response.json();
+
+      // Check if deletion was blocked due to constraints
+      if (data.cannotDelete) {
+        alert(data.message); // Show constraint message
+        return; // Exit without error
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ أثناء حذف المريض';
-      alert(errorMessage);
-      console.error('Delete error:', err);
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to delete patient');
+      }
+
+      alert('تم حذف المريض بنجاح');
+      window.location.href = '/patients';
+
+    } catch (err: any) {
+      console.error('Error deleting patient:', err);
+      alert('حدث خطأ أثناء حذف المريض');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleCancelAppointment = async (appointmentId: string) => {
+  // const handleCancelAppointment = async (appointmentId: string) => {
+  //   if (!window.confirm('هل تريد إلغاء هذا الموعد؟')) return;
+
+  //   try {
+  //     const response = await fetch(`/api/appointments/${appointmentId}`, {
+  //       method: 'PATCH',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({ status: 'cancelled' }),
+  //     });
+
+  //     if (response.ok) {
+  //       fetchAppointments();
+  //       alert('تم إلغاء الموعد بنجاح');
+  //     } else {
+  //       throw new Error('فشل في إلغاء الموعد');
+  //     }
+  //   } catch (err) {
+  //     alert('حدث خطأ أثناء إلغاء الموعد');
+  //     console.error('Cancel appointment error:', err);
+  //   }
+  // };
+
+
+  /**
+   * دالة إلغاء الموعد - محسنة مع معالجة أفضل للأخطاء
+   */
+  const handleCancelAppointment = async (appointmentId: number) => {
     if (!window.confirm('هل تريد إلغاء هذا الموعد؟')) return;
 
     try {
+      setCancellingAppointment(appointmentId);
       const response = await fetch(`/api/appointments/${appointmentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'cancelled' }),
+        body: JSON.stringify({
+          status: 'cancelled'
+        }),
       });
 
-      if (response.ok) {
-        // Refresh appointments
-        fetchAppointments();
-        alert('تم إلغاء الموعد بنجاح');
-      } else {
-        throw new Error('فشل في إلغاء الموعد');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}: Failed to cancel appointment`);
       }
+
+      // تحديث قائمة المواعيد
+      if (typeof fetchAppointments === 'function') {
+        fetchAppointments();
+      }
+
+      alert('تم إلغاء الموعد بنجاح');
+
+      return data;
+
     } catch (err) {
-      alert('حدث خطأ أثناء إلغاء الموعد');
       console.error('Cancel appointment error:', err);
+      alert(`حدث خطأ أثناء إلغاء الموعد: ${err instanceof Error ? err.message : 'خطأ غير معروف'}`);
+      throw err;
+    } finally {
+      setCancellingAppointment(null);
+    }
+  };
+
+
+  const handleDeleteAppointment = async (appointmentId: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الموعد؟')) return;
+
+    setDeletingAppointment(appointmentId);
+
+    try {
+      const response = await fetch(`/api/appointments/${appointmentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete appointment');
+      }
+
+      setAppointments(prev => prev.filter(apt => apt.APPOINTMENT_ID !== appointmentId));
+      alert('تم حذف الموعد بنجاح');
+
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      alert('حدث خطأ أثناء حذف الموعد');
+    } finally {
+      setDeletingAppointment(null);
     }
   };
 
@@ -253,11 +329,11 @@ export default function PatientDetailPage() {
       const today = new Date();
       let age = today.getFullYear() - birth.getFullYear();
       const monthDiff = today.getMonth() - birth.getMonth();
-      
+
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
         age--;
       }
-      
+
       return age >= 0 ? `${age} سنة` : '';
     } catch {
       return '';
@@ -299,11 +375,11 @@ export default function PatientDetailPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <ButtonLink href={`/patients/${patientId}/edit`} variant="primary">
-           تعديل
+            تعديل
           </ButtonLink>
-          <ButtonLink 
-            href="#" 
-            variant="danger" 
+          <ButtonLink
+            href="#"
+            variant="danger"
             onClick={handleDelete}
           >
             {isDeleting ? 'جاري الحذف...' : 'حذف المريض'}
@@ -333,7 +409,7 @@ export default function PatientDetailPage() {
                   {patient.EMAIL && (
                     <p className="text-gray-600 flex items-center mb-2">
                       <Mail className="w-4 h-4 ml-2" />
-                      <span className="font-medium">البريد الإلكتروني:</span> 
+                      <span className="font-medium">البريد الإلكتروني:</span>
                       <a href={`mailto:${patient.EMAIL}`} className="text-blue-600 hover:underline mr-1">
                         {patient.EMAIL}
                       </a>
@@ -342,7 +418,7 @@ export default function PatientDetailPage() {
                   {patient.PHONE && (
                     <p className="text-gray-600 flex items-center mb-2">
                       <Phone className="w-4 h-4 ml-2" />
-                      <span className="font-medium">الهاتف:</span> 
+                      <span className="font-medium">الهاتف:</span>
                       <a href={`tel:${patient.PHONE}`} className="text-blue-600 hover:underline mr-1">
                         {patient.PHONE}
                       </a>
@@ -351,7 +427,7 @@ export default function PatientDetailPage() {
                   {patient.DATEOFBIRTH && (
                     <p className="text-gray-600 flex items-center mb-2">
                       <Calendar className="w-4 h-4 ml-2" />
-                      <span className="font-medium">تاريخ الميلاد:</span> 
+                      <span className="font-medium">تاريخ الميلاد:</span>
                       {formatDate(patient.DATEOFBIRTH)}
                       {calculateAge(patient.DATEOFBIRTH) && (
                         <span className="text-sm text-gray-500 mr-2">
@@ -389,11 +465,10 @@ export default function PatientDetailPage() {
         <nav className="flex space-x-8" role="tablist">
           <button
             onClick={() => setActiveTab('details')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'details'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'details'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
             role="tab"
             aria-selected={activeTab === 'details'}
           >
@@ -401,11 +476,10 @@ export default function PatientDetailPage() {
           </button>
           <button
             onClick={() => setActiveTab('appointments')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === 'appointments'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'appointments'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
             role="tab"
             aria-selected={activeTab === 'appointments'}
           >
@@ -418,7 +492,7 @@ export default function PatientDetailPage() {
       {activeTab === 'details' && (
         <div className="bg-white rounded-lg shadow-md p-6">
           <h3 className="text-xl font-bold mb-4">معلومات مفصلة</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h4 className="text-lg font-medium mb-3">معلومات الاتصال</h4>
@@ -426,7 +500,7 @@ export default function PatientDetailPage() {
                 {patient.EMAIL && (
                   <p className="text-gray-600 flex items-center">
                     <Mail className="w-4 h-4 ml-2" />
-                    <span className="font-medium">البريد الإلكتروني:</span> 
+                    <span className="font-medium">البريد الإلكتروني:</span>
                     <a href={`mailto:${patient.EMAIL}`} className="text-blue-600 hover:underline mr-1">
                       {patient.EMAIL}
                     </a>
@@ -435,7 +509,7 @@ export default function PatientDetailPage() {
                 {patient.PHONE && (
                   <p className="text-gray-600 flex items-center">
                     <Phone className="w-4 h-4 ml-2" />
-                    <span className="font-medium">الهاتف:</span> 
+                    <span className="font-medium">الهاتف:</span>
                     <a href={`tel:${patient.PHONE}`} className="text-blue-600 hover:underline mr-1">
                       {patient.PHONE}
                     </a>
@@ -455,14 +529,14 @@ export default function PatientDetailPage() {
                 )}
               </div>
             </div>
-            
+
             <div>
               <h4 className="text-lg font-medium mb-3">المعلومات الشخصية</h4>
               <div className="space-y-2">
                 {patient.DATEOFBIRTH && (
                   <p className="text-gray-600 flex items-center">
                     <Calendar className="w-4 h-4 ml-2" />
-                    <span className="font-medium">تاريخ الميلاد:</span> 
+                    <span className="font-medium">تاريخ الميلاد:</span>
                     {formatDate(patient.DATEOFBIRTH)}
                     {calculateAge(patient.DATEOFBIRTH) && (
                       <span className="text-sm text-gray-500 mr-2">
@@ -554,12 +628,15 @@ export default function PatientDetailPage() {
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">مواعيد المريض</h3>
+              <h3 className="text-xl font-bold">
+                مواعيد المريض
+                <span className="text-sm text-gray-500 mr-2">({appointments.length} مواعيد)</span>
+              </h3>
               <ButtonLink href={`/appointments/new?patientId=${patientId}`} variant="primary">
                 حجز موعد جديد
               </ButtonLink>
             </div>
-            
+
             {appointments.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -607,18 +684,56 @@ export default function PatientDetailPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-2">
+                            {/* View Details Link */}
                             <a
                               href={`/appointments/${appointment.APPOINTMENT_ID}`}
-                              className="text-blue-600 hover:text-blue-900 hover:underline"
+                              className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded"
+                              title="عرض التفاصيل"
                             >
-                              عرض التفاصيل
+                              <FileText className="w-4 h-4" />
                             </a>
+
+                            {/* Edit Appointment Button */}
+                            <a
+                              href={`/appointments/${appointment.APPOINTMENT_ID}/edit`}
+                              className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded"
+                              title="تعديل الموعد"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </a>
+
+                            {/* Delete Appointment Button */}
+                            <button
+                              onClick={() => handleDeleteAppointment(appointment.APPOINTMENT_ID)}
+                              disabled={deletingAppointment === appointment.APPOINTMENT_ID}
+                              className="text-red-600 hover:text-red-900 transition-colors p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="حذف الموعد"
+                            >
+                              {deletingAppointment === appointment.APPOINTMENT_ID ? (
+                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+
+                            {/* Cancel Appointment Button (Legacy) */}
                             {appointment.STATUS === 'scheduled' && (
                               <button
-                                onClick={() => handleCancelAppointment(appointment.APPOINTMENT_ID.toString())}
-                                className="text-red-600 hover:text-red-900 hover:underline"
+                                onClick={() => handleCancelAppointment(appointment.APPOINTMENT_ID)}
+                                disabled={cancellingAppointment === appointment.APPOINTMENT_ID}
+                                className={`
+                                  text-xs px-3 py-1 rounded-full border transition-colors
+                                  ${cancellingAppointment === appointment.APPOINTMENT_ID
+                                    ? 'bg-orange-100 text-orange-400 border-orange-200 cursor-not-allowed opacity-70'
+                                    : 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100'}
+                                `}
+                                title="إلغاء الموعد"
                               >
-                                إلغاء
+                                {cancellingAppointment === appointment.APPOINTMENT_ID ? (
+                                  <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  'إلغاء'
+                                )}
                               </button>
                             )}
                           </div>
@@ -629,10 +744,12 @@ export default function PatientDetailPage() {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg mb-2">لا توجد مواعيد لهذا المريض</p>
-                <p className="text-sm mb-4">يمكنك حجز أول موعد للمريض</p>
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <Calendar className="w-16 h-16 mx-auto" />
+                </div>
+                <p className="text-gray-500 text-lg mb-4">لا توجد مواعيد لهذا المريض</p>
+                <p className="text-sm mb-4 text-gray-400">يمكنك حجز أول موعد للمريض</p>
                 <ButtonLink href={`/appointments/new?patientId=${patientId}`} variant="primary">
                   حجز أول موعد
                 </ButtonLink>
