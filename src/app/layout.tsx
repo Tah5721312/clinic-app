@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   // !STARTERCONF this is the default favicon, you can generate your own from https://realfavicongenerator.net/
   // ! copy to /favicon folder
   icons: {
-    icon: '/favicon/favicon.ico',
+    icon: '/favicon/favicon.png',
     shortcut: '/favicon/favicon-512x512.png',
     apple: '/favicon/favicon-192x192.png',
   },

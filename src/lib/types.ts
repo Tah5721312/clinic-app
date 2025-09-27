@@ -79,3 +79,62 @@ export interface DoctorUpdateFields {
 }
 
 
+
+// ************* users types *************
+
+export interface RegisterUserDto {
+    username: string;
+    email: string;
+    password: string;
+}
+
+export interface LoginUserDto {
+    email: string;
+    password: string;
+}
+
+export interface UpdateUserDto {
+    username?: string;
+    email?: string;
+    password?: string;
+}
+
+
+
+export interface UserFromDB {
+  ID: number;
+  USERNAME: string;
+  EMAIL: string;
+  PASSWORD?: string;
+  ISADMIN?: number;
+  CREATED_AT?: Date;
+}
+
+// نوع البيانات الراجعة من الـ JWT
+export interface JwtPayload {
+  id: number;
+  username: string;
+  isAdmin: boolean;
+  iat?: number;
+  exp?: number;
+}
+
+
+// JWT Payload زي ما انت كاتب بالظبط
+export type JWTPayload = {
+    id: number;
+    isAdmin: boolean;
+    username: string;
+  };
+  
+
+    export type UploadedImage = {
+    RKM_MLF: number;
+    SERIAL: number;
+    NAME: string;
+    IMAGENAME: string;
+    FILE_PATH: string;
+    IMAGE_NUMBER: number;
+    CREATED_AT: Date;
+  }
+  

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Doctor, Appointment } from '@/lib/types';
 import { Camera, X, Upload, Trash2, Edit } from 'lucide-react';
+import { DOMAIN } from '@/lib/constants';
 
 // Image Edit Modal Component
 interface ImageEditModalProps {
@@ -187,7 +188,7 @@ export default function DoctorDetailPage() {
 
   const fetchDoctor = async () => {
     try {
-      const response = await fetch(`/api/doctors/${doctorId}`);
+      const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch doctor details');
       }
@@ -203,7 +204,7 @@ export default function DoctorDetailPage() {
 
   const fetchDoctorAppointments = async () => {
     try {
-      const response = await fetch(`/api/appointments?doctorId=${doctorId}`);
+      const response = await fetch(`${DOMAIN}/api/appointments?doctorId=${doctorId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch appointments');
       }
@@ -216,7 +217,7 @@ export default function DoctorDetailPage() {
 
   const handleImageUpdate = async (newImagePath: string) => {
     try {
-      const response = await fetch(`/api/doctors/${doctorId}`, {
+      const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -247,7 +248,7 @@ export default function DoctorDetailPage() {
     if (!confirm('هل أنت متأكد من حذف هذا الطبيب؟')) return;
     
     try {
-      const response = await fetch(`/api/doctors/${doctorId}`, {
+      const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}`, {
         method: 'DELETE',
       });
       
@@ -279,7 +280,7 @@ export default function DoctorDetailPage() {
     setDeletingAppointment(appointmentId);
     
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
+      const response = await fetch(`${DOMAIN}/api/appointments/${appointmentId}`, {
         method: 'DELETE',
       });
       

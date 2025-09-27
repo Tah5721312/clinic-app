@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon, FileText, Save, ArrowLeft, Loader } from 'lucide-react';
 import { Doctor } from '@/lib/types';
 import { useSpecialties } from '@/hooks/useApiData';
+import { DOMAIN } from '@/lib/constants';
 
 
 export default function EditDoctorPage() {
@@ -34,7 +35,7 @@ export default function EditDoctorPage() {
     const fetchDoctor = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/doctors/${doctorId}`);
+        const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}`);
 
         if (!response.ok) {
           throw new Error('فشل في تحميل بيانات الطبيب');
@@ -105,7 +106,7 @@ export default function EditDoctorPage() {
     setUpdating(true);
 
     try {
-      const response = await fetch(`/api/doctors/${doctorId}`, {
+      const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

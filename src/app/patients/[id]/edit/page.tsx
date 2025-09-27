@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { DOMAIN } from '@/lib/constants';
 
 interface Patient {
   PATIENT_ID: number;
@@ -41,7 +42,7 @@ export default function EditPatientPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     const fetchPatient = async () => {
       try {
-        const response = await fetch(`/api/patients/${resolvedParams.id}`);
+        const response = await fetch(`${DOMAIN}/api/patients/${resolvedParams.id}`);
         if (!response.ok) {
           throw new Error('فشل في تحميل بيانات المريض');
         }
@@ -76,7 +77,7 @@ export default function EditPatientPage({ params }: { params: Promise<{ id: stri
     setError(null);
     
     try {
-      const response = await fetch(`/api/patients/${resolvedParams.id}`, {
+      const response = await fetch(`${DOMAIN}/api/patients/${resolvedParams.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

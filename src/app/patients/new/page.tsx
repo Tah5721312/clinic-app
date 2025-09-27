@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { DOMAIN } from '@/lib/constants';
 
 interface ApiError {
   error: string;
@@ -62,7 +63,7 @@ export default function AddPatientPage() {
     setSuccess(false);
     
     try {
-      const response = await fetch('/api/patients', {
+      const response = await fetch(`${DOMAIN}/api/patients`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

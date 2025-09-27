@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Appointment, Doctor, Patient } from '@/lib/types';
+import { DOMAIN } from '@/lib/constants';
 
 export default function EditAppointmentPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -23,9 +24,9 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
         
         // Fetch appointment data
         const [appointmentRes, patientsRes, doctorsRes] = await Promise.all([
-          fetch(`/api/appointments/${resolvedParams.id}`),
-          fetch('/api/patients'),
-          fetch('/api/doctors')
+          fetch(`${DOMAIN}/api/appointments/${resolvedParams.id}`),
+          fetch(`${DOMAIN}/api/patients`),
+          fetch(`${DOMAIN}/api/doctors`)
         ]);
         
         if (!appointmentRes.ok) {
@@ -93,7 +94,7 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
       
       console.log('Sending update data:', updateData);
       
-      const response = await fetch(`/api/appointments/${resolvedParams.id}`, {
+      const response = await fetch(`${DOMAIN}/api/appointments/${resolvedParams.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

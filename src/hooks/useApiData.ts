@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { Appointment, Doctor, Patient } from '@/lib/types';
+import { DOMAIN } from '@/lib/constants';
 
 interface UseApiDataOptions {
   enabled?: boolean;
@@ -72,8 +73,8 @@ export function useApiData<T>(
 // Specific hooks for common endpoints
 export function useDoctors(specialty?: string) {
   const endpoint = specialty && specialty.trim()
-    ? `/api/doctors?specialty=${encodeURIComponent(specialty)}`
-    : '/api/doctors';
+    ? `${DOMAIN}/api/doctors?specialty=${encodeURIComponent(specialty)}`
+    : `${DOMAIN}/api/doctors`;
   return useApiData<Doctor[]>(endpoint);
 }
 
@@ -82,12 +83,12 @@ export function usePatients(params?: { doctorId?: number | string; specialty?: s
   if (params?.doctorId) qs.set('doctorId', String(params.doctorId));
   if (params?.specialty && params.specialty.trim()) qs.set('specialty', params.specialty);
   if (params?.identificationNumber && params.identificationNumber.trim()) qs.set('identificationNumber', params.identificationNumber);
-  const endpoint = qs.toString() ? `/api/patients?${qs.toString()}` : '/api/patients';
+  const endpoint = qs.toString() ? `${DOMAIN}/api/patients?${qs.toString()}` : `${DOMAIN}/api/patients`;
   return useApiData<Patient[]>(endpoint);
 }
 
 export function useAppointments() {
-  return useApiData<Appointment[]>('/api/appointments');
+  return useApiData<Appointment[]>(`${DOMAIN}/api/appointments`);
 }
 
 export function useAppointmentsWithFilters(params?: {
@@ -99,18 +100,18 @@ export function useAppointmentsWithFilters(params?: {
   if (params?.doctorId) qs.set('doctorId', String(params.doctorId));
   if (params?.specialty && params.specialty.trim()) qs.set('specialty', params.specialty);
   if (params?.identificationNumber && params.identificationNumber.trim()) qs.set('identificationNumber', params.identificationNumber);
-  const endpoint = qs.toString() ? `/api/appointments?${qs.toString()}` : '/api/appointments';
+  const endpoint = qs.toString() ? `${DOMAIN}/api/appointments?${qs.toString()}` : `${DOMAIN}/api/appointments`;
   return useApiData<Appointment[]>(endpoint);
 }
 
 export function useAppointmentsByDoctor(doctorId: number | null) {
-  const endpoint = doctorId ? `/api/appointments?doctorId=${doctorId}` : null;
+  const endpoint = doctorId ? `${DOMAIN}/api/appointments?doctorId=${doctorId}` : null;
   return useApiData<Appointment[]>(endpoint || '', { enabled: !!endpoint });
 }
 
 export function useAppointmentsByPatient(patientId: number | null) {
   const endpoint = patientId
-    ? `/api/appointments?patientId=${patientId}`
+    ? `${DOMAIN}/api/appointments?patientId=${patientId}`
     : null;
   return useApiData<Appointment[]>(endpoint || '', { enabled: !!endpoint });
 }
@@ -118,5 +119,5 @@ export function useAppointmentsByPatient(patientId: number | null) {
 
 
 export function useSpecialties() {
-  return useApiData<string[]>('/api/specialties');
+  return useApiData<string[]>(`${DOMAIN}/api/specialties`);
 }

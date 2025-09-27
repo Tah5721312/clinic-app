@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Mail, Phone, Calendar, FileText, User, Clock, AlertCircle, Trash2, Edit } from 'lucide-react';
 import { Appointment, Patient } from '@/lib/types';
+import { DOMAIN } from '@/lib/constants';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'lg';
@@ -93,7 +94,7 @@ export default function PatientDetailPage() {
       setLoading(true);
       setError('');
 
-      const response = await fetch(`/api/patients/${patientId}`);
+      const response = await fetch(`${DOMAIN}/api/patients/${patientId}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -115,7 +116,7 @@ export default function PatientDetailPage() {
     if (!patientId) return;
 
     try {
-      const response = await fetch(`/api/appointments?patientId=${patientId}`);
+      const response = await fetch(`${DOMAIN}/api/appointments?patientId=${patientId}`);
 
       if (response.ok) {
         const appointmentsData = await response.json();
@@ -144,7 +145,7 @@ export default function PatientDetailPage() {
 
     try {
       setIsDeleting(true);
-      const response = await fetch(`/api/patients/${patientId}`, {
+      const response = await fetch(`${DOMAIN}/api/patients/${patientId}`, {
         method: 'DELETE',
       });
 
@@ -175,7 +176,7 @@ export default function PatientDetailPage() {
   //   if (!window.confirm('هل تريد إلغاء هذا الموعد؟')) return;
 
   //   try {
-  //     const response = await fetch(`/api/appointments/${appointmentId}`, {
+  //     const response = await fetch(`${DOMAIN}/api/appointments/${appointmentId}`, {
   //       method: 'PATCH',
   //       headers: {
   //         'Content-Type': 'application/json',
@@ -204,7 +205,7 @@ export default function PatientDetailPage() {
 
     try {
       setCancellingAppointment(appointmentId);
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
+      const response = await fetch(`${DOMAIN}/api/appointments/${appointmentId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -245,7 +246,7 @@ export default function PatientDetailPage() {
     setDeletingAppointment(appointmentId);
 
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
+      const response = await fetch(`${DOMAIN}/api/appointments/${appointmentId}`, {
         method: 'DELETE',
       });
 

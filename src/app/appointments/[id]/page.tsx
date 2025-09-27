@@ -10,6 +10,7 @@ import { Appointment, Doctor, Patient } from '@/lib/types';
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ButtonLink from '@/components/links/ButtonLink';
+import { DOMAIN } from '@/lib/constants';
 
 export default function AppointmentDetailPage() {
   const params = useParams();
@@ -30,7 +31,7 @@ export default function AppointmentDetailPage() {
 
   const fetchAppointment = async () => {
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`);
+      const response = await fetch(`${DOMAIN}/api/appointments/${appointmentId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch appointment details');
       }
@@ -52,10 +53,11 @@ export default function AppointmentDetailPage() {
       setLoading(false);
     }
   };
-
+  
+  
   const fetchDoctor = async (doctorId: number) => {
     try {
-      const response = await fetch(`/api/doctors/${doctorId}`);
+      const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}`);
       if (response.ok) {
         const data = await response.json();
         setDoctor(data);
@@ -67,7 +69,7 @@ export default function AppointmentDetailPage() {
 
   const fetchPatient = async (patientId: number) => {
     try {
-      const response = await fetch(`/api/patients/${patientId}`);
+      const response = await fetch(`${DOMAIN}/api/patients/${patientId}`);
       if (response.ok) {
         const data = await response.json();
         setPatient(data);
@@ -81,7 +83,7 @@ export default function AppointmentDetailPage() {
     if (!confirm('Are you sure you want to delete this appointment?')) return;
 
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
+      const response = await fetch(`${DOMAIN}/api/appointments/${appointmentId}`, {
         method: 'DELETE',
       });
 

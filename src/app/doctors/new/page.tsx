@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon, FileText, Save, ArrowLeft, Camera, X, Upload } from 'lucide-react';
 import { useSpecialties } from '@/hooks/useApiData';
+import { DOMAIN } from '@/lib/constants';
 
 // File Path Input Component
 interface FilePathInputProps {
@@ -167,7 +168,7 @@ export default function AddDoctorPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/doctors', {
+      const response = await fetch(`${DOMAIN}/api/doctors`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

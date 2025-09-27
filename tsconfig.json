@@ -12,6 +12,7 @@
     "moduleResolution": "bundler", // ✅ هذا هو الحل
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {

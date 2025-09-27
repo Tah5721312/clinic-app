@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Doctor, Patient } from '@/lib/types';
 
 import Button from '@/components/buttons/Button';
+import { DOMAIN } from '@/lib/constants';
 
 interface AppointmentFormProps {
   doctorId?: string;
@@ -69,8 +70,8 @@ export default function AppointmentForm({
     const fetchData = async () => {
       try {
         const [doctorsRes, patientsRes] = await Promise.all([
-          fetch('/api/doctors'),
-          fetch('/api/patients'),
+          fetch(`${DOMAIN}/api/doctors`),
+          fetch(`${DOMAIN}/api/patients`),
         ]);
 
         if (doctorsRes.ok) {
@@ -131,7 +132,7 @@ export default function AppointmentForm({
         throw new Error('Please fill in all required fields');
       }
 
-      const response = await fetch('/api/appointments', {
+      const response = await fetch(`${DOMAIN}/api/appointments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
