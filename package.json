@@ -18,6 +18,8 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@casl/ability": "^6.7.3",
+    "@casl/react": "^5.0.0",
     "@heroicons/react": "^2.2.0",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",
@@ -27,6 +29,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.438.0",
     "next": "^15.4.3",
+    "next-auth": "^4.24.11",
     "oracledb": "^6.9.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
