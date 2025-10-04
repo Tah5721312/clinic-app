@@ -7,7 +7,7 @@ export default function Navigation() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/', label: 'Dashboard' },
+    { href: '/Dashboard', label: 'Dashboard' },
     { href: '/doctors', label: 'Doctors' },
     { href: '/patients', label: 'Patients' },
     { href: '/appointments', label: 'Appointments' },
@@ -19,7 +19,9 @@ export default function Navigation() {
       <div className='container mx-auto px-4'>
         <div className='flex justify-between items-center py-4'>
           <h1 className='text-xl font-bold'>
-            Medical Clinic Management System
+              <Link  href={"/"} >
+                 Medical Clinic Management System
+              </Link>
           </h1>
 
           <div className='flex space-x-4 space-x-reverse'>

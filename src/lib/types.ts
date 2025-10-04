@@ -119,6 +119,17 @@ export interface JwtPayload {
   exp?: number;
 }
 
+export interface UserInfoCardProps {
+  user: JWTPayload;
+  fullUserData?: {
+    ID: number;
+    USERNAME: string;
+    EMAIL: string;
+    IS_ADMIN: number;
+    CREATED_AT: Date;
+    ROLE_ID?: number;
+  } | null;
+}
 
 // JWT Payload زي ما انت كاتب بالظبط
 export type JWTPayload = {
