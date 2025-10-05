@@ -12,15 +12,19 @@ import oracledb from "oracledb";
  *  @desc    Delete Profile
  *  @access  private (only user himself can delete his account)
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   let connection;
   try {
     connection = await getConnection();
+    const { id } = await params;
 
     // ✅ تحقق هل المستخدم موجود
     const result = await connection.execute<UserFromDB>(
       `SELECT ID, USERNAME, EMAIL FROM USERS WHERE ID = :id`,
-      [params.id],
+      { id: Number(id) },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
     const user = result.rows?.[0];
@@ -34,7 +38,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     if (userFromToken && userFromToken.id === user.ID) {
       const deleteRes = await connection.execute(
         `DELETE FROM USERS WHERE ID = :id`,
-        [params.id],
+        { id: Number(id) },
         { autoCommit: true }
       );
       if (deleteRes.rowsAffected && deleteRes.rowsAffected > 0) {
@@ -60,13 +64,17 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
  *  @desc    Get Profile By Id
  *  @access  private
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   let connection;
   try {
     connection = await getConnection();
+    const { id } = await params;
     const result = await connection.execute<UserFromDB>(
       `SELECT ID, USERNAME, EMAIL, IS_ADMIN, CREATED_AT FROM USERS WHERE ID = :id`,
-      [params.id],
+      { id: Number(id) },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
 
@@ -95,15 +103,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
  *  @desc    Update Profile
  *  @access  private
  */
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   let connection;
   try {
     connection = await getConnection();
+    const { id } = await params;
 
     // ✅ تحقق من وجود المستخدم
     const result = await connection.execute<UserFromDB>(
       `SELECT ID, USERNAME, EMAIL, PASSWORD FROM USERS WHERE ID = :id`,
-      [params.id],
+      { id: Number(id) },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
     const user = result.rows?.[0];
@@ -135,12 +147,12 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       `UPDATE USERS 
        SET USERNAME = :username, EMAIL = :email, PASSWORD = :password 
        WHERE ID = :id`,
-      [
-        body.username || user.USERNAME,
-        body.email || user.EMAIL,
-        hashedPassword,
-        params.id,
-      ],
+      {
+        username: body.username || user.USERNAME,
+        email: body.email || user.EMAIL,
+        password: hashedPassword,
+        id: Number(id),
+      },
       { autoCommit: true }
     );
 
