@@ -2,11 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function Navigation() {
   const pathname = usePathname();
+  const { data: session, status } = useSession();
 
-  const navItems = [
+  const isAuthenticated = status === 'authenticated' && !!session?.user;
+  const userId = (session?.user as any)?.id;
+
+  const commonItems = [
     { href: '/Dashboard', label: 'Dashboard' },
     { href: '/doctors', label: 'Doctors' },
     { href: '/patients', label: 'Patients' },
@@ -25,7 +30,7 @@ export default function Navigation() {
           </h1>
 
           <div className='flex space-x-4 space-x-reverse'>
-            {navItems.map((item) => (
+            {commonItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -38,6 +43,52 @@ export default function Navigation() {
                 {item.label}
               </Link>
             ))}
+
+            {!isAuthenticated && (
+              <>
+                <Link
+                  href={'/login'}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    pathname === '/login'
+                      ? 'bg-blue-800 text-white'
+                      : 'text-blue-100 hover:bg-blue-700'
+                  }`}
+                >
+                  Login
+                </Link>
+                <Link
+                  href={'/register'}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    pathname === '/register'
+                      ? 'bg-blue-800 text-white'
+                      : 'text-blue-100 hover:bg-blue-700'
+                  }`}
+                >
+                  Register
+                </Link>
+              </>
+            )}
+
+            {isAuthenticated && (
+              <>
+                <Link
+                  href={`/profile/${userId}`}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    pathname === `/profile/${userId}`
+                      ? 'bg-blue-800 text-white'
+                      : 'text-blue-100 hover:bg-blue-700'
+                  }`}
+                >
+                  Profile
+                </Link>
+                <button
+                  onClick={() => signOut({ redirect: true, callbackUrl: '/login' })}
+                  className='px-3 py-2 rounded-md text-sm font-medium text-blue-100 hover:bg-blue-700'
+                >
+                  Logout
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

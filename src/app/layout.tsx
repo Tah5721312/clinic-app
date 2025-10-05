@@ -8,6 +8,7 @@ import '@/styles/colors.css';
 
 import { siteConfig } from '@/constant/config';
 import Navigation from '@/components/Navigation';
+import Providers from '@/components/Providers';
 
 // !STARTERCONF Change these default meta
 // !STARTERCONF Look at @/constant/config to change them
@@ -60,12 +61,12 @@ export default function RootLayout({
     <html>
       {/* <body>{children}</body> */}
       <body>
-
-
-         <Navigation />
-        <main className="container mx-auto p-4">
-          {children}
-        </main>
+        <Providers>
+          <Navigation />
+          <main className="container mx-auto p-4">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/verifyToken";
+import { auth } from "@/auth";
 import { UpdateUserDto, UserFromDB } from "@/lib/types";
 import { updateUserSchema } from "@/lib/validationSchemas";
 import bcrypt from "bcryptjs";
@@ -33,9 +33,9 @@ export async function DELETE(
       return NextResponse.json({ message: "user not found" }, { status: 404 });
     }
 
-    // ✅ تحقق من الـ Token
-    const userFromToken = verifyToken(request);
-    if (userFromToken && userFromToken.id === user.ID) {
+    // ✅ تحقق من الجلسة
+    const session = await auth();
+    if (session?.user && (Number((session.user as any).id) === user.ID || (session.user as any).isAdmin)) {
       const deleteRes = await connection.execute(
         `DELETE FROM USERS WHERE ID = :id`,
         { id: Number(id) },
@@ -83,8 +83,8 @@ export async function GET(
       return NextResponse.json({ message: "user not found" }, { status: 404 });
     }
 
-    const userFromToken = verifyToken(request);
-    if (!userFromToken || userFromToken.id !== user.ID) {
+    const session = await auth();
+    if (!session?.user || (Number((session.user as any).id) !== user.ID && !(session.user as any).isAdmin)) {
       return NextResponse.json({ message: "access denied" }, { status: 403 });
     }
 
@@ -123,9 +123,9 @@ export async function PUT(
       return NextResponse.json({ message: "user not found" }, { status: 404 });
     }
 
-    // ✅ تحقق من التوكن
-    const userFromToken = verifyToken(request);
-    if (!userFromToken || userFromToken.id !== user.ID) {
+    // ✅ تحقق من الجلسة
+    const session = await auth();
+    if (!session?.user || Number(session.user.id) !== user.ID) {
       return NextResponse.json({ message: "access denied" }, { status: 403 });
     }
 

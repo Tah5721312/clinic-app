@@ -1,27 +1,33 @@
+import { auth } from '@/auth';
 import { cookies } from 'next/headers';
-import { verifyTokenForPage } from '@/lib/verifyToken';
 import { redirect } from 'next/navigation';
 import UserInfoCard from '@/components/UserInfoCard';
-import Dashboard from '@/components/Dashboard';
 import { Calendar, Stethoscope, Users } from 'lucide-react';
 
 export default async function HomePage() {
  
  
-  const cookieStore = cookies();
-  const token = (await cookieStore).get('jwtToken')?.value;
-  const user = token ? verifyTokenForPage(token) : null;
+  const session = await auth();
+  const userFromSession = session?.user as any;
   
-  if (!user) {
+  if (!userFromSession) {
     redirect('/login');
   }
 
   // (اختياري) جلب البيانات الكاملة
   let fullUserData = null;
+  const user = {
+    id: userFromSession.id,
+    username: userFromSession.name,
+    isAdmin: userFromSession.isAdmin,
+  } as any;
+
   try {
-    const res = await fetch(`http://localhost:3000/api/users/profile/${user.id}`, {
+    const cookieStore = cookies();
+    const cookieHeader = (await cookieStore).toString();
+    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/users/profile/${user.id}`, {
       cache: 'no-store',
-      headers: { Cookie: `jwtToken=${token}` },
+      headers: { Cookie: cookieHeader },
     });
     if (res.ok) {
       fullUserData = await res.json();

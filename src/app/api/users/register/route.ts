@@ -2,8 +2,8 @@ import { RegisterUserDto } from '@/lib/types';
 import { registerSchema } from '@/lib/validationSchemas';
 import { NextResponse, NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { setCookie } from '@/lib/generateToken';
 import { getConnection } from "@/lib/database";
+import { signIn } from '@/auth';
 
 import oracledb from 'oracledb';
 
@@ -69,19 +69,12 @@ export async function POST(request: NextRequest) {
       isAdmin: (result.outBinds as any).isAdminOut[0] === 1
     };
 
-    // ✅ Create JWT Cookie
-    const cookie = setCookie({
-      id: newUser.id,
-      username: newUser.username,
-      isAdmin: newUser.isAdmin
-    });
+    // ✅ Create session using NextAuth
+    await signIn('credentials', { redirect: false, email: body.email, password: body.password });
 
     return NextResponse.json(
       { ...newUser, message: "Registered & Authenticated" },
-      {
-        status: 201,
-        headers: { "Set-Cookie": cookie }
-      }
+      { status: 201 }
     );
 
   } catch (error) {

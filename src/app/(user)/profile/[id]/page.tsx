@@ -1,45 +1,21 @@
 import React from "react";
-import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import jwt from "jsonwebtoken";
+import { auth } from '@/auth';
+import { cookies } from 'next/headers';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function ProfilePage({ params }: Props) {
-  const cookieStore = cookies();
-  const token = (await cookieStore).get("jwtToken")?.value;
-  
-  if (!token) {
+  const session = await auth();
+  const { id } = await params;
+  if (!session?.user) {
     redirect('/login');
   }
-  
-  // ✅ فك التوكن علشان نعرف مين المستخدم
-  let decoded: any;
-  try {
-    decoded = jwt.decode(token);
-  } catch (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100 px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Invalid Token</h2>
-          <p className="text-gray-600 mb-6">الرمز غير صالح. يرجى تسجيل الدخول مرة أخرى.</p>
-          <a href="/login" className="inline-block bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition duration-300">
-            العودة لتسجيل الدخول
-          </a>
-        </div>
-      </div>
-    );
-  }
-  
+
   // ✅ التحقق إن المستخدم مش بيحاول يفتح بروفايل حد تاني
-  if (decoded.id !== Number(params.id)) {
+  if (String((session.user as any).id) !== String(id)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100 px-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
@@ -59,11 +35,13 @@ export default async function ProfilePage({ params }: Props) {
   }
   
   // ✅ لو كل حاجة تمام نجيب بيانات المستخدم من الـ API
-  const res = await fetch(`http://localhost:3000/api/users/profile/${params.id}`, {
+  const cookieStore = cookies();
+  const cookieHeader = (await cookieStore).toString();
+  
+  const baseUrl = process.env.NEXTAUTH_URL ;
+  const res = await fetch(`${baseUrl}/api/users/profile/${id}`, {
     cache: "no-store",
-    headers: {
-      Cookie: `jwtToken=${token}`,
-    },
+    headers: { Cookie: cookieHeader },
   });
   
   const user = await res.json();

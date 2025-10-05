@@ -2,8 +2,7 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-import { DOMAIN } from "@/lib/constants";
+import { signIn } from "next-auth/react";
 import ButtonSpinner from "@/components/ButtonSpinner";
 import { EyeSlashIcon, EyeIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
@@ -25,12 +24,19 @@ const LoginForm = () => {
 
     try {
       setLoading(true);
-      await axios.post(`${DOMAIN}/api/users/login`, { email, password });
-      // await axios.post(`/api/users/login`, { email, password });
+      const res = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
       setLoading(false);
-      router.replace("/");
-      // router.refresh();
-      toast.success("Login successful");
+      if (res && !res.error) {
+        toast.success("Login successful");
+        router.replace("/");
+        router.refresh();
+      } else {
+        toast.error("Invalid email or password");
+      }
     } catch (error: any) {
       toast.error(error?.response?.data.message);
       console.log(error);
