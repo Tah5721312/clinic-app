@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@casl/ability':
+        specifier: ^6.7.3
+        version: 6.7.3
+      '@casl/react':
+        specifier: ^5.0.0
+        version: 5.0.0(@casl/ability@6.7.3)(react@19.1.0)
       '@heroicons/react':
         specifier: ^2.2.0
         version: 2.2.0(react@19.1.0)
@@ -808,6 +814,15 @@ packages:
 
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
+
+  '@casl/ability@6.7.3':
+    resolution: {integrity: sha512-A4L28Ko+phJAsTDhRjzCOZWECQWN2jzZnJPnROWWHjJpyMq1h7h9ZqjwS2WbIUa3Z474X1ZPSgW0f1PboZGC0A==}
+
+  '@casl/react@5.0.0':
+    resolution: {integrity: sha512-jiwr6uOBnQA7h0gs+RJIbFVF24Dw6JLiUPL4pfU0OEjWSJFCcYBz6RPU21XNciWL6xwFDOds81cHosuElxfdmw==}
+    peerDependencies:
+      '@casl/ability': ^4.0.0 || ^5.1.0 || ^6.0.0
+      react: ^17.0.0 || ^18.0.0 || ^19.0.0
 
   '@commitlint/cli@16.3.0':
     resolution: {integrity: sha512-P+kvONlfsuTMnxSwWE1H+ZcPMY3STFaHb2kAacsqoIkNx66O0T7sTpBxpxkMrFPyhkJiLJnJWMhk4bbvYD3BMA==}
@@ -1620,6 +1635,18 @@ packages:
   '@typescript-eslint/visitor-keys@5.62.0':
     resolution: {integrity: sha512-07ny+LHRzQXepkGg6w0mFY41fVUNBrL2Roj/++7V1txKugfjm/Ci/qSND03r2RhlJhJYMcTn9AhhSSqQp0Ysyw==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
+  '@ucast/core@1.10.2':
+    resolution: {integrity: sha512-ons5CwXZ/51wrUPfoduC+cO7AS1/wRb0ybpQJ9RrssossDxVy4t49QxWoWgfBDvVKsz9VXzBk9z0wqTdZ+Cq8g==}
+
+  '@ucast/js@3.0.4':
+    resolution: {integrity: sha512-TgG1aIaCMdcaEyckOZKQozn1hazE0w90SVdlpIJ/er8xVumE11gYAtSbw/LBeUnA4fFnFWTcw3t6reqseeH/4Q==}
+
+  '@ucast/mongo2js@1.4.0':
+    resolution: {integrity: sha512-vR9RJ3BHlkI3RfKJIZFdVktxWvBCQRiSTeJSWN9NPxP5YJkpfXvcBWAMLwvyJx4HbB+qib5/AlSDEmQiuQyx2w==}
+
+  '@ucast/mongo@2.4.3':
+    resolution: {integrity: sha512-XcI8LclrHWP83H+7H2anGCEeDq0n+12FU2mXCTz6/Tva9/9ddK/iacvvhCyW6cijAAOILmt0tWplRyRhVyZLsA==}
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
@@ -5483,6 +5510,15 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
+  '@casl/ability@6.7.3':
+    dependencies:
+      '@ucast/mongo2js': 1.4.0
+
+  '@casl/react@5.0.0(@casl/ability@6.7.3)(react@19.1.0)':
+    dependencies:
+      '@casl/ability': 6.7.3
+      react: 19.1.0
+
   '@commitlint/cli@16.3.0':
     dependencies:
       '@commitlint/format': 16.2.1
@@ -6430,6 +6466,22 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 5.62.0
       eslint-visitor-keys: 3.4.3
+
+  '@ucast/core@1.10.2': {}
+
+  '@ucast/js@3.0.4':
+    dependencies:
+      '@ucast/core': 1.10.2
+
+  '@ucast/mongo2js@1.4.0':
+    dependencies:
+      '@ucast/core': 1.10.2
+      '@ucast/js': 3.0.4
+      '@ucast/mongo': 2.4.3
+
+  '@ucast/mongo@2.4.3':
+    dependencies:
+      '@ucast/core': 1.10.2
 
   '@ungap/structured-clone@1.3.0': {}
 

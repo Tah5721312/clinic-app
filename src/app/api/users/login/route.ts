@@ -1,7 +1,7 @@
 import { LoginUserDto } from '@/lib/types';
 import { loginSchema } from '@/lib/validationSchemas';
 import { NextResponse, NextRequest } from 'next/server';
-import { signIn } from '@/auth';
+import { signIn, auth } from '@/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +25,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Invalid email or password' }, { status: 400 });
     }
 
-    return NextResponse.json({ message: 'Authenticated' }, { status: 200 });
+    // احصل على السيشن بعد نجاح تسجيل الدخول
+    const session = await auth();
+
+    const response = NextResponse.json({ message: 'Authenticated' }, { status: 200 });
+
+    // ضع userId في الكوكيز ليتم استخدامه لاحقًا في تحميل الصلاحيات من الداتابيز
+    const userId = session?.user && (session.user as any).id ? String((session.user as any).id) : '';
+    if (userId) {
+      response.cookies.set('userId', userId, {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+      });
+    }
+
+    return response;
   } catch (error) {
     console.error('Login Error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });

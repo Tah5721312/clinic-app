@@ -10,6 +10,15 @@ import { siteConfig } from '@/constant/config';
 import Navigation from '@/components/Navigation';
 import Providers from '@/components/Providers';
 
+
+import { AbilityProvider } from '@/contexts/AbilityContext';
+import { AbilityRule } from '@/lib/ability';
+import { fetchAbilityRulesFromDB } from '@/lib/ability.server';
+import { auth } from '@/auth';
+import { cookies } from 'next/headers';
+
+
+
 // !STARTERCONF Change these default meta
 // !STARTERCONF Look at @/constant/config to change them
 export const metadata: Metadata = {
@@ -52,11 +61,42 @@ export const metadata: Metadata = {
   // ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
+   // الاعتماد 100% على الصلاحيات من الداتابيز
+   const cookieStore = await cookies();
+   const userIdCookie = cookieStore.get('userId')?.value;
+   let userId = userIdCookie ? Number(userIdCookie) : undefined;
+
+   // Fallback: لو الكوكيز مش موجودة استخدم الـ session
+   if (!Number.isFinite(userId)) {
+     const session = await auth();
+     const sessionUserId = Number((session?.user as any)?.id ?? 0);
+     if (Number.isFinite(sessionUserId) && sessionUserId > 0) {
+       userId = sessionUserId;
+     }
+   }
+
+   let abilityRules: AbilityRule[] = [];
+   if (Number.isFinite(userId)) {
+     try {
+       abilityRules = await fetchAbilityRulesFromDB(userId as number);
+     } catch {
+       // في حال الفشل: اترك الصلاحيات فارغة (عدم السماح بأي شيء)
+       abilityRules = [];
+     }
+   } else {
+     // بدون userId: لا صلاحيات
+     abilityRules = [];
+   }
+
+   // لا نضيف manage:all تلقائياً — الاعتماد بالكامل على قواعد الداتابيز
+
+   
   return (
     <html>
       {/* <body>{children}</body> */}
@@ -64,7 +104,11 @@ export default function RootLayout({
         <Providers>
           <Navigation />
           <main className="container mx-auto p-4">
-            {children}
+                          
+             <AbilityProvider rules={abilityRules}>
+                {children}
+             </AbilityProvider>
+
           </main>
         </Providers>
       </body>

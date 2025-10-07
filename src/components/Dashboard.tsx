@@ -5,6 +5,10 @@ import { Calendar, Stethoscope, Users } from 'lucide-react';
 import { useAppointments, useDoctors, usePatients } from '@/hooks/useApiData';
 
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
+import RoleDebugger from '@/components/RoleDebugger';
+
+ 
+
 
 interface StatCardProps {
   title: string;
@@ -34,7 +38,12 @@ function StatCard({ title, value, icon, color, loading }: StatCardProps) {
   );
 }
 
-export default function Dashboard() {
+interface DashboardProps {
+  userId: string;
+  role?: string;
+}
+
+export default function Dashboard({ userId, role }: DashboardProps) {
   const {
     data: patients,
     loading: patientsLoading,
@@ -63,6 +72,10 @@ export default function Dashboard() {
     );
   }
 
+
+  
+
+  
   return (
     <ErrorBoundary>
       <div className='space-y-6'>
@@ -150,6 +163,10 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+           {/* معلومات تشخيصية للأدوار والصلاحيات */}
+           <RoleDebugger userId={userId} role={role} />
+
     </ErrorBoundary>
   );
 }

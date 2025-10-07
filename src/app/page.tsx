@@ -2,11 +2,12 @@ import { auth } from '@/auth';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import UserInfoCard from '@/components/UserInfoCard';
+import HomePageClient from '@/components/HomePageClient';
 import { Calendar, Stethoscope, Users } from 'lucide-react';
 
+
 export default async function HomePage() {
- 
- 
+
   const session = await auth();
   const userFromSession = session?.user as any;
   
@@ -21,9 +22,13 @@ export default async function HomePage() {
     username: userFromSession.name,
     isAdmin: userFromSession.isAdmin,
   } as any;
+  const userId = userFromSession.id;
+
+  // الحصول على الدور من الـ cookies
+  const cookieStore = await cookies();
+  const role = cookieStore.get('role')?.value;
 
   try {
-    const cookieStore = cookies();
     const cookieHeader = (await cookieStore).toString();
     const res = await fetch(`${process.env.NEXTAUTH_URL}/api/users/profile/${user.id}`, {
       cache: 'no-store',
@@ -83,6 +88,9 @@ export default async function HomePage() {
           </a>
         </div>
       </div>
+
+      {/* Interactive client component */}
+      <HomePageClient userId={userId} role={role} />
 
       {/* <Dashboard /> */}
     </div>

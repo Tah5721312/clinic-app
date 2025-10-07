@@ -5,11 +5,10 @@ import { getConnection } from "@/lib/database";
 import oracledb from "oracledb";
 
 type OracleUser = {
-  ID: number;
+  ID: number; // alias of USER_ID
   USERNAME: string;
   EMAIL: string;
   PASSWORD: string;
-  IS_ADMIN: number;
   ROLE_ID?: number | null;
 };
 
@@ -51,7 +50,7 @@ export const {
         try {
           connection = await getConnection();
           const result = await connection.execute<OracleUser>(
-            `SELECT ID, USERNAME, EMAIL, PASSWORD, IS_ADMIN, ROLE_ID FROM USERS WHERE EMAIL = :email`,
+            `SELECT USER_ID AS ID, USERNAME, EMAIL, PASSWORD, ROLE_ID FROM tah57.USERS WHERE UPPER(EMAIL) = UPPER(:email)`,
             { email },
             { outFormat: oracledb.OUT_FORMAT_OBJECT }
           );
@@ -63,7 +62,7 @@ export const {
             id: String(user.ID),
             name: user.USERNAME,
             email: user.EMAIL,
-            isAdmin: user.IS_ADMIN === 1,
+            isAdmin: (user.ROLE_ID ?? 0) === 211, // superadmin role id
             roleId: user.ROLE_ID ?? 0,
           } as any;
         } finally {

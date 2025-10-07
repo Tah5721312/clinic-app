@@ -18,6 +18,8 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@casl/ability": "^6.7.3",
+    "@casl/react": "^5.0.0",
     "@heroicons/react": "^2.2.0",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.2",

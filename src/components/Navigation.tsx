@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 
+
+
 export default function Navigation() {
   const pathname = usePathname();
   const { data: session, status } = useSession();

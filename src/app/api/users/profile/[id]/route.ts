@@ -23,7 +23,7 @@ export async function DELETE(
 
     // ✅ تحقق هل المستخدم موجود
     const result = await connection.execute<UserFromDB>(
-      `SELECT ID, USERNAME, EMAIL FROM USERS WHERE ID = :id`,
+      `SELECT USER_ID AS ID, USERNAME, EMAIL FROM tah57.USERS WHERE USER_ID = :id`,
       { id: Number(id) },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -37,7 +37,7 @@ export async function DELETE(
     const session = await auth();
     if (session?.user && (Number((session.user as any).id) === user.ID || (session.user as any).isAdmin)) {
       const deleteRes = await connection.execute(
-        `DELETE FROM USERS WHERE ID = :id`,
+        `DELETE FROM tah57.USERS WHERE USER_ID = :id`,
         { id: Number(id) },
         { autoCommit: true }
       );
@@ -73,7 +73,7 @@ export async function GET(
     connection = await getConnection();
     const { id } = await params;
     const result = await connection.execute<UserFromDB>(
-      `SELECT ID, USERNAME, EMAIL, IS_ADMIN, CREATED_AT FROM USERS WHERE ID = :id`,
+      `SELECT USER_ID AS ID, USERNAME, EMAIL, ROLE_ID, CREATED_AT FROM tah57.USERS WHERE USER_ID = :id`,
       { id: Number(id) },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -114,7 +114,7 @@ export async function PUT(
 
     // ✅ تحقق من وجود المستخدم
     const result = await connection.execute<UserFromDB>(
-      `SELECT ID, USERNAME, EMAIL, PASSWORD FROM USERS WHERE ID = :id`,
+      `SELECT USER_ID AS ID, USERNAME, EMAIL, PASSWORD FROM tah57.USERS WHERE USER_ID = :id`,
       { id: Number(id) },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -144,9 +144,9 @@ export async function PUT(
     }
 
     const updateRes = await connection.execute(
-      `UPDATE USERS 
+      `UPDATE tah57.USERS 
        SET USERNAME = :username, EMAIL = :email, PASSWORD = :password 
-       WHERE ID = :id`,
+       WHERE USER_ID = :id`,
       {
         username: body.username || user.USERNAME,
         email: body.email || user.EMAIL,
