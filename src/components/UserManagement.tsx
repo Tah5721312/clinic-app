@@ -465,7 +465,7 @@ export default function UserManagement() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                  <label className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                     <Shield size={16} className="text-blue-600" />
                     الصلاحيات
                   </label>

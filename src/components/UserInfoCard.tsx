@@ -1,9 +1,14 @@
+'use client';
+
 import { JWTPayload, UserInfoCardProps } from '@/lib/types';
 import { User, Shield, Calendar, Mail } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 
 
 export default function UserInfoCard({ user, fullUserData }: UserInfoCardProps) {
+  const router = useRouter();
+  
   return (
     <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-xl p-6 text-white mb-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -63,7 +68,7 @@ export default function UserInfoCard({ user, fullUserData }: UserInfoCardProps) 
               <div>
                 <p className="text-xs text-blue-100">تاريخ التسجيل</p>
                 <p className="text-sm font-medium">
-                  {new Date(fullUserData.CREATED_AT).toLocaleDateString('ar-SA')}
+                  {new Date(fullUserData.CREATED_AT).toLocaleDateString('en-GB')}
                 </p>
               </div>
             </div>
@@ -76,6 +81,17 @@ export default function UserInfoCard({ user, fullUserData }: UserInfoCardProps) 
                 <p className="text-sm font-medium">نشط ✅</p>
               </div>
             </div>
+
+            {/* زر الذهاب للبروفايل */}
+            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-lg p-3">
+              <button
+                onClick={() => router.push(`/profile/${user.id}`)}
+                className="w-full bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 border border-white/30 hover:border-white/50"
+              >
+                الذهاب إلى البروفايل
+              </button>
+            </div>
+      
           </div>
         </div>
       )}

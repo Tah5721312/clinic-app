@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { Can } from '@/components/Can';
+import { Actions, Subjects } from '@/lib/ability';
 
 
 
@@ -13,12 +15,16 @@ export default function Navigation() {
   const isAuthenticated = status === 'authenticated' && !!session?.user;
   const userId = (session?.user as any)?.id;
 
-  const commonItems = [
-    { href: '/Dashboard', label: 'Dashboard' },
-    { href: '/doctors', label: 'Doctors' },
-    { href: '/patients', label: 'Patients' },
-    { href: '/appointments', label: 'Appointments' },
-    { href: '/appointments/new', label: 'New Appointment' },
+  const commonItems: Array<{
+    href: string;
+    label: string;
+    permission: { do: Actions; on: Subjects };
+  }> = [
+    { href: '/Dashboard', label: 'Dashboard', permission: { do: 'read', on: 'Dashboard' } },
+    { href: '/doctors', label: 'Doctors', permission: { do: 'read', on: 'Doctor' } },
+    { href: '/patients', label: 'Patients', permission: { do: 'read', on: 'Patient' } },
+    { href: '/appointments', label: 'Appointments', permission: { do: 'read', on: 'Appointment' } },
+    { href: '/appointments/new', label: 'New Appointment', permission: { do: 'create', on: 'Appointment' } },
   ];
 
   return (
@@ -33,17 +39,18 @@ export default function Navigation() {
 
           <div className='flex space-x-4 space-x-reverse'>
             {commonItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-3 py-2 rounded-md text-sm font-medium ${
-                  pathname === item.href
-                    ? 'bg-blue-800 text-white'
-                    : 'text-blue-100 hover:bg-blue-700'
-                }`}
-              >
-                {item.label}
-              </Link>
+              <Can key={item.href} do={item.permission.do} on={item.permission.on}>
+                <Link
+                  href={item.href}
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    pathname === item.href
+                      ? 'bg-blue-800 text-white'
+                      : 'text-blue-100 hover:bg-blue-700'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </Can>
             ))}
 
             {!isAuthenticated && (
@@ -73,16 +80,18 @@ export default function Navigation() {
 
             {isAuthenticated && (
               <>
-                <Link
-                  href={`/profile/${userId}`}
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    pathname === `/profile/${userId}`
-                      ? 'bg-blue-800 text-white'
-                      : 'text-blue-100 hover:bg-blue-700'
-                  }`}
-                >
-                  Profile
-                </Link>
+                <Can do="read" on="User">
+                  <Link
+                    href={`/profile/${userId}`}
+                    className={`px-3 py-2 rounded-md text-sm font-medium ${
+                      pathname === `/profile/${userId}`
+                        ? 'bg-blue-800 text-white'
+                        : 'text-blue-100 hover:bg-blue-700'
+                    }`}
+                  >
+                    Profile
+                  </Link>
+                </Can>
                 <button
                   onClick={() => signOut({ redirect: true, callbackUrl: '/login' })}
                   className='px-3 py-2 rounded-md text-sm font-medium text-blue-100 hover:bg-blue-700'

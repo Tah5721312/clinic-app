@@ -102,14 +102,12 @@ export default async function RootLayout({
       {/* <body>{children}</body> */}
       <body>
         <Providers>
-          <Navigation />
-          <main className="container mx-auto p-4">
-                          
-             <AbilityProvider rules={abilityRules}>
-                {children}
-             </AbilityProvider>
-
-          </main>
+          <AbilityProvider rules={abilityRules}>
+            <Navigation />
+            <main className="container mx-auto p-4">
+              {children}
+            </main>
+          </AbilityProvider>
         </Providers>
       </body>
     </html>
