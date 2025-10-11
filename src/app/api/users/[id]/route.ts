@@ -213,6 +213,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+
+    if (!params?.id || isNaN(Number(params.id))) {
+      return NextResponse.json({ error: 'Missing user ID' }, { status: 400 });
+    }
+    
     const userId = parseInt(params.id);
 
     const query = `DELETE FROM TAH57.USERS WHERE USER_ID = :userId`;
