@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeQuery } from '@/lib/database';
+import bcrypt from 'bcryptjs';
 
 // Interface for user with role and permissions
 interface UserWithRolePermissions {
@@ -123,28 +124,61 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, email, password, roleId } = body;
+    const { username, email, fullName, password, roleId } = body;
 
-    // Hash password (you should use bcrypt in production)
-    const hashedPassword = password; // Replace with actual hashing
+    // Validate required fields
+    if (!username || !email || !fullName || !password || !roleId) {
+      return NextResponse.json(
+        { error: 'All fields are required' },
+        { status: 400 }
+      );
+    }
 
-    const query = `
-      INSERT INTO TAH57.USERS (USERNAME, EMAIL, PASSWORD, ROLE_ID, IS_ADMIN)
-      VALUES (:username, :email, :password, :roleId, 0)
-      RETURNING USER_ID INTO :id
+    // Check if username already exists
+    const checkUserQuery = `
+      SELECT COUNT(*) as count FROM TAH57.USERS WHERE USERNAME = :username
+    `;
+    const checkResult = await executeQuery<{ count: number }>(checkUserQuery, { username });
+    
+    if (checkResult.rows[0].count > 0) {
+      return NextResponse.json(
+        { error: 'Username already exists' },
+        { status: 409 }
+      );
+    }
+
+    // Check if email already exists
+    const checkEmailQuery = `
+      SELECT COUNT(*) as count FROM TAH57.USERS WHERE EMAIL = :email
+    `;
+    const checkEmailResult = await executeQuery<{ count: number }>(checkEmailQuery, { email });
+    
+    if (checkEmailResult.rows[0].count > 0) {
+      return NextResponse.json(
+        { error: 'Email already exists' },
+        { status: 409 }
+      );
+    }
+
+    // Hash password using bcrypt
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const insertQuery = `
+      INSERT INTO TAH57.USERS (USERNAME, EMAIL, FULL_NAME, PASSWORD, ROLE_ID, IS_ACTIVE)
+      VALUES (:username, :email, :fullName, :password, :roleId, 1)
     `;
 
-    const result = await executeQuery(query, {
+    await executeQuery(insertQuery, {
       username,
       email,
+      fullName,
       password: hashedPassword,
-      roleId,
-      id: { type: 2003, dir: 3003 } // Oracle OUT parameter
+      roleId
     });
 
     return NextResponse.json({ 
-      message: 'User created successfully',
-      userId: (result.outBinds as any)?.id?.[0]
+      message: 'User created successfully'
     });
   } catch (error) {
     console.error('Error creating user:', error);

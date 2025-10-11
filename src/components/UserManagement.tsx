@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Edit, Trash2, Search, RotateCcw } from 'lucide-react';
+import { X, Plus,Edit, Trash2, Search, RotateCcw } from 'lucide-react';
+import ButtonLink from '@/components/links/ButtonLink';
 
 // TypeScript interfaces
 interface Permission {
@@ -168,6 +169,10 @@ export default function UserManagement() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-6">إدارة المستخدمين</h1>
+       
+        <ButtonLink href='/new' variant='primary' leftIcon={Plus}>
+              Add New user
+            </ButtonLink>
 
         {/* Filter Section */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
