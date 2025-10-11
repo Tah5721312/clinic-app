@@ -6,6 +6,7 @@ import { useAppointments, useDoctors, usePatients } from '@/hooks/useApiData';
 
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import RoleDebugger from '@/components/RoleDebugger';
+import UserManagement from '@/components/UserManagement';
 
  
 
@@ -71,9 +72,6 @@ export default function Dashboard({ userId, role }: DashboardProps) {
       />
     );
   }
-
-
-  
 
   
   return (
@@ -163,6 +161,8 @@ export default function Dashboard({ userId, role }: DashboardProps) {
           </div>
         </div>
       </div>
+
+          <UserManagement />
 
            {/* معلومات تشخيصية للأدوار والصلاحيات */}
            <RoleDebugger userId={userId} role={role} />
