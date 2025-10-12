@@ -4,6 +4,7 @@ import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search } from 'luci
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 import { Appointment } from '@/lib/types';
 import { useAppointmentsWithFilters, useDoctors, useSpecialties } from '@/hooks/useApiData';
@@ -15,6 +16,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 export default function AppointmentsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const initialSpecialty = searchParams.get('specialty') || '';
   const initialDoctorId = searchParams.get('doctorId') || '';
   const initialIdentificationNumber = searchParams.get('identificationNumber') || '';
@@ -25,6 +27,10 @@ export default function AppointmentsPage() {
   const [filter, setFilter] = useState<
     'all' | 'pending' | 'scheduled' | 'cancelled'
   >('all');
+
+  // Check if current user is a doctor or patient
+  const isDoctor = (session?.user as any)?.roleId === 213;
+  const isPatient = (session?.user as any)?.roleId === 216;
 
   const { data: appointments, loading, error, refetch } = useAppointmentsWithFilters({
     doctorId: initialDoctorId || undefined,
@@ -117,14 +123,31 @@ export default function AppointmentsPage() {
         {/* Header */}
         <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900'>Appointments</h1>
+            <h1 className='text-3xl font-bold text-gray-900'>المواعيد</h1>
             <p className='text-gray-600 mt-1'>
-              Manage and view all appointments
+              {isPatient 
+                ? 'مواعيدي - عرض مواعيدي الطبية' 
+                : isDoctor 
+                  ? 'مواعيدي - عرض وإدارة مواعيدي' 
+                  : 'إدارة وعرض جميع المواعيد'
+              }
             </p>
+            {isPatient && (
+              <p className='text-sm text-blue-600 mt-1'>
+                أنت تشاهد مواعيدك الشخصية فقط
+              </p>
+            )}
+            {isDoctor && (
+              <p className='text-sm text-blue-600 mt-1'>
+                أنت تشاهد مواعيدك فقط
+              </p>
+            )}
           </div>
           <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
             <div className='flex items-center gap-2'>
-              <div className='relative w-full sm:w-56'>
+            {!isDoctor && !isPatient && (
+           <div>
+               <div className='relative w-full sm:w-56'>
                 <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
                   <Stethoscope className='w-4 h-4' />
                 </span>
@@ -143,53 +166,62 @@ export default function AppointmentsPage() {
                   ))}
                 </select>
               </div>
-              <div className='relative w-full sm:w-56'>
-                <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
-                  <User className='w-4 h-4' />
-                </span>
-                <select
-                  id='doctorFilter'
-                  value={selectedDoctorId}
-                  onChange={(e) => setSelectedDoctorId(e.target.value)}
-                  className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                  disabled={!selectedSpecialty}
+       
+                <div className='relative w-full sm:w-56'>
+                  <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
+                    <User className='w-4 h-4' />
+                  </span>
+                  <select
+                    id='doctorFilter'
+                    value={selectedDoctorId}
+                    onChange={(e) => setSelectedDoctorId(e.target.value)}
+                    className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    disabled={!selectedSpecialty}
+                  >
+                    <option value=''>اختر الطبيب</option>
+                    {(doctors || []).map((d) => (
+                      <option key={d.DOCTOR_ID} value={d.DOCTOR_ID}>
+                        {d.NAME}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+           </div>
+              )}
+              {!isPatient && (
+                <div className='relative w-full sm:w-64'>
+                  <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
+                    <Search className='w-4 h-4' />
+                  </span>
+
+                  <input
+                    type='text'
+                    placeholder='الرقم القومى'
+                    value={identificationNumber}
+                    onChange={(e) => setIdentificationNumber(e.target.value)}
+                    className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  />
+                </div>
+              )}
+              {!isPatient && (
+                <button
+                  onClick={() => {
+                    const sp = new URLSearchParams(Array.from(searchParams.entries()));
+                    if (selectedSpecialty) sp.set('specialty', selectedSpecialty); else sp.delete('specialty');
+                    // Don't set doctorId for doctors since they can only see their own appointments
+                    if (!isDoctor && selectedDoctorId) sp.set('doctorId', selectedDoctorId); else sp.delete('doctorId');
+                    if (identificationNumber && identificationNumber.trim()) sp.set('identificationNumber', identificationNumber.trim()); else sp.delete('identificationNumber');
+                    const query = sp.toString();
+                    router.push(query ? `?${query}` : '?', { scroll: false });
+                  }}
+                  className='inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                  title='بحث'
                 >
-                  <option value=''>اختر الطبيب</option>
-                  {(doctors || []).map((d) => (
-                    <option key={d.DOCTOR_ID} value={d.DOCTOR_ID}>
-                      {d.NAME}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className='relative w-full sm:w-64'>
-                <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
-                  <Search className='w-4 h-4' />
-                </span>
-                <input
-                  type='text'
-                  placeholder='الرقم القومى'
-                  value={identificationNumber}
-                  onChange={(e) => setIdentificationNumber(e.target.value)}
-                  className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                />
-              </div>
-              <button
-                onClick={() => {
-                  const sp = new URLSearchParams(Array.from(searchParams.entries()));
-                  if (selectedSpecialty) sp.set('specialty', selectedSpecialty); else sp.delete('specialty');
-                  if (selectedDoctorId) sp.set('doctorId', selectedDoctorId); else sp.delete('doctorId');
-                  if (identificationNumber && identificationNumber.trim()) sp.set('identificationNumber', identificationNumber.trim()); else sp.delete('identificationNumber');
-                  const query = sp.toString();
-                  router.push(query ? `?${query}` : '?', { scroll: false });
-                }}
-                className='inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-                title='بحث'
-              >
-                <Search className='w-4 h-4 ml-1' />
-                <span>بحث</span>
-              </button>
-              {(selectedSpecialty || selectedDoctorId || identificationNumber) && (
+                  <Search className='w-4 h-4 ml-1' />
+                  <span>بحث</span>
+                </button>
+              )}
+              {!isPatient && (selectedSpecialty || (!isDoctor && selectedDoctorId) || identificationNumber) && (
                 <button
                   onClick={() => {
                     setSelectedSpecialty('');
@@ -214,7 +246,7 @@ export default function AppointmentsPage() {
               variant='primary'
               leftIcon={Plus}
             >
-              Book New Appointment
+              {isPatient ? 'حجز موعد جديد' : 'Book New Appointment'}
             </ButtonLink>
           </div>
         </div>
@@ -347,19 +379,27 @@ export default function AppointmentsPage() {
               <Calendar className='w-8 h-8 text-gray-400' />
             </div>
             <h3 className='text-lg font-medium text-gray-900 mb-2'>
-              No {filter === 'all' ? '' : filter} appointments found
+              {isPatient 
+                ? `لا توجد مواعيد ${filter === 'all' ? '' : filter}`
+                : `No ${filter === 'all' ? '' : filter} appointments found`
+              }
             </h3>
             <p className='text-gray-600 mb-6'>
-              {filter === 'all'
-                ? 'Get started by booking your first appointment.'
-                : `No appointments with status "${filter}" found.`}
+              {isPatient 
+                ? (filter === 'all'
+                  ? 'ابدأ بحجز أول موعد طبي لك.'
+                  : `لا توجد مواعيد بحالة "${filter}".`)
+                : (filter === 'all'
+                  ? 'Get started by booking your first appointment.'
+                  : `No appointments with status "${filter}" found.`)
+              }
             </p>
             <ButtonLink
               href='/appointments/new'
               variant='primary'
               leftIcon={Plus}
             >
-              Book New Appointment
+              {isPatient ? 'حجز موعد جديد' : 'Book New Appointment'}
             </ButtonLink>
           </div>
         )}

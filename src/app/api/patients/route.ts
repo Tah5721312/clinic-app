@@ -1,6 +1,7 @@
 // app/api/patients/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllPatients, createPatient } from '@/lib/db_utils';
+import { getAllPatients, createPatient, getPatientIdByUserEmail } from '@/lib/db_utils';
+import { auth } from '@/auth';
 
 // GET - جلب جميع المرضى
 export async function GET(request: NextRequest) {
@@ -9,11 +10,44 @@ export async function GET(request: NextRequest) {
     const doctorId = searchParams.get('doctorId');
     const specialty = searchParams.get('specialty') || undefined;
     const identificationNumber = searchParams.get('identificationNumber') || undefined;
+
+    // Get current user session
+    const session = await auth();
+    let finalDoctorId = doctorId ? Number(doctorId) : undefined;
+    let patientId = undefined;
+
+    // If user is a patient (role ID 216), filter patients to only show their own data
+    if (session?.user?.roleId === 216 && session?.user?.email) {
+      console.log('🔍 Patient user detected:', session.user.email, 'Role ID:', session.user.roleId);
+      const userPatientId = await getPatientIdByUserEmail(session.user.email);
+      console.log('🔍 Patient ID lookup result:', userPatientId);
+      if (userPatientId) {
+        // For patients, we need to get their own patient record
+        // We'll modify the getAllPatients function to support filtering by patient ID
+        patientId = userPatientId;
+        console.log('🔍 Filtering by patient ID:', patientId);
+      } else {
+        console.log('⚠️ No patient record found for email:', session.user.email);
+        console.log('🔍 Returning empty array for patient without record');
+        // If patient user has no patient record, return empty array
+        return NextResponse.json([]);
+      }
+    } else {
+      console.log('🔍 User is not a patient. Role ID:', session?.user?.roleId, 'Email:', session?.user?.email);
+    }
+
     const patients = await getAllPatients({
-      doctorId: doctorId ? Number(doctorId) : undefined,
+      doctorId: finalDoctorId,
       specialty,
       identificationNumber,
+      patientId, // Add patientId filter
     });
+    
+    console.log('🔍 Retrieved patients count:', patients?.length || 0);
+    if (session?.user?.roleId === 216) {
+      console.log('🔍 Patient user should see only their own data. Filter applied:', !!patientId);
+    }
+    
     return NextResponse.json(patients);
   } catch (error) {
     console.error('Error fetching patients:', error);

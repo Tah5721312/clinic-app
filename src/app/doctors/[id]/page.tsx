@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { Doctor, Appointment } from '@/lib/types';
 import { Camera, X, Upload, Trash2, Edit } from 'lucide-react';
 import { DOMAIN } from '@/lib/constants';
+import { Can } from '@/components/Can';
 
 // Image Edit Modal Component
 interface ImageEditModalProps {
@@ -169,6 +171,7 @@ function ImageEditModal({ isOpen, onClose, currentImage, doctorName, onImageUpda
 export default function DoctorDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const doctorId = params.id as string;
   
   const [doctor, setDoctor] = useState<Doctor | null>(null);
@@ -177,6 +180,58 @@ export default function DoctorDetailPage() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('details');
   const [showImageModal, setShowImageModal] = useState(false);
+
+  // Check if current user can edit this doctor's image
+  const canEditImage = () => {
+    if (!session?.user) return false;
+    
+    const currentUserId = (session.user as any)?.id;
+    const isAdmin = (session.user as any)?.isAdmin;
+    const isGuest = (session.user as any)?.isGuest;
+    
+    // Admin can edit any doctor's image
+    if (isAdmin) return true;
+    
+    // Guest cannot edit any image
+    if (isGuest) return false;
+    
+    // Doctor can only edit their own image
+    // Note: This assumes the doctor's user ID matches the doctor ID
+    // You might need to adjust this logic based on your data structure
+    return currentUserId === doctorId;
+  };
+
+  // Check if current user can edit this doctor's data
+  const canEditDoctorData = () => {
+    if (!session?.user) return false;
+    
+    const currentUserId = (session.user as any)?.id;
+    const isAdmin = (session.user as any)?.isAdmin;
+    const isGuest = (session.user as any)?.isGuest;
+    
+    // Admin can edit any doctor's data
+    if (isAdmin) return true;
+    
+    // Guest cannot edit any doctor's data
+    if (isGuest) return false;
+    
+    // Doctor can only edit their own data
+    return currentUserId === doctorId;
+  };
+
+  // Check if current user can delete this doctor
+  const canDeleteDoctor = () => {
+    if (!session?.user) return false;
+    
+    const isAdmin = (session.user as any)?.isAdmin;
+    const isGuest = (session.user as any)?.isGuest;
+    
+    // Only admin can delete doctors
+    if (isAdmin) return true;
+    
+    // Guest and doctors cannot delete doctors
+    return false;
+  };
   const [deletingAppointment, setDeletingAppointment] = useState<number | null>(null);
 
   useEffect(() => {
@@ -368,24 +423,32 @@ export default function DoctorDetailPage() {
           <p className="text-gray-600">معلومات كاملة عن الطبيب وجدول المواعيد</p>
         </div>
         <div className="flex gap-2">
-          <Link
-            href={`/doctors/${doctorId}/edit`}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            تعديل البيانات
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-          >
-            حذف الطبيب
-          </button>
+
+          {canEditDoctorData() && (
+            <Link
+              href={`/doctors/${doctorId}/edit`}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              تعديل البيانات
+            </Link>
+          )}
+
+            {canDeleteDoctor() && (
+              <button
+                onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              >
+                حذف الطبيب
+              </button>
+            )}
+
           <Link
             href="/doctors"
             className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
           >
             رجوع
           </Link>
+
         </div>
       </div>
 
@@ -395,33 +458,45 @@ export default function DoctorDetailPage() {
           <div className="flex flex-col md:flex-row gap-6">
             {/* Doctor Image - Clickable */}
             <div className="flex-shrink-0">
-              <div 
-                onClick={() => setShowImageModal(true)}
-                className="relative group cursor-pointer"
+              <div             
+              onClick={() => {
+                if (canEditImage()) {
+                  setShowImageModal(true);
+                }
+              }}             
+                className={`relative group ${canEditImage() ? 'cursor-pointer' : 'cursor-default'}`}
               >
                 {doctor.IMAGE ? (
                   <img
                     src={doctor.IMAGE}
                     alt={doctor.NAME}
-                    className="w-32 h-32 object-cover rounded-full border-4 border-blue-100 group-hover:border-blue-300 transition-colors"
+                    className={`w-32 h-32 object-cover rounded-full border-4 border-blue-100 ${canEditImage() ? 'group-hover:border-blue-300' : ''} transition-colors`}
                   />
-                ) : (
-                  <div className={`w-32 h-32 rounded-full border-4 border-blue-100 group-hover:border-blue-300 transition-colors flex items-center justify-center text-2xl font-bold ${getAvatarColor(doctor.NAME)}`}>
+                ) : 
+              
+                (
+                  <div className={`w-32 h-32 rounded-full border-4 border-blue-100 ${canEditImage() ? 'group-hover:border-blue-300' : ''} transition-colors flex items-center justify-center text-2xl font-bold ${getAvatarColor(doctor.NAME)}`}>
                     {getInitials(doctor.NAME)}
+                  </div>
+                )
+                }
+                
+                {/* Camera overlay on hover - Only show if user can edit */}
+                {canEditImage() && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="w-8 h-8 text-white" />
                   </div>
                 )}
                 
-                {/* Camera overlay on hover */}
-                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-8 h-8 text-white" />
-                </div>
-                
-                {/* Edit hint */}
-                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-                    اضغط لتغيير الصورة
+                {/* Edit hint - Only show if user can edit */}
+                {canEditImage() && (
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                      اضغط لتغيير الصورة
+                    </div>
                   </div>
-                </div>
+                )}
+
               </div>
             </div>
             
@@ -543,12 +618,16 @@ export default function DoctorDetailPage() {
                 مواعيد الطبيب 
                 <span className="text-sm text-gray-500 mr-2">({appointments.length} مواعيد)</span>
               </h3>
+
+              <Can do="create" on="Appointment">
               <Link
                 href={`/appointments/new?doctorId=${doctorId}`}
                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
               >
                 حجز موعد جديد
               </Link>
+              </Can>
+
             </div>
             
             {appointments.length > 0 ? (
@@ -642,12 +721,16 @@ export default function DoctorDetailPage() {
                   </svg>
                 </div>
                 <p className="text-gray-500 text-lg mb-4">لا توجد مواعيد لهذا الطبيب</p>
+            
+              <Can do="create" on="Appointment">
                 <Link
                   href={`/appointments/new?doctorId=${doctorId}`}
                   className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                 >
                   احجز أول موعد
                 </Link>
+               </Can>
+
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@ import { Doctor } from '@/lib/types';
 
 // استيراد أيقونات Lucide إذا كنت تستخدمها
 import { User, Mail, Phone, Calendar, Award, BookOpen } from 'lucide-react';
+import { Can } from '@/components/Can';
 
 interface DoctorCardProps {
   doctor: Doctor;
@@ -111,12 +112,14 @@ export default function DoctorCard({ doctor }: DoctorCardProps) {
           >
             التفاصيل الكاملة
           </Link>
+          <Can do="create" on="Appointment">  
           <Link
             href={`/appointments/new?doctorId=${doctor.DOCTOR_ID}`}
             className='flex-1 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors flex items-center justify-center shadow-md hover:shadow-lg'
           >
             حجز موعد
           </Link>
+          </Can>
         </div>
       </div>
     </div>

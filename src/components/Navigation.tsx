@@ -80,7 +80,8 @@ export default function Navigation() {
 
             {isAuthenticated && (
               <>
-                <Can do="read" on="User">
+             
+               <Can do="read" on="Patient">
                   <Link
                     href={`/profile/${userId}`}
                     className={`px-3 py-2 rounded-md text-sm font-medium ${
@@ -91,7 +92,8 @@ export default function Navigation() {
                   >
                     Profile
                   </Link>
-                </Can>
+               </Can>
+
                 <button
                   onClick={() => signOut({ redirect: true, callbackUrl: '/login' })}
                   className='px-3 py-2 rounded-md text-sm font-medium text-blue-100 hover:bg-blue-700'

@@ -248,7 +248,7 @@ export async function deleteDoctorWithTransaction(id: number, cascade: boolean =
  * جلب جميع المرضى
  */
 
-export async function getAllPatients(filters?: { doctorId?: number; specialty?: string; identificationNumber?: string }) {
+export async function getAllPatients(filters?: { doctorId?: number; specialty?: string; identificationNumber?: string; patientId?: number }) {
   let query = `
     SELECT p.*, d.name as PRIMARYPHYSICIANNAME 
     FROM TAH57.PATIENTS p 
@@ -256,6 +256,11 @@ export async function getAllPatients(filters?: { doctorId?: number; specialty?: 
 
   const params: oracledb.BindParameters = {};
   const where: string[] = [];
+
+  if (filters?.patientId) {
+    where.push('p.patient_id = :patientId');
+    params.patientId = Number(filters.patientId);
+  }
 
   if (filters?.doctorId) {
     where.push('p.primaryphysician = :doctorId');
@@ -830,4 +835,74 @@ export async function deleteAppointment(id: number) {
     'DELETE FROM TAH57.APPOINTMENTS WHERE appointment_id = :id',
     { id }
   ).then((result) => result.rowsAffected || 0);
+}
+
+/**
+ * جلب معرف الطبيب بواسطة البريد الإلكتروني للمستخدم
+ * يحاول مطابقة البريد الإلكتروني مباشرة، وإذا لم يجد يحاول مطابقة جزئية
+ */
+export async function getDoctorIdByUserEmail(email: string) {
+  // First try exact match
+  let result = await executeQuery<{
+    DOCTOR_ID: number;
+  }>(
+    `
+    SELECT DOCTOR_ID 
+    FROM TAH57.DOCTORS 
+    WHERE UPPER(EMAIL) = UPPER(:email)`,
+    { email }
+  );
+  
+  if (result.rows.length > 0) {
+    return result.rows[0].DOCTOR_ID;
+  }
+  
+  // If no exact match, try partial match (remove numbers from email)
+  const emailWithoutNumbers = email.replace(/\d/g, '');
+  result = await executeQuery<{
+    DOCTOR_ID: number;
+  }>(
+    `
+    SELECT DOCTOR_ID 
+    FROM TAH57.DOCTORS 
+    WHERE UPPER(REGEXP_REPLACE(EMAIL, '[0-9]', '')) = UPPER(:emailWithoutNumbers)`,
+    { emailWithoutNumbers }
+  );
+  
+  return result.rows[0]?.DOCTOR_ID || null;
+}
+
+/**
+ * جلب معرف المريض بواسطة البريد الإلكتروني للمستخدم
+ * يحاول مطابقة البريد الإلكتروني مباشرة، وإذا لم يجد يحاول مطابقة جزئية
+ */
+export async function getPatientIdByUserEmail(email: string) {
+  // First try exact match
+  let result = await executeQuery<{
+    PATIENT_ID: number;
+  }>(
+    `
+    SELECT PATIENT_ID 
+    FROM TAH57.PATIENTS 
+    WHERE UPPER(EMAIL) = UPPER(:email)`,
+    { email }
+  );
+  
+  if (result.rows.length > 0) {
+    return result.rows[0].PATIENT_ID;
+  }
+  
+  // If no exact match, try partial match (remove numbers from email)
+  const emailWithoutNumbers = email.replace(/\d/g, '');
+  result = await executeQuery<{
+    PATIENT_ID: number;
+  }>(
+    `
+    SELECT PATIENT_ID 
+    FROM TAH57.PATIENTS 
+    WHERE UPPER(REGEXP_REPLACE(EMAIL, '[0-9]', '')) = UPPER(:emailWithoutNumbers)`,
+    { emailWithoutNumbers }
+  );
+  
+  return result.rows[0]?.PATIENT_ID || null;
 }

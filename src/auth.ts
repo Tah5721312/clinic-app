@@ -35,6 +35,7 @@ export const {
 
         if (!email || !password) return null;
 
+        // Check for Super Admin
         if (
           process.env.ADMIN_EMAIL &&
           process.env.ADMIN_PASSWORD &&
@@ -47,6 +48,23 @@ export const {
             email,
             isAdmin: true,
             roleId: 0,
+          } as any;
+        }
+
+        // Check for Guest user
+        if (
+          process.env.GUEST_EMAIL &&
+          process.env.GUEST_PASSWORD &&
+          email === process.env.GUEST_EMAIL &&
+          password === process.env.GUEST_PASSWORD
+        ) {
+          return {
+            id: "-1",
+            name: "Guest User",
+            email,
+            isAdmin: false,
+            roleId: -1, // Guest role ID
+            isGuest: true,
           } as any;
         }
 
@@ -84,6 +102,7 @@ export const {
         token.id = (user as any).id;
         token.isAdmin = (user as any).isAdmin ?? false;
         token.roleId = (user as any).roleId ?? 0;
+        token.isGuest = (user as any).isGuest ?? false;
       }
       return token;
     },
@@ -94,6 +113,7 @@ export const {
         email: session.user?.email || "",
         isAdmin: Boolean((token as any).isAdmin),
         roleId: Number((token as any).roleId ?? 0),
+        isGuest: Boolean((token as any).isGuest),
       } as any;
       return session;
     },

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { Mail, Phone, Calendar, FileText, User, Clock, AlertCircle, Trash2, Edit } from 'lucide-react';
 import { Appointment, Patient } from '@/lib/types';
 import { DOMAIN } from '@/lib/constants';
+import { Can } from '@/components/Can';
 
 interface LoadingSpinnerProps {
   size?: 'sm' | 'lg';
@@ -378,6 +379,8 @@ export default function PatientDetailPage() {
           <ButtonLink href={`/patients/${patientId}/edit`} variant="primary">
             تعديل
           </ButtonLink>
+
+          <Can do="delete" on="Patient">
           <ButtonLink
             href="#"
             variant="danger"
@@ -385,6 +388,8 @@ export default function PatientDetailPage() {
           >
             {isDeleting ? 'جاري الحذف...' : 'حذف المريض'}
           </ButtonLink>
+          </Can>
+
           <ButtonLink href="/patients" variant="outline">
             رجوع
           </ButtonLink>

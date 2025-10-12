@@ -69,8 +69,21 @@ export async function fetchAbilityRulesFromDB(userId: number): Promise<AbilityRu
 }
 
 export async function defineAbilityFromDB(userId: number): Promise<AppAbility> {
+  // Handle guest user (ID = -1)
+  if (userId === -1) {
+    return defineGuestAbility();
+  }
+  
   const rules = await fetchAbilityRulesFromDB(userId);
   return createAbilityFromRules(rules);
+}
+
+export function defineGuestAbility(): AppAbility {
+  const guestRules: AbilityRule[] = [
+    { action: 'read', subject: 'Doctor' },
+    { action: 'read', subject: 'Appointment' },
+  ];
+  return createAbilityFromRules(guestRules);
 }
 
 

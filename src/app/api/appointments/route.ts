@@ -1,6 +1,7 @@
 // app/api/appointments/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllAppointments, createAppointment, getPatientAppointments } from '@/lib/db_utils';
+import { getAllAppointments, createAppointment, getPatientAppointments, getDoctorIdByUserEmail, getPatientIdByUserEmail } from '@/lib/db_utils';
+import { auth } from '@/auth';
 
 // GET - جلب جميع المواعيد أو مواعيد طبيب/مريض معين
 export async function GET(request: NextRequest) {
@@ -11,18 +12,51 @@ export async function GET(request: NextRequest) {
     const specialty = searchParams.get('specialty') || undefined;
     const identificationNumber = searchParams.get('identificationNumber') || undefined;
 
+    // Get current user session
+    const session = await auth();
+    let finalDoctorId = doctorId ? Number(doctorId) : undefined;
+    let finalPatientId = patientId ? Number(patientId) : undefined;
+
+    // If user is a patient (role ID 216), filter appointments to only show their own
+    if (session?.user?.roleId === 216 && session?.user?.email) {
+      console.log('🔍 Patient user detected for appointments:', session.user.email, 'Role ID:', session.user.roleId);
+      const userPatientId = await getPatientIdByUserEmail(session.user.email);
+      console.log('🔍 Patient ID lookup result for appointments:', userPatientId);
+      if (userPatientId) {
+        // Override any patientId parameter to ensure patient only sees their own appointments
+        finalPatientId = userPatientId;
+        console.log('🔍 Filtering appointments by patient ID:', finalPatientId);
+      } else {
+        console.log('⚠️ No patient record found for email:', session.user.email);
+        console.log('🔍 Returning empty array for patient without record');
+        // If patient user has no patient record, return empty array
+        return NextResponse.json([]);
+      }
+    }
+
+    // If user is a doctor (role ID 213), filter appointments to only show their own
+    if (session?.user?.roleId === 213 && session?.user?.email) {
+      const userDoctorId = await getDoctorIdByUserEmail(session.user.email);
+      if (userDoctorId) {
+        // Override any doctorId parameter to ensure doctor only sees their own appointments
+        finalDoctorId = userDoctorId;
+      }
+    }
+
     let appointments;
 
-    if (patientId) {
+    if (finalPatientId) {
       // جلب مواعيد مريض معين
-      appointments = await getPatientAppointments(Number(patientId));
+      appointments = await getPatientAppointments(finalPatientId);
+      console.log('🔍 Retrieved appointments for patient ID:', finalPatientId, 'Count:', appointments?.length || 0);
     } else {
       // جلب جميع المواعيد مع الفلاتر
       appointments = await getAllAppointments({
-        doctorId: doctorId ? Number(doctorId) : undefined,
+        doctorId: finalDoctorId,
         specialty,
         identificationNumber,
       });
+      console.log('🔍 Retrieved all appointments. Count:', appointments?.length || 0);
     }
 
     return NextResponse.json(appointments);

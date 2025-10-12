@@ -6,6 +6,7 @@ import { createAbilityFromRules } from '@/lib/ability';
 import { auth } from '@/auth';
 
 export default async function DashboardPage() {
+  
   const cookieStore = await cookies();
   const userIdCookie = cookieStore.get('userId')?.value;
   let userId = userIdCookie ? Number(userIdCookie) : undefined;

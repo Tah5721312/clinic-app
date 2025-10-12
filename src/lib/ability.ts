@@ -1,7 +1,7 @@
 import { AbilityBuilder, PureAbility } from '@casl/ability';
 
 // تعريف الأدوار
-export type Role = 'superadmin' | 'admin' | 'doctor' | 'patient';
+export type Role = 'superadmin' | 'admin' | 'doctor' | 'patient' | 'guest';
 
 // تعريف الصلاحيات
 export type Actions = 'manage' | 'read' | 'create' | 'update' | 'delete';
@@ -55,6 +55,12 @@ export function defineAbilityRulesFor(role: Role): AbilityRule[] {
       rules.push({ action: 'create', subject: 'Appointment' });
       break;
 
+    case 'guest':
+      // الضيف يستطيع قراءة البيانات العامة فقط
+      rules.push({ action: 'read', subject: 'Doctor' });
+      rules.push({ action: 'read', subject: 'Appointment' });
+      break;
+
     default:
       // لا صلاحيات للمستخدم غير المسجل
       break;
@@ -83,7 +89,16 @@ export function createAbilityFromRules(rules: AbilityRule[]): AppAbility {
     }
   });
 
-  return build();
+  return build({
+    fieldMatcher: (fields: string | string[]) => {
+      if (!fields) return true;
+      
+      const fieldsArray = Array.isArray(fields) ? fields : [fields];
+      
+      // For now, allow all fields - this can be customized based on specific rules
+      return fieldsArray.length > 0;
+    }
+  } as any);
 }
 
 // دالة لتحديد الصلاحيات حسب الدور (للخلفية)

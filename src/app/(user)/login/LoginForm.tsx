@@ -44,6 +44,29 @@ const LoginForm = () => {
     }
   };
 
+  const handleGuestSignIn = async () => {
+    try {
+      setLoading(true);
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: process.env.NEXT_PUBLIC_GUEST_EMAIL || "guest@example.com",
+        password: process.env.NEXT_PUBLIC_GUEST_PASSWORD || "guest123",
+      });
+      setLoading(false);
+      if (res && !res.error) {
+        toast.success("Signed in as Guest");
+        router.replace("/");
+        router.refresh();
+      } else {
+        toast.error("Guest sign-in failed");
+      }
+    } catch (error: any) {
+      toast.error("Guest sign-in failed");
+      console.log(error);
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="grid text-center items-center">
       <div>
@@ -101,7 +124,14 @@ const LoginForm = () => {
           >
             {loading ? <ButtonSpinner /> : "Login"}
           </button>
-          
+          <button
+            type="button"
+            onClick={handleGuestSignIn}
+            disabled={loading}
+            className="mt-6 w-full h-12 flex items-center justify-center gap-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? <ButtonSpinner /> : "Sign in as Guest"}
+          </button>
           <div className="mt-4 flex justify-end">
             <a
               href="/reset-password"
@@ -123,6 +153,7 @@ const LoginForm = () => {
             />
             sign in with google
           </button>
+          
           <p className="mt-4 text-gray-600 text-sm text-center">
             Not registered?{" "}
             <a href="/register" className="font-medium text-gray-900 hover:text-blue-600">

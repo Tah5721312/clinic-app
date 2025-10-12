@@ -1,0 +1,43 @@
+
+1. البيانات الأساسية للمستخدم (من قاعدة البيانات)
+عند تسجيل الدخول، يتم استرجاع البيانات التالية من جدول USERS:
+
+SELECT USER_ID AS ID, USERNAME, EMAIL, PASSWORD, ROLE_ID 
+FROM tah57.USERS 
+WHERE UPPER(EMAIL) = UPPER(:email)
+
+***********************************
+2. البيانات المخزنة في JWT Token
+بعد التحقق من صحة البيانات، يتم إنشاء JWT token يحتوي على:
+
+{
+  id: String(user.ID),           // معرف المستخدم
+  name: user.USERNAME,           // اسم المستخدم
+  email: user.EMAIL,             // البريد الإلكتروني
+  isAdmin: (user.ROLE_ID ?? 0) === 211,  // هل هو مدير عام
+  roleId: user.ROLE_ID ?? 0,     // معرف الدور
+}
+
+****************************************
+3. البيانات المخزنة في Session
+يتم تخزين البيانات التالية في الجلسة:
+
+session.user = {
+  id: String(token.id),          // معرف المستخدم
+  name: session.user?.name,      // اسم المستخدم
+  email: session.user?.email,    // البريد الإلكتروني
+  isAdmin: Boolean(token.isAdmin), // هل هو مدير عام
+  roleId: Number(token.roleId),  // معرف الدور
+}
+
+*****************************************
+4. البيانات المخزنة في Cookies
+يتم أيضاً تخزين userId في الكوكيز:
+
+response.cookies.set('userId', userId, {
+  httpOnly: true,
+  sameSite: 'lax',
+  path: '/',
+});
+
+*****************************************
