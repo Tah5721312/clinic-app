@@ -506,6 +506,9 @@ export default function DoctorDetailPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
+                <p className="text-gray-600">
+                    <span className="font-medium">DOCTOR_ID :</span> {doctor.DOCTOR_ID}
+                  </p>
                   <p className="text-gray-600">
                     <span className="font-medium">البريد الإلكتروني:</span> {doctor.EMAIL}
                   </p>

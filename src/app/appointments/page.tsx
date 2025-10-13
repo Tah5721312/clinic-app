@@ -145,8 +145,9 @@ export default function AppointmentsPage() {
           </div>
           <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
             <div className='flex items-center gap-2'>
+       
             {!isDoctor && !isPatient && (
-           <div>
+           
                <div className='relative w-full sm:w-56'>
                 <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
                   <Stethoscope className='w-4 h-4' />
@@ -165,8 +166,10 @@ export default function AppointmentsPage() {
                     <option key={spec || `specialty-${index}`} value={spec}>{spec}</option>
                   ))}
                 </select>
-              </div>
-       
+              </div> 
+            )}
+
+         {!isDoctor && !isPatient && (
                 <div className='relative w-full sm:w-56'>
                   <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
                     <User className='w-4 h-4' />
@@ -186,8 +189,8 @@ export default function AppointmentsPage() {
                     ))}
                   </select>
                 </div>
-           </div>
               )}
+
               {!isPatient && (
                 <div className='relative w-full sm:w-64'>
                   <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>

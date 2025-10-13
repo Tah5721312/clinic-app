@@ -3,6 +3,7 @@
 import { useAbility } from '@/contexts/AbilityContext';
 import { Actions, Subjects } from '@/lib/ability';
 import { useEffect, useMemo, useState } from 'react';
+import { DOMAIN } from '@/lib/constants';
 
 interface RoleDebuggerProps {
   userId: string;
@@ -24,7 +25,7 @@ export default function RoleDebugger({ userId, role }: RoleDebuggerProps) {
 
   useEffect(() => {
     if (!role && userId) {
-      fetch(`/api/users/permissions/${userId}`, { cache: 'no-store' })
+      fetch(`${DOMAIN}/api/users/permissions/${userId}`, { cache: 'no-store' })
         .then((res) => (res.ok ? res.json() : null))
         .then((json) => {
           if (json?.data?.roleName) setDbRole(json.data.roleName);

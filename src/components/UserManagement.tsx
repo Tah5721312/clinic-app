@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Edit, Trash2, Search, RotateCcw, Users, Shield } from 'lucide-react';
 import ButtonLink from '@/components/links/ButtonLink';
+import { DOMAIN } from '@/lib/constants';
 
 interface Permission {
   SUBJECT: string;
@@ -34,6 +35,7 @@ export default function UserManagement() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [originalUserId, setOriginalUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [usernameFilter, setUsernameFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -42,7 +44,7 @@ export default function UserManagement() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const usersResponse = await fetch('/api/users');
+        const usersResponse = await fetch(`${DOMAIN}/api/users`);
         const usersData = await usersResponse.json();
         
         if (usersData.users) {
@@ -50,7 +52,7 @@ export default function UserManagement() {
           setFilteredUsers(usersData.users);
         }
 
-        const rolesResponse = await fetch('/api/roles');
+        const rolesResponse = await fetch(`${DOMAIN}/api/roles`);
         const rolesData = await rolesResponse.json();
         
         if (rolesData.roles) {
@@ -90,13 +92,14 @@ export default function UserManagement() {
 
   const handleEdit = (user: User) => {
     setSelectedUser(user);
+    setOriginalUserId(user.USER_ID);
     setIsEditModalOpen(true);
   };
 
   const handleDelete = async (userId: number) => {
     if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
       try {
-        const response = await fetch(`/api/users/${userId}`, {
+        const response = await fetch(`${DOMAIN}/api/users/${userId}`, {
           method: 'DELETE',
         });
 
@@ -118,7 +121,7 @@ export default function UserManagement() {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch(`/api/users/${selectedUser.USER_ID}`, {
+      const response = await fetch(`${DOMAIN}/api/users/${originalUserId ?? selectedUser.USER_ID}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -128,6 +131,7 @@ export default function UserManagement() {
           email: selectedUser.EMAIL,
           fullName: selectedUser.FULL_NAME,
           roleId: selectedUser.ROLE_ID,
+          newUserId: (originalUserId !== null && selectedUser.USER_ID !== originalUserId) ? selectedUser.USER_ID : undefined,
         }),
       });
 
@@ -136,11 +140,12 @@ export default function UserManagement() {
         const updatedUser = responseData.user;
         
         const updatedUsers = users.map(u => 
-          u.USER_ID === selectedUser.USER_ID ? updatedUser : u
+          u.USER_ID === (originalUserId ?? selectedUser.USER_ID) ? updatedUser : u
         );
         setUsers(updatedUsers);
         setFilteredUsers(updatedUsers);
         setSelectedUser(updatedUser);
+        setOriginalUserId(updatedUser.USER_ID);
         
         setIsEditModalOpen(false);
         alert('تم تحديث المستخدم بنجاح');
@@ -396,10 +401,14 @@ export default function UserManagement() {
                     معرف المستخدم
                   </label>
                   <input
-                    type="text"
+                    type="number"
                     value={selectedUser.USER_ID}
-                    disabled
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 font-medium"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const parsed = value === '' ? 0 : parseInt(value, 10);
+                      setSelectedUser({ ...selectedUser, USER_ID: isNaN(parsed) ? selectedUser.USER_ID : parsed });
+                    }}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 outline-none"
                   />
                 </div>
 

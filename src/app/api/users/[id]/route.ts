@@ -99,7 +99,33 @@ export async function PUT(
   try {
     const userId = parseInt(params.id);
     const body = await request.json();
-    const { username, email, fullName, roleId } = body;
+    const { username, email, fullName, roleId, newUserId } = body;
+
+    // If the client requests changing the USER_ID, validate uniqueness first
+    let effectiveUserId = userId;
+    if (typeof newUserId === 'number' && newUserId !== userId) {
+      const existsQuery = `
+        SELECT COUNT(*) as count
+        FROM TAH57.USERS
+        WHERE USER_ID = :newUserId
+      `;
+      const existsResult = await executeQuery<{ count: number }>(existsQuery, { newUserId });
+      if (existsResult.rows[0].count > 0) {
+        return NextResponse.json(
+          { error: 'USER_ID already exists' },
+          { status: 409 }
+        );
+      }
+
+      // Update the primary key first
+      const updateIdQuery = `
+        UPDATE TAH57.USERS
+        SET USER_ID = :newUserId
+        WHERE USER_ID = :userId
+      `;
+      await executeQuery(updateIdQuery, { newUserId, userId });
+      effectiveUserId = newUserId;
+    }
 
     const updateQuery = `
       UPDATE TAH57.USERS 
@@ -107,7 +133,7 @@ export async function PUT(
           EMAIL = :email,
           FULL_NAME = :fullName,
           ROLE_ID = :roleId
-      WHERE USER_ID = :userId
+      WHERE USER_ID = :effectiveUserId
     `;
 
     await executeQuery(updateQuery, {
@@ -115,7 +141,7 @@ export async function PUT(
       email,
       fullName,
       roleId,
-      userId
+      effectiveUserId
     });
 
 // when update user from nurse to super admin  
@@ -140,7 +166,7 @@ export async function PUT(
       FROM TAH57.USERS u
       LEFT JOIN TAH57.ROLES r ON u.ROLE_ID = r.ROLE_ID
       LEFT JOIN TAH57.ROLE_PERMISSIONS rp ON r.ROLE_ID = rp.ROLE_ID
-      WHERE u.USER_ID = :userId
+      WHERE u.USER_ID = :effectiveUserId
       GROUP BY u.USER_ID, u.USERNAME, u.EMAIL, u.FULL_NAME, r.ROLE_ID, r.NAME
     `;
 
@@ -152,7 +178,7 @@ export async function PUT(
       ROLE_ID: number;
       ROLE_NAME: string;
       PERMISSIONS_STRING: string;
-    }>(fetchQuery, { userId });
+    }>(fetchQuery, { effectiveUserId });
 
     if (result.rows.length === 0) {
       return NextResponse.json(

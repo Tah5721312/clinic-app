@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DOMAIN } from '@/lib/constants';
+import { useDoctors, useSpecialties } from '@/hooks/useApiData';
 
 interface ApiError {
   error: string;
@@ -15,6 +16,14 @@ export default function AddPatientPage() {
   const [error, setError] = useState<ApiError | null>(null);
   const [success, setSuccess] = useState(false);
   const [newPatientId, setNewPatientId] = useState<number | null>(null);
+  
+  // Specialty and doctor filtering
+  const [selectedSpecialty, setSelectedSpecialty] = useState('');
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  
+  // Fetch specialties and doctors
+  const { data: specialties, loading: specialtiesLoading, error: specialtiesError } = useSpecialties();
+  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -68,7 +77,10 @@ export default function AddPatientPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          primaryPhysician: selectedDoctorId || formData.primaryPhysician,
+        }),
       });
       
       const responseData = await response.json();
@@ -104,6 +116,10 @@ export default function AddPatientPage() {
         treatmentConsent: false,
         disclosureConsent: false,
       });
+      
+      // Reset specialty and doctor selections
+      setSelectedSpecialty('');
+      setSelectedDoctorId('');
 
       // توجيه إلى صفحة المريض بعد 3 ثواني
       setTimeout(() => {
@@ -278,17 +294,55 @@ export default function AddPatientPage() {
           
           {/* معلومات الطبيب */}
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="primaryPhysician">
-              الطبيب المعالج (ID)
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="selectedSpecialty">
+              تخصص الطبيب
             </label>
-            <input
-              type="number"
-              id="primaryPhysician"
-              name="primaryPhysician"
-              value={formData.primaryPhysician}
-              onChange={handleChange}
+            <select
+              id="selectedSpecialty"
+              value={selectedSpecialty}
+              onChange={(e) => {
+                setSelectedSpecialty(e.target.value);
+                setSelectedDoctorId(''); // Reset doctor selection when specialty changes
+              }}
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            />
+            >
+              <option value="">اختر التخصص</option>
+              {specialtiesLoading ? (
+                <option disabled>جاري التحميل...</option>
+              ) : specialtiesError ? (
+                <option disabled>خطأ في التحميل</option>
+              ) : specialties && specialties.length > 0 ? (
+                specialties.map((spec, index) => (
+                  <option key={spec || `specialty-${index}`} value={spec}>{spec}</option>
+                ))
+              ) : (
+                <option disabled>لا توجد تخصصات</option>
+              )}
+            </select>
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="selectedDoctorId">
+              الطبيب المعالج
+            </label>
+            <select
+              id="selectedDoctorId"
+              value={selectedDoctorId}
+              onChange={(e) => setSelectedDoctorId(e.target.value)}
+              disabled={!selectedSpecialty}
+              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">اختر الطبيب</option>
+              {doctors && doctors.length > 0 ? (
+                doctors.map((doctor) => (
+                  <option key={doctor.DOCTOR_ID} value={doctor.DOCTOR_ID}>
+                    {doctor.NAME}
+                  </option>
+                ))
+              ) : (
+                <option disabled>لا توجد أطباء في هذا التخصص</option>
+              )}
+            </select>
           </div>
           
           {/* معلومات التأمين */}

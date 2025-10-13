@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { DOMAIN } from "@/lib/constants";
 
 interface Role {
   ROLE_ID: number;
@@ -47,7 +48,7 @@ const NewUserForm = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await fetch('/api/roles');
+        const response = await fetch(`${DOMAIN}/api/roles`);
         const data = await response.json();
         if (data.roles) {
           setRoles(data.roles);
@@ -70,7 +71,7 @@ const NewUserForm = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('/api/users', {
+      const response = await fetch(`${DOMAIN}/api/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

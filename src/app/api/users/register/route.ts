@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // ✅ Check if user exists
     const emailCheck = await connection.execute(
-      `SELECT ID FROM USERS WHERE EMAIL = :email`,
+      `SELECT USER_ID FROM USERS WHERE EMAIL = :email`,
       { email: body.email },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
@@ -48,16 +48,19 @@ export async function POST(request: NextRequest) {
 
     // ✅ Insert user
     const result = await connection.execute(
-      `INSERT INTO USERS (USERNAME, EMAIL, PASSWORD, IS_ADMIN)
-       VALUES (:username, :email, :password, 0)
-       RETURNING ID, USERNAME, IS_ADMIN INTO :id, :usernameOut, :isAdminOut`,
+      `INSERT INTO USERS (USERNAME, EMAIL, PASSWORD, ROLE_ID, FULL_NAME, PHONE)
+       VALUES (:username, :email, :password, :roleId, :fullName, :phone)
+       RETURNING USER_ID, USERNAME, ROLE_ID INTO :id, :usernameOut, :roleIdOut`,
       {
         username: body.username,
         email: body.email,
         password: hashedPassword,
+        roleId: 216, // Default role for patients
+        fullName: body.fullName || body.username,
+        phone: body.phone || '',
         id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
         usernameOut: { dir: oracledb.BIND_OUT, type: oracledb.STRING, maxSize: 100 },
-        isAdminOut: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
+        roleIdOut: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
       }
     );
 
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
     const newUser = {
       id: (result.outBinds as any).id[0],
       username: (result.outBinds as any).usernameOut[0],
-      isAdmin: (result.outBinds as any).isAdminOut[0] === 1
+      roleId: (result.outBinds as any).roleIdOut[0]
     };
 
     // ✅ Create session using NextAuth
