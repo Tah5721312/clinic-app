@@ -144,12 +144,12 @@ export default function AppointmentsPage() {
             )}
           </div>
           <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
-            <div className='flex items-center gap-2'>
+            <div className='grid grid-cols-2 gap-2 w-full sm:flex sm:items-center'>
        
             {!isDoctor && !isPatient && (
            
                <div className='relative w-full sm:w-56'>
-                <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
+                <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
                   <Stethoscope className='w-4 h-4' />
                 </span>
                 <select
@@ -171,7 +171,7 @@ export default function AppointmentsPage() {
 
          {!isDoctor && !isPatient && (
                 <div className='relative w-full sm:w-56'>
-                  <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
+                  <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
                     <User className='w-4 h-4' />
                   </span>
                   <select
@@ -217,7 +217,7 @@ export default function AppointmentsPage() {
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
                   }}
-                  className='inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                  className='inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto'
                   title='بحث'
                 >
                   <Search className='w-4 h-4 ml-1' />
@@ -237,31 +237,34 @@ export default function AppointmentsPage() {
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
                   }}
-                  className='inline-flex items-center px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
+                  className='inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto'
                   title='مسح'
                 >
                   ALL
                 </button>
               )}
             </div>
-            <ButtonLink
-              href='/appointments/new'
-              variant='primary'
-              leftIcon={Plus}
-            >
-              {isPatient ? 'حجز موعد جديد' : 'Book New Appointment'}
-            </ButtonLink>
+            <div className='w-full sm:w-auto'>
+              <ButtonLink
+                href='/appointments/new'
+                variant='primary'
+                leftIcon={Plus}
+                className='w-full sm:w-auto'
+              >
+                {isPatient ? 'حجز موعد جديد' : 'Book New Appointment'}
+              </ButtonLink>
+            </div>
           </div>
         </div>
 
         {/* Filter Tabs */}
-        <div className='flex flex-wrap gap-2'>
+        <div className='flex flex-wrap justify-center gap-2'>
           {(['all', 'scheduled', 'pending', 'cancelled'] as const).map(
             (status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === status
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${filter === status
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}

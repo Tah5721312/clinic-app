@@ -278,7 +278,7 @@ export default function UserManagement() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hidden sm:block">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
@@ -375,6 +375,66 @@ export default function UserManagement() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Mobile list view */}
+        
+        <div className="sm:hidden space-y-3">
+          {loading ? (
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 text-center">
+              <div className="flex flex-col items-center justify-center gap-3">
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent"></div>
+                <span className="text-gray-600 font-medium">جاري التحميل...</span>
+              </div>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <Users className="w-14 h-14 text-gray-300" />
+                <p className="text-gray-500 font-medium">لا توجد بيانات للمستخدمين</p>
+              </div>
+            </div>
+          ) : (
+            filteredUsers.map((user) => (
+              <div key={user.USER_ID} className="bg-white rounded-xl shadow-md border border-gray-100 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                    {user.USERNAME.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user.USERNAME}</p>
+                      <span className="inline-flex items-center px-2.5 py-1 bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 rounded-full text-[10px] font-semibold shadow-sm whitespace-nowrap">
+                        {user.ROLE_NAME}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 truncate">{user.FULL_NAME}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="text-[11px] text-gray-600">
+                    صلاحيات: <span className="font-semibold">{user.PERMISSIONS.length}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="p-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                      title="تعديل"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user.USER_ID)}
+                      className="p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                      title="حذف"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         {isEditModalOpen && selectedUser && (

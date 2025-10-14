@@ -87,7 +87,7 @@ export default function PatientsPage() {
     <ErrorBoundary>
       <div className='space-y-6'>
         {/* Header */}
-        <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
+          <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
           <div>
             <h1 className='text-3xl font-bold text-gray-900'>المرضى</h1>
             <p className='text-gray-600 mt-1'>
@@ -104,18 +104,18 @@ export default function PatientsPage() {
               </p>
             )}
             {/* Debug Info */}
-            <div className='text-xs text-gray-500 mt-2'>
+            <div className='hidden sm:block text-xs text-gray-500 mt-2'>
               Specialties: {specialties?.length || 0} | Loading: {specialtiesLoading ? 'Yes' : 'No'} | Error: {specialtiesError ? 'Yes' : 'No'}
               {isDoctor && ` | Doctor ID: ${currentUserId}`}
               {isPatient && ` | Patient ID: ${currentUserId}`}
             </div>
           </div>
           <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
-            <div className='flex items-center gap-2'>
+            <div className='grid grid-cols-2 gap-2 w-full sm:flex sm:items-center'>
               {/* Only show specialty filter for admins */}
               {!isDoctor && !isPatient && (
                 <div className='relative w-full sm:w-56'>
-                  <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
+                  <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
                     <Stethoscope className='w-4 h-4' />
                   </span>
                   <select
@@ -145,7 +145,7 @@ export default function PatientsPage() {
               {/* Only show doctor filter for admins */}
               {!isDoctor && !isPatient && (
                 <div className='relative w-full sm:w-56'>
-                  <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
+                  <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
                     <User className='w-4 h-4' />
                   </span>
                   <select
@@ -191,7 +191,7 @@ export default function PatientsPage() {
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
                   }}
-                  className='inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
+                  className='inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors w-full sm:w-auto'
                   title='بحث'
                 >
                   <Search className='w-4 h-4 ml-1' />
@@ -213,7 +213,7 @@ export default function PatientsPage() {
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
                   }}
-                  className='inline-flex items-center px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
+                  className='inline-flex items-center justify-center px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto'
                   title='مسح'
                 >
                   ALL

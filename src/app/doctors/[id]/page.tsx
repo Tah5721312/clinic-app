@@ -458,24 +458,24 @@ export default function DoctorDetailPage() {
           <div className="flex flex-col md:flex-row gap-6">
             {/* Doctor Image - Clickable */}
             <div className="flex-shrink-0">
-              <div             
+              <div
               onClick={() => {
                 if (canEditImage()) {
                   setShowImageModal(true);
                 }
-              }}             
-                className={`relative group ${canEditImage() ? 'cursor-pointer' : 'cursor-default'}`}
+              }}
+                className={`relative group w-32 h-32 rounded-full overflow-hidden border-4 border-blue-100 ${canEditImage() ? 'cursor-pointer group-hover:border-blue-300' : 'cursor-default'} transition-colors`}
               >
                 {doctor.IMAGE ? (
                   <img
                     src={doctor.IMAGE}
                     alt={doctor.NAME}
-                    className={`w-32 h-32 object-cover rounded-full border-4 border-blue-100 ${canEditImage() ? 'group-hover:border-blue-300' : ''} transition-colors`}
+                    className="w-full h-full object-cover"
                   />
                 ) : 
               
                 (
-                  <div className={`w-32 h-32 rounded-full border-4 border-blue-100 ${canEditImage() ? 'group-hover:border-blue-300' : ''} transition-colors flex items-center justify-center text-2xl font-bold ${getAvatarColor(doctor.NAME)}`}>
+                  <div className={`w-full h-full rounded-full transition-colors flex items-center justify-center text-2xl font-bold ${getAvatarColor(doctor.NAME)}`}>
                     {getInitials(doctor.NAME)}
                   </div>
                 )
@@ -491,9 +491,9 @@ export default function DoctorDetailPage() {
                 {/* Edit hint - Only show if user can edit */}
                 {canEditImage() && (
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                    {/* <div className="bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                       اضغط لتغيير الصورة
-                    </div>
+                    </div> */}
                   </div>
                 )}
 
@@ -634,88 +634,162 @@ export default function DoctorDetailPage() {
             </div>
             
             {appointments.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        المريض
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        التاريخ والوقت
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        السبب
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        الحالة
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        الإجراءات
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {appointments.map((appointment) => (
-                      <tr key={appointment.APPOINTMENT_ID} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
+              <>
+                {/* Mobile cards */}
+                <div className="md:hidden space-y-3">
+                  {appointments.map((appointment) => (
+                    <div
+                      key={appointment.APPOINTMENT_ID}
+                      className="rounded-lg border border-gray-200 p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm text-gray-500">المريض</p>
+                          <p className="text-base font-semibold text-gray-900">
                             {appointment.PATIENT_NAME}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                          </p>
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full h-fit
+                          ${appointment.STATUS === 'scheduled' ? 'bg-green-100 text-green-800' : ''}
+                          ${appointment.STATUS === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                          ${appointment.STATUS === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
+                        `}>
+                          {appointment.STATUS === 'scheduled' && 'مجدول'}
+                          {appointment.STATUS === 'pending' && 'قيد الانتظار'}
+                          {appointment.STATUS === 'cancelled' && 'ملغي'}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-sm text-gray-500">التاريخ</p>
+                          <p className="text-sm text-gray-900">
                             {new Date(appointment.SCHEDULE).toLocaleDateString('ar-SA')}
-                          </div>
-                          <div className="text-sm text-gray-500">
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">الوقت</p>
+                          <p className="text-sm text-gray-900">
                             {new Date(appointment.SCHEDULE).toLocaleTimeString('ar-SA')}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {appointment.REASON}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                            ${appointment.STATUS === 'scheduled' ? 'bg-green-100 text-green-800' : ''}
-                            ${appointment.STATUS === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                            ${appointment.STATUS === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
-                          `}>
-                            {appointment.STATUS === 'scheduled' && 'مجدول'}
-                            {appointment.STATUS === 'pending' && 'قيد الانتظار'}
-                            {appointment.STATUS === 'cancelled' && 'ملغي'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex gap-2">
-                            {/* Edit Appointment Button */}
-                            <Link
-                              href={`/appointments/${appointment.APPOINTMENT_ID}/edit`}
-                              className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded"
-                              title="تعديل الموعد"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Link>
-                            
-                            {/* Delete Appointment Button */}
-                            <button
-                              onClick={() => handleDeleteAppointment(appointment.APPOINTMENT_ID)}
-                              disabled={deletingAppointment === appointment.APPOINTMENT_ID}
-                              className="text-red-600 hover:text-red-900 transition-colors p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="حذف الموعد"
-                            >
-                              {deletingAppointment === appointment.APPOINTMENT_ID ? (
-                                <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                            </button>
-                          </div>
-                        </td>
+                          </p>
+                        </div>
+                      </div>
+
+                      {appointment.REASON && (
+                        <div className="mt-3">
+                          <p className="text-sm text-gray-500">السبب</p>
+                          <p className="text-sm text-gray-700">{appointment.REASON}</p>
+                        </div>
+                      )}
+
+                      <div className="mt-4 flex items-center justify-end gap-2">
+                        <Link
+                          href={`/appointments/${appointment.APPOINTMENT_ID}/edit`}
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                          title="تعديل الموعد"
+                        >
+                          <Edit className="w-4 h-4" />
+                          تعديل
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteAppointment(appointment.APPOINTMENT_ID)}
+                          disabled={deletingAppointment === appointment.APPOINTMENT_ID}
+                          className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="حذف الموعد"
+                        >
+                          {deletingAppointment === appointment.APPOINTMENT_ID ? (
+                            <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                          حذف
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          المريض
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          التاريخ والوقت
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          السبب
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          الحالة
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          الإجراءات
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {appointments.map((appointment) => (
+                        <tr key={appointment.APPOINTMENT_ID} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {appointment.PATIENT_NAME}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {new Date(appointment.SCHEDULE).toLocaleDateString('ar-SA')}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {new Date(appointment.SCHEDULE).toLocaleTimeString('ar-SA')}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {appointment.REASON}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                              ${appointment.STATUS === 'scheduled' ? 'bg-green-100 text-green-800' : ''}
+                              ${appointment.STATUS === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                              ${appointment.STATUS === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
+                            `}>
+                              {appointment.STATUS === 'scheduled' && 'مجدول'}
+                              {appointment.STATUS === 'pending' && 'قيد الانتظار'}
+                              {appointment.STATUS === 'cancelled' && 'ملغي'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex gap-2">
+                              <Link
+                                href={`/appointments/${appointment.APPOINTMENT_ID}/edit`}
+                                className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded"
+                                title="تعديل الموعد"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Link>
+                              <button
+                                onClick={() => handleDeleteAppointment(appointment.APPOINTMENT_ID)}
+                                disabled={deletingAppointment === appointment.APPOINTMENT_ID}
+                                className="text-red-600 hover:text-red-900 transition-colors p-1 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="حذف الموعد"
+                              >
+                                {deletingAppointment === appointment.APPOINTMENT_ID ? (
+                                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             ) : (
               <div className="text-center py-12">
                 <div className="text-gray-400 mb-4">
