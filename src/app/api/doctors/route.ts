@@ -44,6 +44,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // التحقق من صحة سعر الكشف إذا تم توفيره
+    if (body.consultation_fee !== undefined && (isNaN(body.consultation_fee) || body.consultation_fee < 0)) {
+      return NextResponse.json(
+        { error: 'Invalid consultation fee. Must be a positive number.' },
+        { status: 400 }
+      );
+    }
+
+    // التحقق من صحة حالة التوفر إذا تم توفيرها
+    if (body.is_available !== undefined && ![0, 1].includes(body.is_available)) {
+      return NextResponse.json(
+        { error: 'Invalid availability status. Must be 0 or 1.' },
+        { status: 400 }
+      );
+    }
+
     const id = await createDoctor(body);
 
     return NextResponse.json(

@@ -10,7 +10,8 @@ import { Patient } from '@/lib/types';
 export async function getAllDoctors(specialty?: string) {
   let query = `
     SELECT DOCTOR_ID, NAME, EMAIL, PHONE, SPECIALTY, 
-           EXPERIENCE, QUALIFICATION, IMAGE, BIO 
+           EXPERIENCE, QUALIFICATION, IMAGE, BIO,
+           CONSULTATION_FEE, IS_AVAILABLE, AVAILABILITY_UPDATED_AT
     FROM TAH57.DOCTORS`;
 
   const params: oracledb.BindParameters = {};
@@ -32,6 +33,9 @@ export async function getAllDoctors(specialty?: string) {
     QUALIFICATION: string;
     IMAGE: string;
     BIO: string;
+    CONSULTATION_FEE: number;
+    IS_AVAILABLE: number;
+    AVAILABILITY_UPDATED_AT: Date;
   }>(query, params).then((result) => result.rows);
 }
 
@@ -49,10 +53,14 @@ export async function getDoctorById(id: number) {
     QUALIFICATION: string;
     IMAGE: string;
     BIO: string;
+    CONSULTATION_FEE: number;
+    IS_AVAILABLE: number;
+    AVAILABILITY_UPDATED_AT: Date;
   }>(
     `
     SELECT DOCTOR_ID, NAME, EMAIL, PHONE, SPECIALTY, 
-           EXPERIENCE, QUALIFICATION, IMAGE, BIO 
+           EXPERIENCE, QUALIFICATION, IMAGE, BIO,
+           CONSULTATION_FEE, IS_AVAILABLE, AVAILABILITY_UPDATED_AT
     FROM TAH57.DOCTORS 
     WHERE DOCTOR_ID = :id`,
     { id }
@@ -71,11 +79,13 @@ export async function createDoctor(doctor: {
   qualification?: string;
   image?: string;
   bio?: string;
+  consultation_fee?: number;
+  is_available?: number;
 }) {
   const result = await executeReturningQuery<{ doctor_id: number }>(
     `
-    INSERT INTO TAH57.DOCTORS (name, email, phone, specialty, experience, qualification, image, bio) 
-    VALUES (:name, :email, :phone, :specialty, :experience, :qualification, :image, :bio) 
+    INSERT INTO TAH57.DOCTORS (name, email, phone, specialty, experience, qualification, image, bio, consultation_fee, is_available) 
+    VALUES (:name, :email, :phone, :specialty, :experience, :qualification, :image, :bio, :consultation_fee, :is_available) 
     RETURNING doctor_id INTO :id`,
     {
       name: doctor.name,
@@ -86,6 +96,8 @@ export async function createDoctor(doctor: {
       qualification: doctor.qualification || null,
       image: doctor.image || null,
       bio: doctor.bio || null,
+      consultation_fee: doctor.consultation_fee || 0,
+      is_available: doctor.is_available || 1,
       id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
     }
   );
@@ -115,6 +127,9 @@ export async function updateDoctor(
     qualification?: string;
     image?: string;
     bio?: string;
+    consultation_fee?: number;
+    is_available?: number;
+    availability_updated_at?: Date;
   }
 ) {
   // إنشاء كائن للربط بين اسم الجدول في DB واسم الحقل في JS
@@ -127,6 +142,9 @@ export async function updateDoctor(
     qualification: 'QUALIFICATION',
     image: 'IMAGE',
     bio: 'BIO',
+    consultation_fee: 'CONSULTATION_FEE',
+    is_available: 'IS_AVAILABLE',
+    availability_updated_at: 'AVAILABILITY_UPDATED_AT',
   };
 
   const setClauses: string[] = [];
@@ -633,6 +651,9 @@ export async function getAllAppointments(filters?: {
     CANCELLATIONREASON: string;
     PATIENT_NAME: string;
     DOCTOR_NAME: string;
+    APPOINTMENT_TYPE: string;
+    PAYMENT_STATUS: string;
+    PAYMENT_AMOUNT: number;
   }>(query, params).then((result) => result.rows);
 }
 
@@ -651,6 +672,9 @@ export async function getPatientAppointments(patientId: number) {
     CANCELLATIONREASON: string;
     PATIENT_NAME: string;
     DOCTOR_NAME: string;
+    APPOINTMENT_TYPE: string;
+    PAYMENT_STATUS: string;
+    PAYMENT_AMOUNT: number;
   }>(
     `
     SELECT a.*, p.name as patient_name, d.name as doctor_name 
@@ -678,6 +702,9 @@ export async function getAppointmentById(id: number) {
     CANCELLATIONREASON: string;
     PATIENT_NAME: string;
     DOCTOR_NAME: string;
+    APPOINTMENT_TYPE: string;
+    PAYMENT_STATUS: string;
+    PAYMENT_AMOUNT: number;
   }>(
     `
     SELECT a.*, p.name as patient_name, d.name as doctor_name 
@@ -699,6 +726,9 @@ export async function createAppointment(appointment: {
   reason: string;
   note?: string;
   status?: string;
+  appointment_type?: string;
+  payment_status?: string;
+  payment_amount?: number;
 }) {
   const {
     patient_id,
@@ -707,6 +737,9 @@ export async function createAppointment(appointment: {
     reason,
     note,
     status = 'pending',
+    appointment_type = 'consultation',
+    payment_status = 'unpaid',
+    payment_amount = 0,
   } = appointment;
 
   // تحويل التاريخ إلى تنسيق Oracle
@@ -714,8 +747,8 @@ export async function createAppointment(appointment: {
 
   return executeReturningQuery(
     `
-    INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status) 
-    VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status) 
+    INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status, appointment_type, payment_status, payment_amount) 
+    VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status, :appointment_type, :payment_status, :payment_amount) 
     RETURNING appointment_id INTO :id`,
     {
       patient_id: Number(patient_id),
@@ -724,6 +757,9 @@ export async function createAppointment(appointment: {
       reason,
       note: note || null,
       status,
+      appointment_type,
+      payment_status,
+      payment_amount: payment_amount || 0,
       id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
     }
   );
@@ -742,6 +778,9 @@ export async function updateAppointment(
     note?: string;
     status?: string;
     cancellationReason?: string;
+    appointment_type?: string;
+    payment_status?: string;
+    payment_amount?: number;
   }
 ) {
   const fields: string[] = [];
@@ -785,6 +824,21 @@ export async function updateAppointment(
   if (appointment.cancellationReason !== undefined) {
     fields.push('cancellationReason = :cancellationReason');
     params.cancellationReason = appointment.cancellationReason;
+  }
+
+  if (appointment.appointment_type !== undefined) {
+    fields.push('appointment_type = :appointment_type');
+    params.appointment_type = appointment.appointment_type;
+  }
+
+  if (appointment.payment_status !== undefined) {
+    fields.push('payment_status = :payment_status');
+    params.payment_status = appointment.payment_status;
+  }
+
+  if (appointment.payment_amount !== undefined) {
+    fields.push('payment_amount = :payment_amount');
+    params.payment_amount = appointment.payment_amount;
   }
 
   if (fields.length === 0) {

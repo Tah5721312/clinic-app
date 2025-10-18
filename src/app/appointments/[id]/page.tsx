@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Clock, FileText, User, Phone, Mail, ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Clock, FileText, User, Phone, Mail, ArrowLeft, Edit, Trash2, CreditCard, DollarSign } from 'lucide-react';
 
 import { Appointment, Doctor, Patient } from '@/lib/types';
 
@@ -157,6 +157,49 @@ export default function AppointmentDetailPage() {
     }
   };
 
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'partial':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'unpaid':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'refunded':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getPaymentStatusIcon = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return '✓';
+      case 'partial':
+        return '⚠';
+      case 'unpaid':
+        return '✗';
+      case 'refunded':
+        return '↩';
+      default:
+        return '?';
+    }
+  };
+
+  const getAppointmentTypeColor = (type: string) => {
+    switch (type) {
+      case 'consultation':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'follow_up':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'emergency':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -250,6 +293,49 @@ export default function AppointmentDetailPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Appointment Type and Payment Information */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Appointment Type */}
+              {appointment.APPOINTMENT_TYPE && (
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium text-gray-900">Appointment Type</p>
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getAppointmentTypeColor(appointment.APPOINTMENT_TYPE)}`}>
+                      <span className="capitalize">{appointment.APPOINTMENT_TYPE.replace('_', ' ')}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Status */}
+              {appointment.PAYMENT_STATUS && (
+                <div className="flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium text-gray-900">Payment Status</p>
+                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${getPaymentStatusColor(appointment.PAYMENT_STATUS)}`}>
+                      <span>{getPaymentStatusIcon(appointment.PAYMENT_STATUS)}</span>
+                      <span className="capitalize">{appointment.PAYMENT_STATUS.replace('_', ' ')}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Amount */}
+              {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
+                <div className="flex items-center gap-3">
+                  <DollarSign className="w-5 h-5 text-gray-400" />
+                  <div>
+                    <p className="font-medium text-gray-900">Payment Amount</p>
+                    <p className="text-green-600 font-semibold">{appointment.PAYMENT_AMOUNT} EGP</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

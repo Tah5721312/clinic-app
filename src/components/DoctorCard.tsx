@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Doctor } from '@/lib/types';
 
 // استيراد أيقونات Lucide إذا كنت تستخدمها
-import { User, Mail, Phone, Calendar, Award, BookOpen } from 'lucide-react';
+import { User, Mail, Phone, Calendar, Award, BookOpen, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { Can } from '@/components/Can';
 
 interface DoctorCardProps {
@@ -57,6 +57,25 @@ export default function DoctorCard({ doctor }: DoctorCardProps) {
             {doctor.EXPERIENCE} سنة خبرة
           </div>
         )}
+
+        {/* Availability Badge */}
+        <div className={`mt-2 px-3 py-1 rounded-full shadow-sm flex items-center text-sm font-medium ${
+          doctor.IS_AVAILABLE === 1 
+            ? 'bg-green-100 text-green-700' 
+            : 'bg-red-100 text-red-700'
+        }`}>
+          {doctor.IS_AVAILABLE === 1 ? (
+            <>
+              <CheckCircle className="w-4 h-4 ml-1" />
+              متاح للحجز
+            </>
+          ) : (
+            <>
+              <XCircle className="w-4 h-4 ml-1" />
+              غير متاح
+            </>
+          )}
+        </div>
       </div>
 
       {/* Content Section */}
@@ -87,6 +106,17 @@ export default function DoctorCard({ doctor }: DoctorCardProps) {
               <div className="flex-1">
                 <span className='font-medium text-gray-500 block text-xs mb-1'>المؤهلات</span>
                 <span className="text-gray-800">{doctor.QUALIFICATION}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Consultation Fee */}
+          {doctor.CONSULTATION_FEE && doctor.CONSULTATION_FEE > 0 && (
+            <div className="flex items-center bg-gray-50 p-3 rounded-lg">
+              <DollarSign className="w-4 h-4 ml-2 text-green-500" />
+              <div className="flex-1">
+                <span className='font-medium text-gray-500 block text-xs mb-1'>سعر الكشف</span>
+                <span className="text-gray-800 font-semibold">{doctor.CONSULTATION_FEE} جنيه مصري</span>
               </div>
             </div>
           )}

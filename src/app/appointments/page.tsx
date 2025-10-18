@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search, CreditCard, DollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -99,6 +99,34 @@ export default function AppointmentsPage() {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'partial':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'unpaid':
+        return 'bg-red-100 text-red-800';
+      case 'refunded':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getAppointmentTypeColor = (type: string) => {
+    switch (type) {
+      case 'consultation':
+        return 'bg-blue-100 text-blue-800';
+      case 'follow_up':
+        return 'bg-purple-100 text-purple-800';
+      case 'emergency':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -291,13 +319,22 @@ export default function AppointmentsPage() {
                         Appointment #{appointment.APPOINTMENT_ID}
                       </span>
                     </div>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        appointment.STATUS
-                      )}`}
-                    >
-                      {appointment.STATUS}
-                    </span>
+                    <div className='flex flex-col gap-1'>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                          appointment.STATUS
+                        )}`}
+                      >
+                        {appointment.STATUS}
+                      </span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${getAppointmentTypeColor(
+                          appointment.APPOINTMENT_TYPE || 'consultation'
+                        )}`}
+                      >
+                        {appointment.APPOINTMENT_TYPE || 'consultation'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className='space-y-3'>
@@ -339,6 +376,28 @@ export default function AppointmentsPage() {
                         <div>
                           <strong>Note:</strong> {appointment.NOTE}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Payment Information */}
+                    <div className='flex items-center text-sm text-gray-600'>
+                      <CreditCard className='w-4 h-4 mr-2 text-gray-400' />
+                      <span>
+                        <strong>Payment:</strong>{' '}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                          appointment.PAYMENT_STATUS || 'unpaid'
+                        )}`}>
+                          {appointment.PAYMENT_STATUS || 'unpaid'}
+                        </span>
+                      </span>
+                    </div>
+
+                    {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
+                      <div className='flex items-center text-sm text-gray-600'>
+                        <DollarSign className='w-4 h-4 mr-2 text-gray-400' />
+                        <span>
+                          <strong>Amount:</strong> {appointment.PAYMENT_AMOUNT} EGP
+                        </span>
                       </div>
                     )}
                   </div>

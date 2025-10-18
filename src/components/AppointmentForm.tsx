@@ -22,6 +22,9 @@ interface FormData {
   schedule: string;
   reason: string;
   note?: string;
+  appointment_type: string;
+  payment_status: string;
+  payment_amount: number;
 }
 
 export default function AppointmentForm({
@@ -52,6 +55,9 @@ export default function AppointmentForm({
     schedule: '',
     reason: '',
     note: '',
+    appointment_type: 'consultation',
+    payment_status: 'unpaid',
+    payment_amount: 0,
   });
 
   // Update form data when props change
@@ -109,6 +115,8 @@ export default function AppointmentForm({
       [name]:
         name === 'patient_id' || name === 'doctor_id'
           ? parseInt(value) || 0
+          : name === 'payment_amount'
+          ? parseFloat(value) || 0
           : value,
     }));
   };
@@ -171,6 +179,9 @@ export default function AppointmentForm({
         schedule: '',
         reason: '',
         note: '',
+        appointment_type: 'consultation',
+        payment_status: 'unpaid',
+        payment_amount: 0,
       });
       setSelectedSpecialty('');
       setSelectedDoctor(null);
@@ -449,6 +460,75 @@ export default function AppointmentForm({
               onChange={handleInputChange}
               required
               placeholder='e.g., Regular checkup, consultation, follow-up'
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            />
+          </div>
+
+          {/* Appointment Type */}
+          <div>
+            <label
+              htmlFor='appointment_type'
+              className='flex items-center text-sm font-medium text-gray-700 mb-2'
+            >
+              <FileText className='w-4 h-4 mr-2' />
+              Appointment Type *
+            </label>
+            <select
+              id='appointment_type'
+              name='appointment_type'
+              value={formData.appointment_type}
+              onChange={handleInputChange}
+              required
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            >
+              <option value='consultation'>Consultation</option>
+              <option value='follow_up'>Follow-up</option>
+              <option value='emergency'>Emergency</option>
+            </select>
+          </div>
+
+          {/* Payment Status */}
+          <div>
+            <label
+              htmlFor='payment_status'
+              className='flex items-center text-sm font-medium text-gray-700 mb-2'
+            >
+              <FileText className='w-4 h-4 mr-2' />
+              Payment Status *
+            </label>
+            <select
+              id='payment_status'
+              name='payment_status'
+              value={formData.payment_status}
+              onChange={handleInputChange}
+              required
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            >
+              <option value='unpaid'>Unpaid</option>
+              <option value='partial'>Partial</option>
+              <option value='paid'>Paid</option>
+              <option value='refunded'>Refunded</option>
+            </select>
+          </div>
+
+          {/* Payment Amount */}
+          <div>
+            <label
+              htmlFor='payment_amount'
+              className='flex items-center text-sm font-medium text-gray-700 mb-2'
+            >
+              <FileText className='w-4 h-4 mr-2' />
+              Payment Amount (EGP)
+            </label>
+            <input
+              type='number'
+              id='payment_amount'
+              name='payment_amount'
+              value={formData.payment_amount}
+              onChange={handleInputChange}
+              min='0'
+              step='0.01'
+              placeholder='0.00'
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
             />
           </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Appointment, Doctor, Patient } from '@/lib/types';
 import { DOMAIN } from '@/lib/constants';
+import { CreditCard, DollarSign } from 'lucide-react';
 
 export default function EditAppointmentPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -67,6 +68,8 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
         newValue = new Date(value);
       } else if (name === 'PATIENT_ID' || name === 'DOCTOR_ID') {
         newValue = parseInt(value) || '';
+      } else if (name === 'PAYMENT_AMOUNT') {
+        newValue = parseFloat(value) || 0;
       }
       
       return { ...prev, [name]: newValue };
@@ -89,7 +92,10 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
         reason: appointment.REASON,
         note: appointment.NOTE || '',
         status: appointment.STATUS,
-        cancellationReason: appointment.CANCELLATIONREASON || ''
+        cancellationReason: appointment.CANCELLATIONREASON || '',
+        appointment_type: appointment.APPOINTMENT_TYPE || 'consultation',
+        payment_status: appointment.PAYMENT_STATUS || 'unpaid',
+        payment_amount: appointment.PAYMENT_AMOUNT || 0
       };
       
       console.log('Sending update data:', updateData);
@@ -275,6 +281,69 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
                   <option value="scheduled">مجدول</option>
                   <option value="cancelled">ملغي</option>
                 </select>
+              </div>
+
+              {/* نوع الموعد */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="APPOINTMENT_TYPE">
+                  نوع الموعد *
+                </label>
+                <select
+                  id="APPOINTMENT_TYPE"
+                  name="APPOINTMENT_TYPE"
+                  value={appointment.APPOINTMENT_TYPE || 'consultation'}
+                  onChange={handleChange}
+                  className="w-full px-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                  required
+                >
+                  <option value="consultation">استشارة</option>
+                  <option value="follow_up">متابعة</option>
+                  <option value="emergency">طوارئ</option>
+                </select>
+              </div>
+
+              {/* حالة الدفع */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="PAYMENT_STATUS">
+                  <div className="flex items-center">
+                    <CreditCard className="w-4 h-4 ml-1" />
+                    حالة الدفع *
+                  </div>
+                </label>
+                <select
+                  id="PAYMENT_STATUS"
+                  name="PAYMENT_STATUS"
+                  value={appointment.PAYMENT_STATUS || 'unpaid'}
+                  onChange={handleChange}
+                  className="w-full px-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                  required
+                >
+                  <option value="unpaid">غير مدفوع</option>
+                  <option value="partial">مدفوع جزئياً</option>
+                  <option value="paid">مدفوع بالكامل</option>
+                  <option value="refunded">مسترد</option>
+                </select>
+              </div>
+
+              {/* مبلغ الدفع */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="PAYMENT_AMOUNT">
+                  <div className="flex items-center">
+                    <DollarSign className="w-4 h-4 ml-1" />
+                    مبلغ الدفع (جنيه مصري)
+                  </div>
+                </label>
+                <input
+                  type="number"
+                  id="PAYMENT_AMOUNT"
+                  name="PAYMENT_AMOUNT"
+                  min="0"
+                  step="0.01"
+                  value={appointment.PAYMENT_AMOUNT || 0}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                  placeholder="0.00"
+                />
               </div>
 
               {/* سبب الإلغاء (يظهر فقط إذا كانت الحالة ملغي) */}

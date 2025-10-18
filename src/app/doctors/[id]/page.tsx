@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Doctor, Appointment } from '@/lib/types';
-import { Camera, X, Upload, Trash2, Edit } from 'lucide-react';
+import { Camera, X, Upload, Trash2, Edit, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { DOMAIN } from '@/lib/constants';
 import { Can } from '@/components/Can';
 
@@ -527,6 +527,34 @@ export default function DoctorDetailPage() {
                       <span className="font-medium">المؤهلات:</span> {doctor.QUALIFICATION}
                     </p>
                   )}
+                  
+                  {/* Consultation Fee */}
+                  {doctor.CONSULTATION_FEE && doctor.CONSULTATION_FEE > 0 && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <DollarSign className="w-4 h-4 text-green-600" />
+                      <p className="text-gray-600">
+                        <span className="font-medium">سعر الكشف:</span> 
+                        <span className="text-green-600 font-semibold mr-1">
+                          {doctor.CONSULTATION_FEE} جنيه مصري
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Availability Status */}
+                  <div className="flex items-center gap-2 mt-2">
+                    {doctor.IS_AVAILABLE === 1 ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-green-600 font-medium">متاح للحجز</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-4 h-4 text-red-600" />
+                        <span className="text-red-600 font-medium">غير متاح</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -601,6 +629,34 @@ export default function DoctorDetailPage() {
                   <span className="font-medium">المؤهلات:</span> {doctor.QUALIFICATION}
                 </p>
               )}
+              
+              {/* Consultation Fee */}
+              {doctor.CONSULTATION_FEE && doctor.CONSULTATION_FEE > 0 && (
+                <div className="flex items-center gap-2 mt-2">
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                  <p className="text-gray-600">
+                    <span className="font-medium">سعر الكشف:</span> 
+                    <span className="text-green-600 font-semibold mr-1">
+                      {doctor.CONSULTATION_FEE} جنيه مصري
+                    </span>
+                  </p>
+                </div>
+              )}
+              
+              {/* Availability Status */}
+              <div className="flex items-center gap-2 mt-2">
+                {doctor.IS_AVAILABLE === 1 ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-green-600 font-medium">متاح للحجز</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-4 h-4 text-red-600" />
+                    <span className="text-red-600 font-medium">غير متاح</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           

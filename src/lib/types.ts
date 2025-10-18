@@ -8,6 +8,9 @@ export interface Doctor {
   QUALIFICATION: string | null;
   IMAGE: string | null;
   BIO: string | null;
+  CONSULTATION_FEE: number | null;
+  IS_AVAILABLE: number | null;
+  AVAILABILITY_UPDATED_AT: Date | null;
 }
 
 export interface Patient {
@@ -48,6 +51,9 @@ export interface Appointment {
   CANCELLATIONRESON?: string;
   PATIENT_NAME?: string;
   DOCTOR_NAME?: string;
+  APPOINTMENT_TYPE: 'consultation' | 'follow_up' | 'emergency';
+  PAYMENT_STATUS: 'unpaid' | 'partial' | 'paid' | 'refunded';
+  PAYMENT_AMOUNT: number | null;
 }
 
 // أضف هذه الأنواع في lib/database.ts أو في ملف types.ts
@@ -76,6 +82,9 @@ export interface DoctorUpdateFields {
   qualification?: string;
   image?: string;
   bio?: string;
+  consultation_fee?: number;
+  is_available?: number;
+  availability_updated_at?: Date;
 }
 
 

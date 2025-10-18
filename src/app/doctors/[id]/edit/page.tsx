@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon, FileText, Save, ArrowLeft, Loader } from 'lucide-react';
+import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon, FileText, Save, ArrowLeft, Loader, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { Doctor } from '@/lib/types';
 import { useSpecialties } from '@/hooks/useApiData';
 import { DOMAIN } from '@/lib/constants';
@@ -27,7 +27,9 @@ export default function EditDoctorPage() {
     experience: '',
     qualification: '',
     image: '',
-    bio: ''
+    bio: '',
+    consultation_fee: '',
+    is_available: '1'
   });
 
   // جلب بيانات الطبيب
@@ -53,7 +55,9 @@ export default function EditDoctorPage() {
           experience: doctorData.EXPERIENCE?.toString() || '',
           qualification: doctorData.QUALIFICATION || '',
           image: doctorData.IMAGE || '',
-          bio: doctorData.BIO || ''
+          bio: doctorData.BIO || '',
+          consultation_fee: doctorData.CONSULTATION_FEE?.toString() || '',
+          is_available: doctorData.IS_AVAILABLE?.toString() || '1'
         });
       } catch (error) {
         setErrors({ general: 'فشل في تحميل بيانات الطبيب' });
@@ -94,6 +98,12 @@ export default function EditDoctorPage() {
       newErrors.experience = 'يجب أن تكون سنوات الخبرة رقماً';
     }
 
+    if (formData.consultation_fee && isNaN(Number(formData.consultation_fee))) {
+      newErrors.consultation_fee = 'يجب أن يكون سعر الكشف رقماً';
+    } else if (formData.consultation_fee && Number(formData.consultation_fee) < 0) {
+      newErrors.consultation_fee = 'يجب أن يكون سعر الكشف موجباً';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -119,7 +129,9 @@ export default function EditDoctorPage() {
           experience: formData.experience ? Number(formData.experience) : null,
           qualification: formData.qualification || null,
           image: formData.image || null,
-          bio: formData.bio || null
+          bio: formData.bio || null,
+          consultation_fee: formData.consultation_fee ? Number(formData.consultation_fee) : 0,
+          is_available: Number(formData.is_available)
         }),
       });
 
@@ -327,6 +339,49 @@ export default function EditDoctorPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               placeholder="المؤهلات والشهادات"
             />
+          </div>
+
+          {/* سعر الكشف */}
+          <div className="space-y-2">
+            <label htmlFor="consultation_fee" className="block text-sm font-medium text-gray-700">
+              <div className="flex items-center">
+                <DollarSign className="w-4 h-4 ml-1" />
+                سعر الكشف (جنيه مصري)
+              </div>
+            </label>
+            <input
+              type="number"
+              id="consultation_fee"
+              name="consultation_fee"
+              min="0"
+              step="0.01"
+              value={formData.consultation_fee}
+              onChange={handleChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${errors.consultation_fee ? 'border-red-500' : 'border-gray-300'
+                }`}
+              placeholder="0.00"
+            />
+            {errors.consultation_fee && <p className="text-red-500 text-sm">{errors.consultation_fee}</p>}
+          </div>
+
+          {/* حالة التوفر */}
+          <div className="space-y-2">
+            <label htmlFor="is_available" className="block text-sm font-medium text-gray-700">
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 ml-1" />
+                حالة التوفر
+              </div>
+            </label>
+            <select
+              id="is_available"
+              name="is_available"
+              value={formData.is_available}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="1">متاح للحجز</option>
+              <option value="0">غير متاح</option>
+            </select>
           </div>
         </div>
 
