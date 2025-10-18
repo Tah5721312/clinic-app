@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Doctor, Appointment } from '@/lib/types';
-import { Camera, X, Upload, Trash2, Edit, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { Camera, X, Upload, Trash2, Edit, DollarSign, CheckCircle, XCircle, CreditCard, Calendar, Clock, User, Stethoscope } from 'lucide-react';
 import { DOMAIN } from '@/lib/constants';
 import { Can } from '@/components/Can';
 
@@ -365,6 +365,45 @@ export default function DoctorDetailPage() {
       .slice(0, 2);
   };
 
+  // Helper functions for appointment display
+  const getAppointmentTypeColor = (type: string) => {
+    switch (type) {
+      case 'consultation': return 'bg-blue-100 text-blue-800';
+      case 'follow_up': return 'bg-green-100 text-green-800';
+      case 'emergency': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getAppointmentTypeText = (type: string) => {
+    switch (type) {
+      case 'consultation': return 'استشارة';
+      case 'follow_up': return 'متابعة';
+      case 'emergency': return 'طوارئ';
+      default: return type;
+    }
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'partial': return 'bg-yellow-100 text-yellow-800';
+      case 'unpaid': return 'bg-red-100 text-red-800';
+      case 'refunded': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPaymentStatusText = (status: string) => {
+    switch (status) {
+      case 'paid': return 'مدفوع';
+      case 'partial': return 'مدفوع جزئياً';
+      case 'unpaid': return 'غير مدفوع';
+      case 'refunded': return 'مسترد';
+      default: return status;
+    }
+  };
+
   const getAvatarColor = (name: string) => {
     const colors = [
       'bg-red-500 text-white',
@@ -688,6 +727,97 @@ export default function DoctorDetailPage() {
               </Can>
 
             </div>
+
+            {/* Appointment Statistics */}
+            {appointments.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">إجمالي المواعيد</span>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">{appointments.length}</p>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-800">مجدولة</span>
+                  </div>
+                  <p className="text-2xl font-bold text-green-900 mt-1">
+                    {appointments.filter(apt => apt.STATUS === 'scheduled').length}
+                  </p>
+                </div>
+                
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800">قيد الانتظار</span>
+                  </div>
+                  <p className="text-2xl font-bold text-yellow-900 mt-1">
+                    {appointments.filter(apt => apt.STATUS === 'pending').length}
+                  </p>
+                </div>
+                
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <XCircle className="w-5 h-5 text-red-600" />
+                    <span className="text-sm font-medium text-red-800">ملغية</span>
+                  </div>
+                  <p className="text-2xl font-bold text-red-900 mt-1">
+                    {appointments.filter(apt => apt.STATUS === 'cancelled').length}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Statistics */}
+            {appointments.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-800">مدفوعة</span>
+                  </div>
+                  <p className="text-2xl font-bold text-green-900 mt-1">
+                    {appointments.filter(apt => apt.PAYMENT_STATUS === 'paid').length}
+                  </p>
+                </div>
+                
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800">مدفوعة جزئياً</span>
+                  </div>
+                  <p className="text-2xl font-bold text-yellow-900 mt-1">
+                    {appointments.filter(apt => apt.PAYMENT_STATUS === 'partial').length}
+                  </p>
+                </div>
+                
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5 text-red-600" />
+                    <span className="text-sm font-medium text-red-800">غير مدفوعة</span>
+                  </div>
+                  <p className="text-2xl font-bold text-red-900 mt-1">
+                    {appointments.filter(apt => apt.PAYMENT_STATUS === 'unpaid').length}
+                  </p>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-800">إجمالي المبالغ</span>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {appointments
+                      .filter(apt => apt.PAYMENT_AMOUNT && apt.PAYMENT_AMOUNT > 0)
+                      .reduce((sum, apt) => sum + (apt.PAYMENT_AMOUNT || 0), 0)
+                    } جنيه
+                  </p>
+                </div>
+              </div>
+            )}
             
             {appointments.length > 0 ? (
               <>
@@ -699,41 +829,80 @@ export default function DoctorDetailPage() {
                       className="rounded-lg border border-gray-200 p-4 shadow-sm"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm text-gray-500">المريض</p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <User className="w-4 h-4 text-gray-500" />
+                            <p className="text-sm text-gray-500">المريض</p>
+                          </div>
                           <p className="text-base font-semibold text-gray-900">
                             {appointment.PATIENT_NAME}
                           </p>
                         </div>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full h-fit
-                          ${appointment.STATUS === 'scheduled' ? 'bg-green-100 text-green-800' : ''}
-                          ${appointment.STATUS === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
-                          ${appointment.STATUS === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
-                        `}>
-                          {appointment.STATUS === 'scheduled' && 'مجدول'}
-                          {appointment.STATUS === 'pending' && 'قيد الانتظار'}
-                          {appointment.STATUS === 'cancelled' && 'ملغي'}
-                        </span>
+                        <div className="flex flex-col gap-2">
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full h-fit
+                            ${appointment.STATUS === 'scheduled' ? 'bg-green-100 text-green-800' : ''}
+                            ${appointment.STATUS === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
+                            ${appointment.STATUS === 'cancelled' ? 'bg-red-100 text-red-800' : ''}
+                          `}>
+                            {appointment.STATUS === 'scheduled' && 'مجدول'}
+                            {appointment.STATUS === 'pending' && 'قيد الانتظار'}
+                            {appointment.STATUS === 'cancelled' && 'ملغي'}
+                          </span>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getAppointmentTypeColor(appointment.APPOINTMENT_TYPE || 'consultation')}`}>
+                            {getAppointmentTypeText(appointment.APPOINTMENT_TYPE || 'consultation')}
+                          </span>
+                        </div>
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-3">
                         <div>
-                          <p className="text-sm text-gray-500">التاريخ</p>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Calendar className="w-3 h-3 text-gray-500" />
+                            <p className="text-sm text-gray-500">التاريخ</p>
+                          </div>
                           <p className="text-sm text-gray-900">
                             {new Date(appointment.SCHEDULE).toLocaleDateString('ar-SA')}
                           </p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">الوقت</p>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Clock className="w-3 h-3 text-gray-500" />
+                            <p className="text-sm text-gray-500">الوقت</p>
+                          </div>
                           <p className="text-sm text-gray-900">
                             {new Date(appointment.SCHEDULE).toLocaleTimeString('ar-SA')}
                           </p>
                         </div>
                       </div>
 
+                      {/* Payment Information */}
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">حالة الدفع:</span>
+                          </div>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(appointment.PAYMENT_STATUS || 'unpaid')}`}>
+                            {getPaymentStatusText(appointment.PAYMENT_STATUS || 'unpaid')}
+                          </span>
+                        </div>
+                        {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <DollarSign className="w-4 h-4 text-green-600" />
+                            <span className="text-sm text-gray-600">المبلغ:</span>
+                            <span className="text-sm font-semibold text-green-600">
+                              {appointment.PAYMENT_AMOUNT} جنيه مصري
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
                       {appointment.REASON && (
                         <div className="mt-3">
-                          <p className="text-sm text-gray-500">السبب</p>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Stethoscope className="w-3 h-3 text-gray-500" />
+                            <p className="text-sm text-gray-500">السبب</p>
+                          </div>
                           <p className="text-sm text-gray-700">{appointment.REASON}</p>
                         </div>
                       )}
@@ -777,6 +946,12 @@ export default function DoctorDetailPage() {
                           التاريخ والوقت
                         </th>
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          نوع الموعد
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          حالة الدفع
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                           السبب
                         </th>
                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -791,20 +966,54 @@ export default function DoctorDetailPage() {
                       {appointments.map((appointment) => (
                         <tr key={appointment.APPOINTMENT_ID} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {appointment.PATIENT_NAME}
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-gray-500" />
+                              <div className="text-sm font-medium text-gray-900">
+                                {appointment.PATIENT_NAME}
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {new Date(appointment.SCHEDULE).toLocaleDateString('ar-SA')}
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-gray-500" />
+                              <div>
+                                <div className="text-sm text-gray-900">
+                                  {new Date(appointment.SCHEDULE).toLocaleDateString('ar-SA')}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {new Date(appointment.SCHEDULE).toLocaleTimeString('ar-SA')}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {new Date(appointment.SCHEDULE).toLocaleTimeString('ar-SA')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getAppointmentTypeColor(appointment.APPOINTMENT_TYPE || 'consultation')}`}>
+                              {getAppointmentTypeText(appointment.APPOINTMENT_TYPE || 'consultation')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="w-4 h-4 text-gray-500" />
+                              <div>
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(appointment.PAYMENT_STATUS || 'unpaid')}`}>
+                                  {getPaymentStatusText(appointment.PAYMENT_STATUS || 'unpaid')}
+                                </span>
+                                {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <DollarSign className="w-3 h-3 text-green-600" />
+                                    <span className="text-xs text-green-600 font-semibold">
+                                      {appointment.PAYMENT_AMOUNT} جنيه
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {appointment.REASON}
+                            <div className="flex items-center gap-1">
+                              <Stethoscope className="w-4 h-4 text-gray-500" />
+                              {appointment.REASON}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
