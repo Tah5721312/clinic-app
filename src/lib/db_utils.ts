@@ -754,8 +754,8 @@ export async function createAppointment(appointment: {
   const oracleDate = schedule.toISOString().replace('T', ' ').replace('Z', '');
 
   // Insert the appointment and let the trigger handle the ID generation
-  // First try with all columns, if that fails, try with basic columns only
-  try {
+  // Retry on ORA-00001 by advancing sequence to avoid PK collisions
+  const attemptInsertFull = async () => {
     await executeQuery(
       `
       INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status, appointment_type, payment_status, payment_amount) 
@@ -772,11 +772,10 @@ export async function createAppointment(appointment: {
         payment_amount: payment_amount || 0,
       }
     );
-  } catch (error: any) {
-    // If the new columns don't exist, fall back to basic columns
-    if (error.message?.includes('invalid identifier') || error.message?.includes('column')) {
-      console.log('New columns not found, using basic appointment creation');
-      await executeQuery(
+  };
+
+  const attemptInsertBasic = async () => {
+    await executeQuery(
         `
         INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status) 
         VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status)`,
@@ -789,7 +788,47 @@ export async function createAppointment(appointment: {
           status,
         }
       );
-    } else {
+  };
+
+  const advanceSequence = async () => {
+    await executeQuery(`SELECT tah57.APPOINTMENT_seq.NEXTVAL as SEQ FROM DUAL`);
+  };
+
+  let attempts = 0;
+  while (true) {
+    try {
+      await attemptInsertFull();
+      break;
+    } catch (error: any) {
+      if (error?.code === 'ORA-00001') {
+        attempts += 1;
+        if (attempts >= 5) {
+          throw new Error('Duplicate appointment ID after retries. Please try again.');
+        }
+        await advanceSequence();
+        continue;
+      }
+      if (error.message?.includes('invalid identifier') || error.message?.includes('column')) {
+        // Fallback to basic insert, with the same retry-on-duplicate logic
+        let basicAttempts = 0;
+        while (true) {
+          try {
+            await attemptInsertBasic();
+            break;
+          } catch (err2: any) {
+            if (err2?.code === 'ORA-00001') {
+              basicAttempts += 1;
+              if (basicAttempts >= 5) {
+                throw new Error('Duplicate appointment ID after retries. Please try again.');
+              }
+              await advanceSequence();
+              continue;
+            }
+            throw err2;
+          }
+        }
+        break;
+      }
       throw error;
     }
   }
