@@ -640,6 +640,9 @@ export default function DoctorDetailPage() {
           >
             التفاصيل
           </button>
+    
+          {canViewSchedule() && (
+          
           <button
             onClick={() => setActiveTab('appointments')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -650,6 +653,7 @@ export default function DoctorDetailPage() {
           >
             المواعيد ({appointments.length})
           </button>
+          )}
          
           {canViewSchedule() && (
             <button
