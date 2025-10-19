@@ -218,6 +218,28 @@ export default function EnhancedAppointmentForm({
     setFormData(prev => ({ ...prev, schedule: '' })); // Clear selected time when date changes
   };
 
+  const incrementDateByDays = (baseDateStr: string, days: number) => {
+    const base = baseDateStr ? new Date(baseDateStr) : new Date();
+    const next = new Date(base);
+    next.setDate(base.getDate() + days);
+    return next.toISOString().split('T')[0];
+  };
+
+  const handleNextDay = () => {
+    const nextDate = incrementDateByDays(selectedDate || today, 1);
+    setSelectedDate(nextDate);
+    setFormData(prev => ({ ...prev, schedule: '' }));
+  };
+
+  const handlePrevDay = () => {
+    const base = selectedDate || today;
+    const prevDate = incrementDateByDays(base, -1);
+    // Do not go before today
+    if (prevDate < today) return;
+    setSelectedDate(prevDate);
+    setFormData(prev => ({ ...prev, schedule: '' }));
+  };
+
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
     if (timeSlot.is_booked) return; // Don't allow selection of booked slots
     
@@ -315,6 +337,15 @@ export default function EnhancedAppointmentForm({
 
   // Get minimum date (today)
   const today = new Date().toISOString().split('T')[0];
+
+  // Current date label for pagination display
+  const currentDateStr = selectedDate || today;
+  const currentDateLabel = new Date(currentDateStr).toLocaleDateString('ar-EG', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  const canGoPrevDay = (incrementDateByDays(currentDateStr, -1) >= today);
 
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
@@ -459,6 +490,34 @@ export default function EnhancedAppointmentForm({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={handlePrevDay}
+                disabled={!canGoPrevDay}
+                className={`inline-flex items-center px-3 py-1 border rounded-md ${
+                  canGoPrevDay
+                    ? 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                }`}
+                aria-label="اليوم السابق"
+                title="اليوم السابق"
+              >
+                اليوم السابق
+              </button>
+
+              <span className="text-sm text-gray-600">{currentDateLabel}</span>
+
+              <button
+                type="button"
+                onClick={handleNextDay}
+                className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                aria-label="اليوم التالي"
+                title="اليوم التالي"
+              >
+                اليوم التالي
+              </button>
+            </div>
           </div>
         )}
 
