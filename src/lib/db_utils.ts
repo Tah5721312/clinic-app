@@ -2,7 +2,7 @@ import oracledb from 'oracledb';
 
 // دوال مساعدة للتعامل مع الجداول مباشرة
 import { executeQuery, executeReturningQuery, getConnection } from '@/lib/database';
-import { Patient } from '@/lib/types';
+import { Patient, DoctorSchedule, CreateScheduleDto, UpdateScheduleDto, TimeSlot } from '@/lib/types';
 
 /**
  * جلب جميع الأطباء
@@ -610,7 +610,11 @@ export async function getAllAppointments(filters?: {
   identificationNumber?: string;
 }) {
   let query = `
-    SELECT a.*, p.name as patient_name, d.name as doctor_name, p.identificationnumber
+    SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.reason, a.note, a.status, a.cancellationreason,
+           NVL(a.appointment_type, 'consultation') as appointment_type,
+           NVL(a.payment_status, 'unpaid') as payment_status,
+           NVL(a.payment_amount, 0) as payment_amount,
+           p.name as patient_name, d.name as doctor_name, p.identificationnumber
     FROM TAH57.APPOINTMENTS a 
     JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
     JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
@@ -677,7 +681,11 @@ export async function getPatientAppointments(patientId: number) {
     PAYMENT_AMOUNT: number;
   }>(
     `
-    SELECT a.*, p.name as patient_name, d.name as doctor_name 
+    SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.reason, a.note, a.status, a.cancellationreason,
+           NVL(a.appointment_type, 'consultation') as appointment_type,
+           NVL(a.payment_status, 'unpaid') as payment_status,
+           NVL(a.payment_amount, 0) as payment_amount,
+           p.name as patient_name, d.name as doctor_name 
     FROM TAH57.APPOINTMENTS a 
     JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
     JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
@@ -745,24 +753,66 @@ export async function createAppointment(appointment: {
   // تحويل التاريخ إلى تنسيق Oracle
   const oracleDate = schedule.toISOString().replace('T', ' ').replace('Z', '');
 
-  return executeReturningQuery(
-    `
-    INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status, appointment_type, payment_status, payment_amount) 
-    VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status, :appointment_type, :payment_status, :payment_amount) 
-    RETURNING appointment_id INTO :id`,
+  // Insert the appointment and let the trigger handle the ID generation
+  // First try with all columns, if that fails, try with basic columns only
+  try {
+    await executeQuery(
+      `
+      INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status, appointment_type, payment_status, payment_amount) 
+      VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status, :appointment_type, :payment_status, :payment_amount)`,
+      {
+        patient_id: Number(patient_id),
+        doctor_id: Number(doctor_id),
+        schedule: oracleDate,
+        reason,
+        note: note || null,
+        status,
+        appointment_type,
+        payment_status,
+        payment_amount: payment_amount || 0,
+      }
+    );
+  } catch (error: any) {
+    // If the new columns don't exist, fall back to basic columns
+    if (error.message?.includes('invalid identifier') || error.message?.includes('column')) {
+      console.log('New columns not found, using basic appointment creation');
+      await executeQuery(
+        `
+        INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status) 
+        VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status)`,
+        {
+          patient_id: Number(patient_id),
+          doctor_id: Number(doctor_id),
+          schedule: oracleDate,
+          reason,
+          note: note || null,
+          status,
+        }
+      );
+    } else {
+      throw error;
+    }
+  }
+
+  // Get the generated appointment_id by querying the last inserted record
+  const lastAppointment = await executeQuery<{ appointment_id: number }>(
+    `SELECT appointment_id FROM TAH57.APPOINTMENTS 
+     WHERE patient_id = :patient_id AND doctor_id = :doctor_id AND schedule = TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF')
+     ORDER BY appointment_id DESC
+     FETCH FIRST 1 ROWS ONLY`,
     {
       patient_id: Number(patient_id),
       doctor_id: Number(doctor_id),
       schedule: oracleDate,
-      reason,
-      note: note || null,
-      status,
-      appointment_type,
-      payment_status,
-      payment_amount: payment_amount || 0,
-      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
     }
   );
+
+  return {
+    outBinds: {
+      id: [lastAppointment.rows[0]?.appointment_id || 0]
+    },
+    rows: []
+  };
 }
 
 /**
@@ -959,4 +1009,251 @@ export async function getPatientIdByUserEmail(email: string) {
   );
   
   return result.rows[0]?.PATIENT_ID || null;
+}
+
+// ==================== DOCTOR SCHEDULE MANAGEMENT FUNCTIONS ====================
+
+/**
+ * جلب جدول الطبيب
+ */
+export async function getDoctorSchedules(doctorId: number) {
+  const query = `
+    SELECT 
+      ds.SCHEDULE_ID,
+      ds.DOCTOR_ID,
+      d.NAME as DOCTOR_NAME,
+      d.SPECIALTY,
+      ds.DAY_OF_WEEK,
+      CASE ds.DAY_OF_WEEK
+        WHEN 1 THEN 'الأحد'
+        WHEN 2 THEN 'الاثنين'
+        WHEN 3 THEN 'الثلاثاء'
+        WHEN 4 THEN 'الأربعاء'
+        WHEN 5 THEN 'الخميس'
+        WHEN 6 THEN 'الجمعة'
+        WHEN 7 THEN 'السبت'
+      END as DAY_NAME_AR,
+      ds.START_TIME,
+      ds.END_TIME,
+      ds.SLOT_DURATION,
+      ds.IS_AVAILABLE,
+      ds.CREATED_AT,
+      ds.UPDATED_AT
+    FROM TAH57.DOCTOR_SCHEDULES ds
+    INNER JOIN TAH57.DOCTORS d ON ds.DOCTOR_ID = d.DOCTOR_ID
+    WHERE ds.DOCTOR_ID = :doctorId
+    ORDER BY ds.DAY_OF_WEEK, ds.START_TIME
+  `;
+
+  const result = await executeQuery<DoctorSchedule>(query, { doctorId });
+  return result.rows;
+}
+
+/**
+ * إنشاء جدول زمني جديد للطبيب
+ */
+export async function createDoctorSchedule(scheduleData: CreateScheduleDto) {
+  const query = `
+    INSERT INTO TAH57.DOCTOR_SCHEDULES (
+      DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, 
+      SLOT_DURATION, IS_AVAILABLE
+    ) VALUES (
+      :doctor_id, :day_of_week, :start_time, :end_time, 
+      :slot_duration, :is_available
+    )
+    RETURNING SCHEDULE_ID INTO :id
+  `;
+
+  const result = await executeReturningQuery(query, {
+    doctor_id: scheduleData.doctor_id,
+    day_of_week: scheduleData.day_of_week,
+    start_time: scheduleData.start_time,
+    end_time: scheduleData.end_time,
+    slot_duration: scheduleData.slot_duration || 30,
+    is_available: scheduleData.is_available || 1,
+    id: { type: oracledb.NUMBER, dir: oracledb.BIND_OUT }
+  });
+
+  return (result.outBinds as any)?.id?.[0] || 0;
+}
+
+/**
+ * تحديث جدول زمني للطبيب
+ */
+export async function updateDoctorSchedule(scheduleId: number, updateData: UpdateScheduleDto) {
+  const fields = [];
+  const params: oracledb.BindParameters = { scheduleId };
+
+  if (updateData.day_of_week !== undefined) {
+    fields.push('DAY_OF_WEEK = :day_of_week');
+    params.day_of_week = updateData.day_of_week;
+  }
+  if (updateData.start_time !== undefined) {
+    fields.push('START_TIME = :start_time');
+    params.start_time = updateData.start_time;
+  }
+  if (updateData.end_time !== undefined) {
+    fields.push('END_TIME = :end_time');
+    params.end_time = updateData.end_time;
+  }
+  if (updateData.slot_duration !== undefined) {
+    fields.push('SLOT_DURATION = :slot_duration');
+    params.slot_duration = updateData.slot_duration;
+  }
+  if (updateData.is_available !== undefined) {
+    fields.push('IS_AVAILABLE = :is_available');
+    params.is_available = updateData.is_available;
+  }
+
+  if (fields.length === 0) {
+    throw new Error('No fields to update');
+  }
+
+  const query = `
+    UPDATE TAH57.DOCTOR_SCHEDULES 
+    SET ${fields.join(', ')}
+    WHERE SCHEDULE_ID = :scheduleId
+  `;
+
+  const result = await executeQuery(query, params);
+  return result.rowsAffected;
+}
+
+/**
+ * حذف جدول زمني للطبيب
+ */
+export async function deleteDoctorSchedule(scheduleId: number) {
+  const query = 'DELETE FROM TAH57.DOCTOR_SCHEDULES WHERE SCHEDULE_ID = :scheduleId';
+  const result = await executeQuery(query, { scheduleId });
+  return result.rowsAffected;
+}
+
+/**
+ * جلب الأوقات المتاحة للطبيب في يوم معين
+ */
+export async function getAvailableTimeSlots(doctorId: number, date: Date) {
+  const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay(); // Convert Sunday from 0 to 7
+  
+  // Get doctor's schedule for this day
+  const scheduleQuery = `
+    SELECT START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE
+    FROM TAH57.DOCTOR_SCHEDULES
+    WHERE DOCTOR_ID = :doctorId 
+      AND DAY_OF_WEEK = :dayOfWeek 
+      AND IS_AVAILABLE = 1
+    ORDER BY START_TIME
+  `;
+
+  const scheduleResult = await executeQuery<{
+    START_TIME: string;
+    END_TIME: string;
+    SLOT_DURATION: number;
+    IS_AVAILABLE: number;
+  }>(scheduleQuery, { doctorId, dayOfWeek });
+
+  if (scheduleResult.rows.length === 0) {
+    return [];
+  }
+
+  // Get existing appointments for this date
+  const appointmentsQuery = `
+    SELECT 
+      TO_CHAR(SCHEDULE, 'HH24:MI') as APPOINTMENT_TIME,
+      APPOINTMENT_ID
+    FROM TAH57.APPOINTMENTS
+    WHERE DOCTOR_ID = :doctorId 
+      AND TRUNC(SCHEDULE) = TRUNC(:date)
+      AND STATUS IN ('scheduled', 'pending')
+  `;
+
+  const appointmentsResult = await executeQuery<{
+    APPOINTMENT_TIME: string;
+    APPOINTMENT_ID: number;
+  }>(appointmentsQuery, { doctorId, date });
+
+  const bookedTimes = new Set(appointmentsResult.rows.map(apt => apt.APPOINTMENT_TIME));
+
+  // Generate time slots
+  const timeSlots: TimeSlot[] = [];
+  
+  for (const schedule of scheduleResult.rows) {
+    const startTime = schedule.START_TIME;
+    const endTime = schedule.END_TIME;
+    const slotDuration = schedule.SLOT_DURATION;
+
+    // Convert time strings to minutes for easier calculation
+    const timeToMinutes = (timeStr: string) => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const minutesToTime = (minutes: number) => {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    };
+
+    const startMinutes = timeToMinutes(startTime);
+    const endMinutes = timeToMinutes(endTime);
+
+    // Generate slots
+    for (let currentMinutes = startMinutes; currentMinutes < endMinutes; currentMinutes += slotDuration) {
+      const slotStartTime = minutesToTime(currentMinutes);
+      const slotEndTime = minutesToTime(Math.min(currentMinutes + slotDuration, endMinutes));
+      
+      timeSlots.push({
+        start_time: slotStartTime,
+        end_time: slotEndTime,
+        is_available: true,
+        is_booked: bookedTimes.has(slotStartTime),
+        appointment_id: appointmentsResult.rows.find(apt => apt.APPOINTMENT_TIME === slotStartTime)?.APPOINTMENT_ID
+      });
+    }
+  }
+
+  return timeSlots;
+}
+
+/**
+ * التحقق من توفر موعد في وقت معين
+ */
+export async function isTimeSlotAvailable(doctorId: number, date: Date, time: string) {
+  const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
+  
+  // Check if doctor has schedule for this day and time
+  const scheduleQuery = `
+    SELECT COUNT(*) as SCHEDULE_COUNT
+    FROM TAH57.DOCTOR_SCHEDULES
+    WHERE DOCTOR_ID = :doctorId 
+      AND DAY_OF_WEEK = :dayOfWeek 
+      AND START_TIME <= :time
+      AND END_TIME > :time
+      AND IS_AVAILABLE = 1
+  `;
+
+  const scheduleResult = await executeQuery<{ SCHEDULE_COUNT: number }>(
+    scheduleQuery, 
+    { doctorId, dayOfWeek, time }
+  );
+
+  if (scheduleResult.rows[0].SCHEDULE_COUNT === 0) {
+    return false;
+  }
+
+  // Check if time slot is already booked
+  const appointmentQuery = `
+    SELECT COUNT(*) as APPOINTMENT_COUNT
+    FROM TAH57.APPOINTMENTS
+    WHERE DOCTOR_ID = :doctorId 
+      AND TRUNC(SCHEDULE) = TRUNC(:date)
+      AND TO_CHAR(SCHEDULE, 'HH24:MI') = :time
+      AND STATUS IN ('scheduled', 'pending')
+  `;
+
+  const appointmentResult = await executeQuery<{ APPOINTMENT_COUNT: number }>(
+    appointmentQuery, 
+    { doctorId, date, time }
+  );
+
+  return appointmentResult.rows[0].APPOINTMENT_COUNT === 0;
 }

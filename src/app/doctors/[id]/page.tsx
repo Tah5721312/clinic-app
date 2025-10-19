@@ -8,6 +8,7 @@ import { Doctor, Appointment } from '@/lib/types';
 import { Camera, X, Upload, Trash2, Edit, DollarSign, CheckCircle, XCircle, CreditCard, Calendar, Clock, User, Stethoscope } from 'lucide-react';
 import { DOMAIN } from '@/lib/constants';
 import { Can } from '@/components/Can';
+import DoctorScheduleManager from '@/components/DoctorScheduleManager';
 
 // Image Edit Modal Component
 interface ImageEditModalProps {
@@ -231,6 +232,24 @@ export default function DoctorDetailPage() {
     
     // Guest and doctors cannot delete doctors
     return false;
+  };
+
+  // Check if current user can view this doctor's schedule
+  const canViewSchedule = () => {
+    if (!session?.user) return false;
+    
+    const currentUserId = (session.user as any)?.id;
+    const isAdmin = (session.user as any)?.isAdmin;
+    const isGuest = (session.user as any)?.isGuest;
+    
+    // Admin can view any doctor's schedule
+    if (isAdmin) return true;
+    
+    // Guest cannot view any schedule
+    if (isGuest) return false;
+    
+    // Doctor can only view their own schedule
+    return currentUserId === doctorId;
   };
   const [deletingAppointment, setDeletingAppointment] = useState<number | null>(null);
 
@@ -631,16 +650,20 @@ export default function DoctorDetailPage() {
           >
             المواعيد ({appointments.length})
           </button>
-          <button
-            onClick={() => setActiveTab('schedule')}
-            className={`py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'schedule'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            الجدول الزمني
-          </button>
+         
+          {canViewSchedule() && (
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'schedule'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              الجدول الزمني
+            </button>
+          )}
+          
         </nav>
       </div>
 
@@ -1079,11 +1102,13 @@ export default function DoctorDetailPage() {
         </div>
       )}
 
-      {activeTab === 'schedule' && (
+      {activeTab === 'schedule' && canViewSchedule() && (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4">الجدول الزمني</h3>
-          <p className="text-gray-600">هنا يمكن عرض الجدول الزمني للطبيب وأوقات العمل.</p>
-          {/* يمكن إضافة تقويم أو جدول زمني تفاعلي هنا */}
+          <DoctorScheduleManager 
+            doctorId={Number(doctorId)} 
+            doctorName={doctor.NAME}
+            canEdit={canEditDoctorData()}
+          />
         </div>
       )}
     </div>

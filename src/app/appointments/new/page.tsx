@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import AppointmentForm from '@/components/AppointmentForm';
+import EnhancedAppointmentForm from '@/components/EnhancedAppointmentForm';
 
 export default function NewAppointmentPage() {
   const searchParams = useSearchParams();
@@ -10,7 +10,7 @@ export default function NewAppointmentPage() {
 
   return (
     <div className='container mx-auto py-8'>
-      <AppointmentForm
+      <EnhancedAppointmentForm
         doctorId={doctorId || undefined}
         patientId={patientId || undefined}
       />

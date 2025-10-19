@@ -87,6 +87,47 @@ export interface DoctorUpdateFields {
   availability_updated_at?: Date;
 }
 
+// Doctor Schedule Types
+export interface DoctorSchedule {
+  SCHEDULE_ID: number;
+  DOCTOR_ID: number;
+  DOCTOR_NAME?: string;
+  SPECIALTY?: string;
+  DAY_OF_WEEK: number;
+  DAY_NAME_AR?: string;
+  START_TIME: string;
+  END_TIME: string;
+  SLOT_DURATION: number;
+  IS_AVAILABLE: number;
+  CREATED_AT: Date;
+  UPDATED_AT: Date;
+}
+
+export interface CreateScheduleDto {
+  doctor_id: number;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  slot_duration?: number;
+  is_available?: number;
+}
+
+export interface UpdateScheduleDto {
+  day_of_week?: number;
+  start_time?: string;
+  end_time?: string;
+  slot_duration?: number;
+  is_available?: number;
+}
+
+export interface TimeSlot {
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  is_booked?: boolean;
+  appointment_id?: number;
+}
+
 
 
 // ************* users types *************
