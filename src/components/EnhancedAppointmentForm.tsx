@@ -241,7 +241,10 @@ export default function EnhancedAppointmentForm({
   };
 
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
-    if (timeSlot.is_booked) return; // Don't allow selection of booked slots
+    // Completely prevent selection of booked slots
+    if (timeSlot.is_booked) {
+      return;
+    }
     
     const dateTime = `${selectedDate}T${timeSlot.start_time}:00`;
     setFormData(prev => ({ ...prev, schedule: dateTime }));
@@ -557,21 +560,26 @@ export default function EnhancedAppointmentForm({
                     type="button"
                     onClick={() => handleTimeSlotSelect(slot)}
                     disabled={slot.is_booked}
+                    title={slot.is_booked ? 'هذا الوقت محجوز' : 'احجز هذا الوقت'}
                     className={`p-2 text-sm rounded-md border transition-colors ${
                       slot.is_booked
-                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                        ? 'bg-red-100 text-red-500 border-red-300 cursor-not-allowed pointer-events-none'
                         : formData.schedule.includes(slot.start_time)
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50 hover:border-blue-300'
                     }`}
                   >
+                
                     <div className="flex items-center justify-center gap-1">
                       {slot.is_booked ? (
-                        <XCircle className="w-3 h-3" />
+                        <XCircle className="w-4 h-4" />
                       ) : (
                         <CheckCircle className="w-3 h-3" />
                       )}
                       <span>{slot.start_time}</span>
+                      {slot.is_booked && (
+                        <span className="ml-1 text-xs font-medium">محجوز</span>
+                      )}
                     </div>
                   </button>
                 ))}

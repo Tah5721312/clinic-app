@@ -44,6 +44,7 @@ export interface Appointment {
   PATIENT_ID: number;
   DOCTOR_ID: number;
   SCHEDULE: Date;
+  SCHEDULE_AT?: string; // HH:MM when present in new schema
   REASON: string;
   NOTE?: string;
   CANCELLATIONREASON?: string;

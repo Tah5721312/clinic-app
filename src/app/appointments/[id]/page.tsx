@@ -118,18 +118,18 @@ export default function AppointmentDetailPage() {
         return 'Invalid Date';
       }
 
-      return dateObj.toLocaleString('en-US', {
+      // Date only (no time, no "at")
+      return dateObj.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
         weekday: 'long',
       });
     } catch (error) {
       return 'Invalid Date';
     }
   };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -280,7 +280,11 @@ export default function AppointmentDetailPage() {
               <Clock className="w-5 h-5 text-gray-400" />
               <div>
                 <p className="font-medium text-gray-900">Scheduled Date & Time</p>
-                <p className="text-gray-600">{formatDateTime(appointment.SCHEDULE)}</p>
+                <p className="text-gray-600">
+                  {formatDateTime(appointment.SCHEDULE)}
+                  {`  At  `}
+                  {appointment.SCHEDULE_AT }
+                </p>
               </div>
             </div>
 

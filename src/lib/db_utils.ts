@@ -750,12 +750,46 @@ export async function createAppointment(appointment: {
     payment_amount = 0,
   } = appointment;
 
-  // تحويل التاريخ إلى تنسيق Oracle
-  const oracleDate = schedule.toISOString().replace('T', ' ').replace('Z', '');
+  // تحويلات التاريخ/الوقت
+  const pad2 = (n: number) => n.toString().padStart(2, '0');
+  const localYear = schedule.getFullYear();
+  const localMonth = pad2(schedule.getMonth() + 1);
+  const localDay = pad2(schedule.getDate());
+  const localHours = pad2(schedule.getHours());
+  const localMinutes = pad2(schedule.getMinutes());
+  const scheduleDate = `${localYear}-${localMonth}-${localDay}`; // YYYY-MM-DD in local time
+  const scheduleAt = `${localHours}:${localMinutes}`; // HH:MM in local time
+  const oracleDateTime = `${scheduleDate} ${scheduleAt}:00`; // keep for legacy fallback
 
   // Insert the appointment and let the trigger handle the ID generation
   // Retry on ORA-00001 by advancing sequence to avoid PK collisions
   const attemptInsertFull = async () => {
+    // محاولة الإدخال مع الحقل الجديد schedule_at
+    try {
+      await executeQuery(
+        `
+        INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, schedule_at, reason, note, status, appointment_type, payment_status, payment_amount) 
+        VALUES (:patient_id, :doctor_id, TO_DATE(:schedule_date, 'YYYY-MM-DD'), :schedule_at, :reason, :note, :status, :appointment_type, :payment_status, :payment_amount)`,
+        {
+          patient_id: Number(patient_id),
+          doctor_id: Number(doctor_id),
+          schedule_date: scheduleDate,
+          schedule_at: scheduleAt,
+          reason,
+          note: note || null,
+          status,
+          appointment_type,
+          payment_status,
+          payment_amount: payment_amount || 0,
+        }
+      );
+      return;
+    } catch (e: any) {
+      if (!(e.message?.includes('invalid identifier') || e.message?.includes('column'))) {
+        throw e;
+      }
+    }
+    // إذا لم يوجد الحقل الجديد، نعود للإدخال القديم باستخدام TIMESTAMP
     await executeQuery(
       `
       INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status, appointment_type, payment_status, payment_amount) 
@@ -763,7 +797,7 @@ export async function createAppointment(appointment: {
       {
         patient_id: Number(patient_id),
         doctor_id: Number(doctor_id),
-        schedule: oracleDate,
+        schedule: oracleDateTime,
         reason,
         note: note || null,
         status,
@@ -775,6 +809,28 @@ export async function createAppointment(appointment: {
   };
 
   const attemptInsertBasic = async () => {
+    // محاولة الإدخال مع schedule_at أولاً
+    try {
+      await executeQuery(
+        `
+        INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, schedule_at, reason, note, status) 
+        VALUES (:patient_id, :doctor_id, TO_DATE(:schedule_date, 'YYYY-MM-DD'), :schedule_at, :reason, :note, :status)`,
+        {
+          patient_id: Number(patient_id),
+          doctor_id: Number(doctor_id),
+          schedule_date: scheduleDate,
+          schedule_at: scheduleAt,
+          reason,
+          note: note || null,
+          status,
+        }
+      );
+      return;
+    } catch (e: any) {
+      if (!(e.message?.includes('invalid identifier') || e.message?.includes('column'))) {
+        throw e;
+      }
+    }
     await executeQuery(
         `
         INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status) 
@@ -782,7 +838,7 @@ export async function createAppointment(appointment: {
         {
           patient_id: Number(patient_id),
           doctor_id: Number(doctor_id),
-          schedule: oracleDate,
+          schedule: oracleDateTime,
           reason,
           note: note || null,
           status,
@@ -834,17 +890,40 @@ export async function createAppointment(appointment: {
   }
 
   // Get the generated appointment_id by querying the last inserted record
-  const lastAppointment = await executeQuery<{ appointment_id: number }>(
-    `SELECT appointment_id FROM TAH57.APPOINTMENTS 
-     WHERE patient_id = :patient_id AND doctor_id = :doctor_id AND schedule = TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF')
-     ORDER BY appointment_id DESC
-     FETCH FIRST 1 ROWS ONLY`,
-    {
-      patient_id: Number(patient_id),
-      doctor_id: Number(doctor_id),
-      schedule: oracleDate,
+  let lastAppointment;
+  try {
+    // المحاولة مع الأعمدة الجديدة
+    lastAppointment = await executeQuery<{ appointment_id: number }>(
+      `SELECT appointment_id FROM TAH57.APPOINTMENTS 
+       WHERE patient_id = :patient_id AND doctor_id = :doctor_id 
+         AND schedule = TO_DATE(:schedule_date, 'YYYY-MM-DD')
+         AND schedule_at = :schedule_at
+       ORDER BY appointment_id DESC
+       FETCH FIRST 1 ROWS ONLY`,
+      {
+        patient_id: Number(patient_id),
+        doctor_id: Number(doctor_id),
+        schedule_date: scheduleDate,
+        schedule_at: scheduleAt,
+      }
+    );
+  } catch (e: any) {
+    if (!(e.message?.includes('invalid identifier') || e.message?.includes('column'))) {
+      throw e;
     }
-  );
+    // fallback للهيكل القديم
+    lastAppointment = await executeQuery<{ appointment_id: number }>(
+      `SELECT appointment_id FROM TAH57.APPOINTMENTS 
+       WHERE patient_id = :patient_id AND doctor_id = :doctor_id AND schedule = TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF')
+       ORDER BY appointment_id DESC
+       FETCH FIRST 1 ROWS ONLY`,
+      {
+        patient_id: Number(patient_id),
+        doctor_id: Number(doctor_id),
+        schedule: oracleDateTime,
+      }
+    );
+  }
 
   return {
     outBinds: {
@@ -1172,6 +1251,7 @@ export async function deleteDoctorSchedule(scheduleId: number) {
  */
 export async function getAvailableTimeSlots(doctorId: number, date: Date) {
   const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay(); // Convert Sunday from 0 to 7
+  const scheduleDate = date.toISOString().split('T')[0];
   
   // Get doctor's schedule for this day
   const scheduleQuery = `
@@ -1195,20 +1275,43 @@ export async function getAvailableTimeSlots(doctorId: number, date: Date) {
   }
 
   // Get existing appointments for this date
-  const appointmentsQuery = `
-    SELECT 
-      TO_CHAR(SCHEDULE, 'HH24:MI') as APPOINTMENT_TIME,
-      APPOINTMENT_ID
-    FROM TAH57.APPOINTMENTS
-    WHERE DOCTOR_ID = :doctorId 
-      AND TRUNC(SCHEDULE) = TRUNC(:date)
-      AND STATUS IN ('scheduled', 'pending')
-  `;
-
-  const appointmentsResult = await executeQuery<{
-    APPOINTMENT_TIME: string;
-    APPOINTMENT_ID: number;
-  }>(appointmentsQuery, { doctorId, date });
+  let appointmentsResult;
+  try {
+    // New schema: separate date + time
+    appointmentsResult = await executeQuery<{
+      APPOINTMENT_TIME: string;
+      APPOINTMENT_ID: number;
+    }>(
+      `
+      SELECT schedule_at as APPOINTMENT_TIME, APPOINTMENT_ID
+      FROM TAH57.APPOINTMENTS
+      WHERE DOCTOR_ID = :doctorId 
+        AND schedule = TO_DATE(:schedule_date, 'YYYY-MM-DD')
+        AND STATUS IN ('scheduled', 'pending')
+      `,
+      { doctorId, schedule_date: scheduleDate }
+    );
+  } catch (e: any) {
+    if (!(e.message?.includes('invalid identifier') || e.message?.includes('column'))) {
+      throw e;
+    }
+    // Old schema: schedule as timestamp
+    appointmentsResult = await executeQuery<{
+      APPOINTMENT_TIME: string;
+      APPOINTMENT_ID: number;
+    }>(
+      `
+      SELECT 
+        TO_CHAR(SCHEDULE, 'HH24:MI') as APPOINTMENT_TIME,
+        APPOINTMENT_ID
+      FROM TAH57.APPOINTMENTS
+      WHERE DOCTOR_ID = :doctorId 
+        AND TRUNC(SCHEDULE) = TRUNC(:date)
+        AND STATUS IN ('scheduled', 'pending')
+      `,
+      { doctorId, date }
+    );
+  }
 
   const bookedTimes = new Set(appointmentsResult.rows.map(apt => apt.APPOINTMENT_TIME));
 
@@ -1258,6 +1361,7 @@ export async function getAvailableTimeSlots(doctorId: number, date: Date) {
  */
 export async function isTimeSlotAvailable(doctorId: number, date: Date, time: string) {
   const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
+  const scheduleDate = date.toISOString().split('T')[0];
   
   // Check if doctor has schedule for this day and time
   const scheduleQuery = `
@@ -1280,19 +1384,37 @@ export async function isTimeSlotAvailable(doctorId: number, date: Date, time: st
   }
 
   // Check if time slot is already booked
-  const appointmentQuery = `
-    SELECT COUNT(*) as APPOINTMENT_COUNT
-    FROM TAH57.APPOINTMENTS
-    WHERE DOCTOR_ID = :doctorId 
-      AND TRUNC(SCHEDULE) = TRUNC(:date)
-      AND TO_CHAR(SCHEDULE, 'HH24:MI') = :time
-      AND STATUS IN ('scheduled', 'pending')
-  `;
-
-  const appointmentResult = await executeQuery<{ APPOINTMENT_COUNT: number }>(
-    appointmentQuery, 
-    { doctorId, date, time }
-  );
+  let appointmentResult;
+  try {
+    // New schema: date + time columns
+    appointmentResult = await executeQuery<{ APPOINTMENT_COUNT: number }>(
+      `
+      SELECT COUNT(*) as APPOINTMENT_COUNT
+      FROM TAH57.APPOINTMENTS
+      WHERE DOCTOR_ID = :doctorId 
+        AND schedule = TO_DATE(:schedule_date, 'YYYY-MM-DD')
+        AND schedule_at = :time
+        AND STATUS IN ('scheduled', 'pending')
+      `,
+      { doctorId, schedule_date: scheduleDate, time }
+    );
+  } catch (e: any) {
+    if (!(e.message?.includes('invalid identifier') || e.message?.includes('column'))) {
+      throw e;
+    }
+    // Old schema
+    appointmentResult = await executeQuery<{ APPOINTMENT_COUNT: number }>(
+      `
+      SELECT COUNT(*) as APPOINTMENT_COUNT
+      FROM TAH57.APPOINTMENTS
+      WHERE DOCTOR_ID = :doctorId 
+        AND TRUNC(SCHEDULE) = TRUNC(:date)
+        AND TO_CHAR(SCHEDULE, 'HH24:MI') = :time
+        AND STATUS IN ('scheduled', 'pending')
+      `,
+      { doctorId, date, time }
+    );
+  }
 
   return appointmentResult.rows[0].APPOINTMENT_COUNT === 0;
 }
