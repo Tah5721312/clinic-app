@@ -1250,7 +1250,7 @@ export async function deleteDoctorSchedule(scheduleId: number) {
  * جلب الأوقات المتاحة للطبيب في يوم معين
  */
 export async function getAvailableTimeSlots(doctorId: number, date: Date) {
-  const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay(); // Convert Sunday from 0 to 7
+  const dayOfWeek = date.getDay() === 0 ? 1 : date.getDay() + 1; // Convert Sunday from 0 to 1, Monday from 1 to 2, etc.
   const scheduleDate = date.toISOString().split('T')[0];
   
   // Get doctor's schedule for this day
@@ -1360,7 +1360,7 @@ export async function getAvailableTimeSlots(doctorId: number, date: Date) {
  * التحقق من توفر موعد في وقت معين
  */
 export async function isTimeSlotAvailable(doctorId: number, date: Date, time: string) {
-  const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
+  const dayOfWeek = date.getDay() === 0 ? 1 : date.getDay() + 1; // Convert Sunday from 0 to 1, Monday from 1 to 2, etc.
   const scheduleDate = date.toISOString().split('T')[0];
   
   // Check if doctor has schedule for this day and time
