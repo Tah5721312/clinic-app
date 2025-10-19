@@ -257,7 +257,7 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
           </button>
           {canEdit && (
 
-          <Can do="update" on="Doctor">
+          // <Can do="update" on="Doctor">
             <button
               onClick={() => {
                 setError('');
@@ -270,7 +270,6 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
               <Plus className="w-4 h-4" />
               إضافة جدول زمني
             </button>
-           </Can>
 
           )}
         </div>
