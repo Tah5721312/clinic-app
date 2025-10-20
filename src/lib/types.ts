@@ -57,6 +57,65 @@ export interface Appointment {
   PAYMENT_AMOUNT: number | null;
 }
 
+// ========= Invoices =========
+export interface Invoice {
+  INVOICE_ID: number;
+  INVOICE_NUMBER: string;
+  INVOICE_DATE: Date;
+  AMOUNT?: number; // base amount, if selected directly
+  DISCOUNT: number;
+  TOTAL_AMOUNT: number;
+  PAID_AMOUNT: number;
+  REMAINING_AMOUNT?: number;
+  PAYMENT_STATUS: 'unpaid' | 'partial' | 'paid' | 'cancelled';
+  PAYMENT_METHOD?: string | null;
+  PAYMENT_DATE?: Date | null;
+  NOTES?: string | null;
+  PATIENT_ID?: number;
+  PATIENT_NAME?: string;
+  PATIENT_PHONE?: string;
+  PATIENT_EMAIL?: string;
+  APPOINTMENT_ID?: number | null;
+  APPOINTMENT_DATE?: Date | null;
+  DOCTOR_ID?: number | null;
+  DOCTOR_NAME?: string | null;
+  DOCTOR_SPECIALTY?: string | null;
+  CREATED_BY_NAME?: string | null;
+  CREATED_AT?: Date;
+}
+
+export interface CreateInvoiceDto {
+  patient_id: number;
+  appointment_id?: number;
+  amount: number;
+  discount?: number;
+  total_amount?: number; // will be derived on server if not provided
+  paid_amount?: number;
+  payment_method?: string;
+  notes?: string;
+}
+
+export interface MonthlyRevenueRow {
+  MONTH: string; // YYYY-MM
+  YEAR: string;  // YYYY
+  MONTH_NAME: string;
+  TOTAL_INVOICES: number;
+  TOTAL_REVENUE: number;
+  TOTAL_PAID: number;
+  TOTAL_REMAINING: number;
+  PAID_COUNT: number;
+  UNPAID_COUNT: number;
+  PARTIAL_COUNT: number;
+}
+
+export interface InvoiceFilters {
+  patient_id?: number;
+  payment_status?: 'unpaid' | 'partial' | 'paid' | 'cancelled' | string;
+  date_from?: string; // YYYY-MM-DD
+  date_to?: string;   // YYYY-MM-DD
+  doctor_id?: number;
+}
+
 // أضف هذه الأنواع في lib/database.ts أو في ملف types.ts
 // تحديث أنواع البيانات لإصلاح مشاكل any
 export interface OracleReturningResult {

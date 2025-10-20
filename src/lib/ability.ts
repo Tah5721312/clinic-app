@@ -5,7 +5,7 @@ export type Role = 'superadmin' | 'admin' | 'doctor' | 'patient' | 'guest';
 
 // تعريف الصلاحيات
 export type Actions = 'manage' | 'read' | 'create' | 'update' | 'delete';
-export type Subjects = 'User' | 'Patient' | 'Doctor' | 'Appointment' | 'Dashboard' | 'all';
+export type Subjects = 'User' | 'Patient' | 'Doctor' | 'Appointment' | 'Dashboard' | 'INVOICES' | 'all';
 
 export type AppAbility = PureAbility<[Actions, Subjects]>;
 
@@ -35,6 +35,8 @@ export function defineAbilityRulesFor(role: Role): AbilityRule[] {
       rules.push({ action: 'manage', subject: 'Doctor' });
       rules.push({ action: 'read', subject: 'Dashboard' });
       rules.push({ action: 'manage', subject: 'Appointment' });
+      // invoices
+      rules.push({ action: 'manage', subject: 'INVOICES' });
       break;
 
     case 'doctor':
@@ -46,6 +48,7 @@ export function defineAbilityRulesFor(role: Role): AbilityRule[] {
       rules.push({ action: 'update', subject: 'Appointment' });
       rules.push({ action: 'create', subject: 'Appointment' });
       rules.push({ action: 'read', subject: 'Dashboard' }); // إضافة صلاحية قراءة Dashboard للطبيب
+      rules.push({ action: 'read', subject: 'INVOICES' });
       break;
 
     case 'patient':
@@ -53,6 +56,7 @@ export function defineAbilityRulesFor(role: Role): AbilityRule[] {
       rules.push({ action: 'read', subject: 'Patient' });
       rules.push({ action: 'read', subject: 'Appointment' });
       rules.push({ action: 'create', subject: 'Appointment' });
+      rules.push({ action: 'read', subject: 'INVOICES' });
       break;
 
     case 'guest':

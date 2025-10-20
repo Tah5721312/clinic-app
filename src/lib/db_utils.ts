@@ -2,7 +2,7 @@ import oracledb from 'oracledb';
 
 // دوال مساعدة للتعامل مع الجداول مباشرة
 import { executeQuery, executeReturningQuery, getConnection } from '@/lib/database';
-import { Patient, DoctorSchedule, CreateScheduleDto, UpdateScheduleDto, TimeSlot } from '@/lib/types';
+import { Patient, DoctorSchedule, CreateScheduleDto, UpdateScheduleDto, TimeSlot, Invoice, CreateInvoiceDto, MonthlyRevenueRow } from '@/lib/types';
 
 /**
  * جلب جميع الأطباء
@@ -1127,6 +1127,246 @@ export async function getPatientIdByUserEmail(email: string) {
   );
   
   return result.rows[0]?.PATIENT_ID || null;
+}
+
+// ==================== INVOICES ====================
+
+export async function getAllInvoices(filters?: {
+  patient_id?: number;
+  payment_status?: string;
+  date_from?: string; // YYYY-MM-DD
+  date_to?: string;   // YYYY-MM-DD
+  doctor_id?: number;
+}): Promise<Invoice[]> {
+  // Prefer the view for enriched data
+  let query = `
+    SELECT 
+      i.INVOICE_ID,
+      i.INVOICE_NUMBER,
+      i.INVOICE_DATE,
+      i.NOTES,
+      i.TOTAL_AMOUNT,
+      i.PAID_AMOUNT,
+      (i.TOTAL_AMOUNT - i.PAID_AMOUNT) AS REMAINING_AMOUNT,
+      i.PAYMENT_STATUS,
+      i.PAYMENT_METHOD,
+      i.PAYMENT_DATE,
+      i.PATIENT_ID,
+      i.APPOINTMENT_ID,
+      p.NAME AS PATIENT_NAME,
+      p.PHONE AS PATIENT_PHONE,
+      p.EMAIL AS PATIENT_EMAIL,
+      a.SCHEDULE AS APPOINTMENT_DATE,
+      d.DOCTOR_ID,
+      d.NAME AS DOCTOR_NAME,
+      d.SPECIALTY AS DOCTOR_SPECIALTY,
+      u.FULL_NAME AS CREATED_BY_NAME,
+      i.CREATED_AT
+    FROM TAH57.INVOICES i
+    INNER JOIN TAH57.PATIENTS p ON i.PATIENT_ID = p.PATIENT_ID
+    LEFT JOIN TAH57.APPOINTMENTS a ON i.APPOINTMENT_ID = a.APPOINTMENT_ID
+    LEFT JOIN TAH57.DOCTORS d ON a.DOCTOR_ID = d.DOCTOR_ID
+    LEFT JOIN TAH57.USERS u ON i.CREATED_BY = u.USER_ID`;
+
+  const whereClauses: string[] = [];
+  const params: any = {};
+
+  if (filters?.patient_id) {
+    whereClauses.push('i.PATIENT_ID = :patient_id');
+    params.patient_id = filters.patient_id;
+  }
+  if (filters?.payment_status) {
+    whereClauses.push('i.PAYMENT_STATUS = :payment_status');
+    params.payment_status = filters.payment_status;
+  }
+  if (filters?.date_from) {
+    whereClauses.push("i.INVOICE_DATE >= TO_DATE(:date_from, 'YYYY-MM-DD')");
+    params.date_from = filters.date_from;
+  }
+  if (filters?.date_to) {
+    whereClauses.push("i.INVOICE_DATE <= TO_DATE(:date_to, 'YYYY-MM-DD')");
+    params.date_to = filters.date_to;
+  }
+  if (filters?.doctor_id) {
+    whereClauses.push('d.DOCTOR_ID = :doctor_id');
+    params.doctor_id = filters.doctor_id;
+  }
+
+  if (whereClauses.length > 0) {
+    query += ` WHERE ${whereClauses.join(' AND ')}`;
+  }
+
+  query += ' ORDER BY i.INVOICE_DATE DESC, i.INVOICE_ID DESC';
+
+  const result = await executeQuery<Invoice>(query, params);
+  return result.rows;
+}
+
+export async function getInvoiceById(invoiceId: number): Promise<Invoice | null> {
+  const result = await executeQuery<Invoice>(
+    `
+    SELECT 
+      i.INVOICE_ID,
+      i.INVOICE_NUMBER,
+      i.INVOICE_DATE,
+      i.AMOUNT,
+      i.DISCOUNT,
+      i.TOTAL_AMOUNT,
+      i.PAID_AMOUNT,
+      i.NOTES,
+      (i.TOTAL_AMOUNT - i.PAID_AMOUNT) AS REMAINING_AMOUNT,
+      i.PAYMENT_STATUS,
+      i.PAYMENT_METHOD,
+      i.PAYMENT_DATE,
+      i.PATIENT_ID,
+      i.APPOINTMENT_ID,
+      p.NAME AS PATIENT_NAME,
+      p.PHONE AS PATIENT_PHONE,
+      p.EMAIL AS PATIENT_EMAIL,
+      a.SCHEDULE AS APPOINTMENT_DATE,
+      d.DOCTOR_ID,
+      d.NAME AS DOCTOR_NAME,
+      d.SPECIALTY AS DOCTOR_SPECIALTY,
+      u.FULL_NAME AS CREATED_BY_NAME,
+      i.CREATED_AT
+    FROM TAH57.INVOICES i
+    INNER JOIN TAH57.PATIENTS p ON i.PATIENT_ID = p.PATIENT_ID
+    LEFT JOIN TAH57.APPOINTMENTS a ON i.APPOINTMENT_ID = a.APPOINTMENT_ID
+    LEFT JOIN TAH57.DOCTORS d ON a.DOCTOR_ID = d.DOCTOR_ID
+    LEFT JOIN TAH57.USERS u ON i.CREATED_BY = u.USER_ID
+    WHERE i.INVOICE_ID = :invoiceId
+  `,
+    { invoiceId }
+  );
+  return result.rows[0] || null;
+}
+
+export async function createInvoice(
+  data: CreateInvoiceDto,
+  createdBy?: number
+): Promise<number> {
+  const total = Math.max(0, (data.total_amount ?? data.amount - (data.discount || 0)));
+  const paid = data.paid_amount ?? 0;
+  const result = await executeReturningQuery(
+    `
+    INSERT INTO TAH57.INVOICES (
+      PATIENT_ID, APPOINTMENT_ID, INVOICE_NUMBER, INVOICE_DATE,
+      AMOUNT, DISCOUNT, TOTAL_AMOUNT, PAID_AMOUNT, PAYMENT_STATUS,
+      PAYMENT_METHOD, PAYMENT_DATE, NOTES, CREATED_BY
+    ) VALUES (
+      :patient_id, :appointment_id, NULL, SYSDATE,
+      :amount, :discount, :total_amount, :paid_amount, NULL,
+      :payment_method, CASE WHEN :paid_amount > 0 THEN SYSDATE ELSE NULL END, :notes, :created_by
+    ) RETURNING INVOICE_ID INTO :id
+  `,
+    {
+      patient_id: data.patient_id,
+      appointment_id: data.appointment_id || null,
+      amount: data.amount,
+      discount: data.discount ?? 0,
+      total_amount: total,
+      paid_amount: paid,
+      payment_method: data.payment_method || null,
+      notes: data.notes || null,
+      created_by: createdBy || null,
+      id: { dir: (oracledb as any).BIND_OUT, type: (oracledb as any).NUMBER },
+    }
+  );
+
+  const outBinds = result.outBinds as { id?: number[] } | undefined;
+  const newId = outBinds?.id?.[0];
+  if (!newId) throw new Error('Failed to retrieve new invoice id');
+  return newId;
+}
+
+export async function updateInvoice(invoiceId: number, data: Partial<CreateInvoiceDto>): Promise<number> {
+  const fields: string[] = [];
+  const params: any = { invoiceId };
+  if (data.patient_id !== undefined) { fields.push('PATIENT_ID = :patient_id'); params.patient_id = data.patient_id; }
+  if (data.appointment_id !== undefined) { fields.push('APPOINTMENT_ID = :appointment_id'); params.appointment_id = data.appointment_id || null; }
+  if (data.amount !== undefined) { fields.push('AMOUNT = :amount'); params.amount = data.amount; }
+  if (data.discount !== undefined) { fields.push('DISCOUNT = :discount'); params.discount = data.discount ?? 0; }
+  if (data.total_amount !== undefined) { fields.push('TOTAL_AMOUNT = :total_amount'); params.total_amount = Math.max(0, data.total_amount); }
+  if (data.paid_amount !== undefined) { fields.push('PAID_AMOUNT = :paid_amount'); params.paid_amount = Math.max(0, data.paid_amount ?? 0); }
+  if (data.payment_method !== undefined) { fields.push('PAYMENT_METHOD = :payment_method'); params.payment_method = data.payment_method || null; }
+  if (data.notes !== undefined) { fields.push('NOTES = :notes'); params.notes = data.notes || null; }
+
+  // If amount or discount is provided and total_amount is not explicitly provided,
+  // recalculate TOTAL_AMOUNT in the database as GREATEST(0, amount - discount)
+  const shouldRecalculateTotal =
+    data.total_amount === undefined && (data.amount !== undefined || data.discount !== undefined);
+
+  if (shouldRecalculateTotal) {
+    // Provide bind values for recalculation without overriding AMOUNT/DISCOUNT when not passed
+    if (data.amount !== undefined) params.amount_for_total = data.amount;
+    if (data.discount !== undefined) params.discount_for_total = data.discount ?? 0;
+    fields.push(
+      `TOTAL_AMOUNT = GREATEST(0, NVL(:amount_for_total, AMOUNT) - NVL(:discount_for_total, DISCOUNT))`
+    );
+  }
+
+  if (fields.length === 0) return 0;
+
+  const result = await executeQuery(
+    `UPDATE TAH57.INVOICES SET ${fields.join(', ')} WHERE INVOICE_ID = :invoiceId`,
+    params
+  );
+  return result.rowsAffected || 0;
+}
+
+export async function updateInvoicePayment(invoiceId: number, paidAmount: number, paymentMethod?: string): Promise<number> {
+  const result = await executeQuery(
+    `
+    UPDATE TAH57.INVOICES
+    SET PAID_AMOUNT = :paid_amount,
+        PAYMENT_METHOD = :payment_method,
+        PAYMENT_DATE = CASE WHEN :paid_amount > 0 THEN SYSDATE ELSE PAYMENT_DATE END
+    WHERE INVOICE_ID = :invoiceId
+  `,
+    { invoiceId, paid_amount: paidAmount, payment_method: paymentMethod || null }
+  );
+  return result.rowsAffected || 0;
+}
+
+export async function deleteInvoice(invoiceId: number): Promise<number> {
+  const result = await executeQuery(
+    'DELETE FROM TAH57.INVOICES WHERE INVOICE_ID = :invoiceId',
+    { invoiceId }
+  );
+  return result.rowsAffected || 0;
+}
+
+export async function getMonthlyRevenue(): Promise<MonthlyRevenueRow[]> {
+  // Prefer the view if it exists; fall back to aggregation
+  try {
+    const viewRes = await executeQuery<MonthlyRevenueRow>(
+      'SELECT * FROM TAH57.VW_MONTHLY_REVENUE'
+    );
+    return viewRes.rows;
+  } catch (e: any) {
+    if (!(e.message?.includes('not found') || e.message?.includes('invalid'))) throw e;
+    const res = await executeQuery<MonthlyRevenueRow>(
+      `
+      SELECT 
+        TO_CHAR(INVOICE_DATE, 'YYYY-MM') AS MONTH,
+        TO_CHAR(INVOICE_DATE, 'YYYY') AS YEAR,
+        TO_CHAR(INVOICE_DATE, 'Month', 'NLS_DATE_LANGUAGE=ARABIC') AS MONTH_NAME,
+        COUNT(*) AS TOTAL_INVOICES,
+        SUM(TOTAL_AMOUNT) AS TOTAL_REVENUE,
+        SUM(PAID_AMOUNT) AS TOTAL_PAID,
+        SUM(TOTAL_AMOUNT - PAID_AMOUNT) AS TOTAL_REMAINING,
+        SUM(CASE WHEN PAYMENT_STATUS = 'paid' THEN 1 ELSE 0 END) AS PAID_COUNT,
+        SUM(CASE WHEN PAYMENT_STATUS = 'unpaid' THEN 1 ELSE 0 END) AS UNPAID_COUNT,
+        SUM(CASE WHEN PAYMENT_STATUS = 'partial' THEN 1 ELSE 0 END) AS PARTIAL_COUNT
+      FROM TAH57.INVOICES
+      GROUP BY TO_CHAR(INVOICE_DATE, 'YYYY-MM'), 
+               TO_CHAR(INVOICE_DATE, 'YYYY'),
+               TO_CHAR(INVOICE_DATE, 'Month', 'NLS_DATE_LANGUAGE=ARABIC')
+      ORDER BY TO_CHAR(INVOICE_DATE, 'YYYY-MM') DESC
+      `
+    );
+    return res.rows;
+  }
 }
 
 // ==================== DOCTOR SCHEDULE MANAGEMENT FUNCTIONS ====================
