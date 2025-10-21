@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 
 import InvoiceForm from '@/components/InvoiceForm';
@@ -9,6 +9,11 @@ import Button from '@/components/buttons/Button';
 
 export default function NewInvoicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get patient and appointment IDs from URL parameters
+  const patientId = searchParams.get('patientId') || undefined;
+  const appointmentId = searchParams.get('appointmentId') || undefined;
 
   const handleSuccess = () => {
     router.push('/invoices');
@@ -39,7 +44,12 @@ export default function NewInvoicePage() {
       </div>
 
       {/* Invoice Form */}
-      <InvoiceForm onSuccess={handleSuccess} onCancel={handleCancel} />
+      <InvoiceForm 
+        patientId={patientId}
+        appointmentId={appointmentId}
+        onSuccess={handleSuccess} 
+        onCancel={handleCancel} 
+      />
     </div>
   );
 }

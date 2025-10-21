@@ -91,7 +91,10 @@ export default function InvoiceForm({
         if (formData.amount === 0) {
           setFormData(prev => ({
             ...prev,
-            amount: appointment.CONSULTATION_FEE || 0
+            amount: appointment.CONSULTATION_FEE || 0,
+            // Auto-populate payment data from appointment
+            paid_amount: appointment.PAYMENT_AMOUNT || 0,
+            payment_method: appointment.PAYMENT_METHOD || ''
           }));
         }
       }
@@ -106,6 +109,17 @@ export default function InvoiceForm({
         if (patientsRes.ok) {
           const patientsData = await patientsRes.json();
           setPatients(patientsData);
+          
+          // If patientId is provided, ensure the patient is selected
+          if (patientId && patientsData.length > 0) {
+            const patientExists = patientsData.find((p: Patient) => p.PATIENT_ID === parseInt(patientId));
+            if (patientExists && formData.patient_id === 0) {
+              setFormData(prev => ({
+                ...prev,
+                patient_id: parseInt(patientId)
+              }));
+            }
+          }
         }
       } catch (err) {
         console.error('Error fetching patients:', err);
@@ -113,7 +127,7 @@ export default function InvoiceForm({
     };
 
     fetchPatients();
-  }, []);
+  }, [patientId]);
 
   // Fetch appointments when patient is selected
   useEffect(() => {
@@ -128,6 +142,21 @@ export default function InvoiceForm({
               appointment.PATIENT_ID === formData.patient_id
             );
             setAppointments(filteredAppointments);
+            
+            // If appointmentId is provided, auto-select the appointment
+            if (appointmentId && filteredAppointments.length > 0) {
+              const appointment = filteredAppointments.find((a: Appointment) => a.APPOINTMENT_ID === parseInt(appointmentId));
+              if (appointment) {
+                setSelectedAppointment(appointment);
+                setFormData(prev => ({
+                  ...prev,
+                  appointment_id: parseInt(appointmentId),
+                  amount: appointment.CONSULTATION_FEE || 0,
+                  paid_amount: appointment.PAYMENT_AMOUNT || 0,
+                  payment_method: appointment.PAYMENT_METHOD || ''
+                }));
+              }
+            }
           }
         } catch (err) {
           console.error('Error fetching appointments:', err);
@@ -140,7 +169,7 @@ export default function InvoiceForm({
       setAppointments([]);
       setSelectedAppointment(null);
     }
-  }, [formData.patient_id]);
+  }, [formData.patient_id, appointmentId]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -284,9 +313,16 @@ export default function InvoiceForm({
       <div className='bg-white rounded-lg shadow-lg p-6'>
         <div className='flex items-center mb-6'>
           <Receipt className='w-6 h-6 text-blue-600 mr-2' />
-          <h2 className='text-2xl font-bold text-gray-900'>
-            {editData ? 'Edit Invoice' : 'Create New Invoice'}
-          </h2>
+          <div>
+            <h2 className='text-2xl font-bold text-gray-900'>
+              {editData ? 'Edit Invoice' : 'Create New Invoice'}
+            </h2>
+            {patientId && appointmentId && (
+              <p className='text-sm text-green-600 mt-1'>
+                ✓ Patient and appointment pre-selected from appointment details
+              </p>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -327,7 +363,10 @@ export default function InvoiceForm({
               value={formData.patient_id}
               onChange={handleInputChange}
               required
-              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+              disabled={!!patientId}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                patientId ? 'bg-green-50 border-green-300' : ''
+              }`}
             >
               <option value={0}>Select a patient</option>
               {patients.map((patient, index) => (
@@ -355,8 +394,10 @@ export default function InvoiceForm({
               <button
                 type="button"
                 onClick={() => setIsAppointmentDropdownOpen(!isAppointmentDropdownOpen)}
-                disabled={!formData.patient_id}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-left flex items-center justify-between disabled:bg-gray-100 disabled:cursor-not-allowed"
+                disabled={!formData.patient_id || !!appointmentId}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-left flex items-center justify-between disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                  appointmentId ? 'bg-green-50 border-green-300' : ''
+                }`}
               >
                 <div className="flex items-center">
                   {selectedAppointment ? (

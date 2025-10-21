@@ -282,42 +282,46 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4 sm:space-y-6'>
       {/* Header */}
-      <div className='flex justify-between items-center'>
+      <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
         <div className='flex items-center'>
-          <Receipt className='h-8 w-8 text-blue-600 mr-3' />
+          <Receipt className='h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mr-2 sm:mr-3' />
           <div>
-            <h1 className='text-2xl font-bold text-gray-900'>Invoices</h1>
-            <p className='text-gray-600'>
+            <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>Invoices</h1>
+            <p className='text-sm sm:text-base text-gray-600'>
               Manage patient invoices and payments
             </p>
           </div>
         </div>
 
-        <div className='flex space-x-3'>
+        <div className='flex flex-col sm:flex-row gap-2 sm:gap-3'>
           <Button
             variant='outline'
             onClick={exportInvoices}
-            className='flex items-center'
+            className='flex items-center justify-center w-full sm:w-auto'
+            size='sm'
           >
             <Download className='h-4 w-4 mr-2' />
-            Export
+            <span className='hidden sm:inline'>Export</span>
+            <span className='sm:hidden'>Export CSV</span>
           </Button>
           <Button
             variant='primary'
             onClick={handleCreateInvoice}
-            className='flex items-center'
+            className='flex items-center justify-center w-full sm:w-auto'
+            size='sm'
           >
             <Plus className='h-4 w-4 mr-2' />
-            New Invoice
+            <span className='hidden sm:inline'>New Invoice</span>
+            <span className='sm:hidden'>New</span>
           </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className='bg-white p-4 rounded-lg shadow'>
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4'>
+      <div className='bg-white p-3 sm:p-4 rounded-lg shadow'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4'>
           {/* Search */}
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-1'>
@@ -475,23 +479,23 @@ export default function InvoicesPage() {
           </div>
         </div>
 
-        <div className='flex justify-between items-center mt-4'>
-          <div className='flex space-x-2'>
-            <Button variant='outline' size='sm' onClick={clearFilters}>
+        <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4'>
+          <div className='flex flex-col sm:flex-row gap-2'>
+            <Button variant='outline' size='sm' onClick={clearFilters} className='w-full sm:w-auto'>
               Clear Filters
             </Button>
             <Button
               variant='outline'
               size='sm'
               onClick={() => fetchInvoices(filters)}
-              className='flex items-center'
+              className='flex items-center justify-center w-full sm:w-auto'
             >
               <RefreshCw className='h-4 w-4 mr-1' />
               Refresh
             </Button>
           </div>
 
-          <div className='text-sm text-gray-500'>
+          <div className='text-sm text-gray-500 text-center sm:text-right'>
             {filteredInvoices.length} invoice
             {filteredInvoices.length !== 1 ? 's' : ''} found
           </div>

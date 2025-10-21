@@ -308,20 +308,46 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
 
   const handlePrint = async () => {
     try {
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
-        alert('Please allow popups for this site to print');
-        return;
-      }
+      // Check if we're on mobile
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // For mobile devices, use a more reliable approach
+        const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+        if (!printWindow) {
+          // Fallback: try to print the current page
+          window.print();
+          return;
+        }
 
-      printWindow.document.write(generateInvoiceHTML());
-      printWindow.document.close();
+        printWindow.document.write(generateInvoiceHTML());
+        printWindow.document.close();
 
-      printWindow.onload = () => {
+        // Add a small delay for mobile browsers
         setTimeout(() => {
           printWindow.print();
-        }, 500);
-      };
+          // Close the window after printing (optional)
+          setTimeout(() => {
+            printWindow.close();
+          }, 1000);
+        }, 1000);
+      } else {
+        // Desktop behavior
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          alert('Please allow popups for this site to print');
+          return;
+        }
+
+        printWindow.document.write(generateInvoiceHTML());
+        printWindow.document.close();
+
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.print();
+          }, 500);
+        };
+      }
     } catch (error) {
       console.error('Error generating print:', error);
       alert('Error generating print. Please try again.');
@@ -385,26 +411,28 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
       {/* Print Controls - Hidden when printing */}
       <div className='print:hidden bg-white shadow-sm border-b sticky top-0 z-10'>
         <div className='max-w-4xl mx-auto px-4 py-4'>
-          <div className='flex justify-between items-center'>
-            <div className='flex items-center'>
+          <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+            <div className='flex items-center flex-wrap'>
               <Button
                 variant='outline'
                 onClick={() => router.back()}
-                className='mr-4'
+                className='mr-4 mb-2 sm:mb-0'
               >
                 <ArrowLeft className='h-4 w-4 mr-2' />
                 Back
               </Button>
-              <Receipt className='h-6 w-6 text-blue-600 mr-2' />
-              <h1 className='text-lg font-semibold text-gray-900'>
-                Invoice {invoice.INVOICE_NUMBER}
-              </h1>
+              <div className='flex items-center'>
+                <Receipt className='h-6 w-6 text-blue-600 mr-2' />
+                <h1 className='text-lg font-semibold text-gray-900'>
+                  Invoice {invoice?.INVOICE_NUMBER}
+                </h1>
+              </div>
             </div>
-            <div className='flex space-x-2'>
+            <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
               <Button
                 variant='outline'
                 onClick={handleDownload}
-                className='flex items-center'
+                className='flex items-center justify-center'
               >
                 <Download className='h-4 w-4 mr-2' />
                 Download
@@ -412,7 +440,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
               <Button
                 variant='primary'
                 onClick={handlePrint}
-                className='flex items-center'
+                className='flex items-center justify-center'
               >
                 <Printer className='h-4 w-4 mr-2' />
                 Print
@@ -423,30 +451,30 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
       </div>
 
       {/* Invoice Content */}
-      <div className='max-w-4xl mx-auto px-4 py-8'>
+      <div className='max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-8'>
         <div className='bg-white shadow-lg rounded-lg overflow-hidden'>
           {/* Invoice Header */}
-          <div className='bg-gradient-to-r from-blue-600 to-blue-700 text-white p-8'>
-            <div className='flex justify-between items-start'>
-              <div>
-                <h1 className='text-3xl font-bold mb-2'>فاتورة</h1>
-                <p className='text-blue-100 text-lg'>Invoice</p>
+          <div className='bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-8'>
+            <div className='flex flex-col lg:flex-row justify-between items-start gap-6'>
+              <div className='flex-1'>
+                <h1 className='text-2xl sm:text-3xl font-bold mb-2'>فاتورة</h1>
+                <p className='text-blue-100 text-base sm:text-lg'>Invoice</p>
                 <p className='text-blue-100 text-sm mt-2'>
-                  رقم الفاتورة: {invoice.INVOICE_NUMBER}
+                  رقم الفاتورة: {invoice?.INVOICE_NUMBER}
                 </p>
               </div>
-              <div className='text-right'>
-                <div className='bg-white/20 backdrop-blur-sm rounded-lg p-4'>
+              <div className='text-right w-full lg:w-auto'>
+                <div className='bg-white/20 backdrop-blur-sm rounded-lg p-3 sm:p-4'>
                   <div className='flex items-center mb-2'>
-                    <Building2 className='h-5 w-5 mr-2' />
-                    <span className='font-semibold'>عيادة الشفاء</span>
+                    <Building2 className='h-4 w-4 sm:h-5 sm:w-5 mr-2' />
+                    <span className='font-semibold text-sm sm:text-base'>عيادة الشفاء</span>
                   </div>
-                  <p className='text-sm text-blue-100'>Al-Shifa Clinic</p>
-                  <p className='text-sm text-blue-100 mt-1'>
+                  <p className='text-xs sm:text-sm text-blue-100'>Al-Shifa Clinic</p>
+                  <p className='text-xs sm:text-sm text-blue-100 mt-1'>
                     <Phone className='h-3 w-3 inline mr-1' />
                     +20 1210927213
                   </p>
-                  <p className='text-sm text-blue-100'>
+                  <p className='text-xs sm:text-sm text-blue-100'>
                     <Mail className='h-3 w-3 inline mr-1' />
                     info@alshifa-clinic.com
                   </p>
@@ -456,7 +484,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
           </div>
 
           {/* Invoice Details */}
-          <div className='p-8'>
+          <div className='p-4 sm:p-6 lg:p-8'>
             {/* Invoice Info */}
             <div className='grid grid-cols-1 md:grid-cols-3 gap-6 mb-8'>
               <div>
@@ -465,7 +493,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                 </h3>
                 <div className='flex items-center text-gray-900'>
                   <Calendar className='h-4 w-4 mr-2' />
-                  {formatDate(invoice.INVOICE_DATE)}
+                  {formatDate(invoice?.INVOICE_DATE || new Date())}
                 </div>
               </div>
               <div>
@@ -474,17 +502,17 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                 </h3>
                 <span
                   className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full border ${getStatusColor(
-                    invoice.PAYMENT_STATUS
+                    invoice?.PAYMENT_STATUS || 'unpaid'
                   )}`}
                 >
-                  {getStatusText(invoice.PAYMENT_STATUS)}
+                  {getStatusText(invoice?.PAYMENT_STATUS || 'unpaid')}
                 </span>
               </div>
               <div>
                 <h3 className='text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2'>
                   أنشئ بواسطة
                 </h3>
-                <p className='text-gray-900'>{invoice.CREATED_BY_NAME || 'System'}</p>
+                <p className='text-gray-900'>{invoice?.CREATED_BY_NAME || 'System'}</p>
               </div>
             </div>
 
@@ -500,7 +528,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                   </label>
                   <div className='flex items-center text-gray-900'>
                     <User className='h-4 w-4 mr-2' />
-                    {invoice.PATIENT_NAME}
+                    {invoice?.PATIENT_NAME}
                   </div>
                 </div>
                 <div>
@@ -509,7 +537,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                   </label>
                   <div className='flex items-center text-gray-900'>
                     <Phone className='h-4 w-4 mr-2' />
-                    {invoice.PATIENT_PHONE}
+                    {invoice?.PATIENT_PHONE}
                   </div>
                 </div>
                 <div>
@@ -518,14 +546,14 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                   </label>
                   <div className='flex items-center text-gray-900'>
                     <Mail className='h-4 w-4 mr-2' />
-                    {invoice.PATIENT_EMAIL}
+                    {invoice?.PATIENT_EMAIL}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Appointment Information */}
-            {invoice.APPOINTMENT_ID && (
+            {invoice?.APPOINTMENT_ID && (
               <div className='mb-8'>
                 <h3 className='text-lg font-semibold text-gray-900 mb-4 border-b pb-2'>
                   بيانات الموعد
@@ -535,21 +563,21 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                     <label className='block text-sm font-medium text-gray-500 mb-1'>
                       الطبيب
                     </label>
-                    <p className='text-gray-900'>{invoice.DOCTOR_NAME}</p>
+                    <p className='text-gray-900'>{invoice?.DOCTOR_NAME}</p>
                   </div>
                   <div>
                     <label className='block text-sm font-medium text-gray-500 mb-1'>
                       التخصص
                     </label>
-                    <p className='text-gray-900'>{invoice.DOCTOR_SPECIALTY}</p>
+                    <p className='text-gray-900'>{invoice?.DOCTOR_SPECIALTY}</p>
                   </div>
                   <div>
                     <label className='block text-sm font-medium text-gray-500 mb-1'>
                       تاريخ الموعد
                     </label>
                     <p className='text-gray-900'>
-                      {invoice.APPOINTMENT_DATE
-                        ? formatDateTime(invoice.APPOINTMENT_DATE)
+                      {invoice?.APPOINTMENT_DATE
+                        ? formatDateTime(invoice.APPOINTMENT_DATE!)
                         : 'N/A'}
                     </p>
                   </div>
@@ -562,7 +590,9 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
               <h3 className='text-lg font-semibold text-gray-900 mb-4 border-b pb-2'>
                 تفاصيل الفاتورة
               </h3>
-              <div className='overflow-hidden border border-gray-200 rounded-lg'>
+              
+              {/* Desktop Table */}
+              <div className='hidden sm:block overflow-hidden border border-gray-200 rounded-lg'>
                 <table className='min-w-full divide-y divide-gray-200'>
                   <thead className='bg-gray-50'>
                     <tr>
@@ -583,25 +613,51 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                   <tbody className='bg-white divide-y divide-gray-200'>
                     <tr>
                       <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
-                        {invoice.APPOINTMENT_ID ? 'كشف طبي' : 'خدمة طبية'}
+                        {invoice?.APPOINTMENT_ID ? 'كشف طبي' : 'خدمة طبية'}
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'>
                         1
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'>
-                        {formatCurrency(invoice.AMOUNT || 0)}
+                        {formatCurrency(invoice?.AMOUNT || 0)}
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center'>
-                        {formatCurrency(invoice.AMOUNT || 0)}
+                        {formatCurrency(invoice?.AMOUNT || 0)}
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card View */}
+              <div className='sm:hidden bg-gray-50 rounded-lg p-4 space-y-3'>
+                <div className='flex justify-between items-center'>
+                  <span className='text-sm font-medium text-gray-500'>الوصف:</span>
+                  <span className='text-sm text-gray-900'>
+                    {invoice?.APPOINTMENT_ID ? 'كشف طبي' : 'خدمة طبية'}
+                  </span>
+                </div>
+                <div className='flex justify-between items-center'>
+                  <span className='text-sm font-medium text-gray-500'>الكمية:</span>
+                  <span className='text-sm text-gray-900'>1</span>
+                </div>
+                <div className='flex justify-between items-center'>
+                  <span className='text-sm font-medium text-gray-500'>السعر:</span>
+                  <span className='text-sm text-gray-900'>
+                    {formatCurrency(invoice?.AMOUNT || 0)}
+                  </span>
+                </div>
+                <div className='flex justify-between items-center border-t pt-3'>
+                  <span className='text-sm font-semibold text-gray-700'>المجموع:</span>
+                  <span className='text-sm font-bold text-blue-600'>
+                    {formatCurrency(invoice?.AMOUNT || 0)}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Payment Summary */}
-            <div className='bg-gray-50 rounded-lg p-6'>
+            <div className='bg-gray-50 rounded-lg p-4 sm:p-6'>
               <h3 className='text-lg font-semibold text-gray-900 mb-4'>
                 ملخص الدفع
               </h3>
@@ -609,26 +665,26 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                 <div className='flex justify-between items-center'>
                   <span className='text-sm text-gray-600'>المبلغ الأساسي:</span>
                   <span className='text-sm font-medium text-gray-900'>
-                    {formatCurrency(invoice.AMOUNT || 0)}
+                    {formatCurrency(invoice?.AMOUNT || 0)}
                   </span>
                 </div>
                 
-                {invoice.DISCOUNT > 0 && (
+                {(invoice?.DISCOUNT || 0) > 0 && (
                   <div className='flex justify-between items-center'>
                     <span className='text-sm text-gray-600'>الخصم:</span>
                     <span className='text-sm font-medium text-red-600'>
-                      -{formatCurrency(invoice.DISCOUNT)}
+                      -{formatCurrency(invoice?.DISCOUNT || 0)}
                     </span>
                   </div>
                 )}
                 
                 <div className='border-t pt-3'>
                   <div className='flex justify-between items-center'>
-                    <span className='text-base font-semibold text-gray-900'>
+                    <span className='text-sm sm:text-base font-semibold text-gray-900'>
                       المجموع الكلي:
                     </span>
-                    <span className='text-lg font-bold text-blue-600'>
-                      {formatCurrency((invoice.AMOUNT || 0) - invoice.DISCOUNT)}
+                    <span className='text-base sm:text-lg font-bold text-blue-600'>
+                      {formatCurrency((invoice?.AMOUNT || 0) - (invoice?.DISCOUNT || 0))}
                     </span>
                   </div>
                 </div>
@@ -636,33 +692,33 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
                 <div className='flex justify-between items-center'>
                   <span className='text-sm text-gray-600'>المبلغ المدفوع:</span>
                   <span className='text-sm font-medium text-green-600'>
-                    {formatCurrency(invoice.PAID_AMOUNT)}
+                    {formatCurrency(invoice?.PAID_AMOUNT || 0)}
                   </span>
                 </div>
                 
-                {invoice.REMAINING_AMOUNT && invoice.REMAINING_AMOUNT > 0 && (
+                {(invoice?.REMAINING_AMOUNT || 0) > 0 && (
                   <div className='flex justify-between items-center'>
                     <span className='text-sm text-gray-600'>المبلغ المتبقي:</span>
                     <span className='text-sm font-medium text-red-600'>
-                      {formatCurrency(invoice.REMAINING_AMOUNT)}
+                      {formatCurrency(invoice?.REMAINING_AMOUNT || 0)}
                     </span>
                   </div>
                 )}
                 
-                {invoice.PAYMENT_METHOD && (
+                {invoice?.PAYMENT_METHOD && (
                   <div className='flex justify-between items-center'>
                     <span className='text-sm text-gray-600'>طريقة الدفع:</span>
                     <span className='text-sm font-medium text-gray-900 capitalize'>
-                      {invoice.PAYMENT_METHOD}
+                      {invoice?.PAYMENT_METHOD}
                     </span>
                   </div>
                 )}
                 
-                {invoice.PAYMENT_DATE && (
+                {invoice?.PAYMENT_DATE && (
                   <div className='flex justify-between items-center'>
                     <span className='text-sm text-gray-600'>تاريخ الدفع:</span>
                     <span className='text-sm font-medium text-gray-900'>
-                      {formatDate(invoice.PAYMENT_DATE)}
+                      {formatDate(invoice?.PAYMENT_DATE || new Date())}
                     </span>
                   </div>
                 )}
@@ -670,27 +726,27 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
             </div>
 
             {/* Notes */}
-            {invoice.NOTES && (
-              <div className='mt-8'>
+            {invoice?.NOTES && (
+              <div className='mt-6 sm:mt-8'>
                 <h3 className='text-lg font-semibold text-gray-900 mb-4 border-b pb-2'>
                   ملاحظات
                 </h3>
-                <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4'>
+                <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4'>
                   <div className='flex items-start'>
-                    <FileText className='h-5 w-5 text-yellow-600 mr-2 mt-0.5' />
-                    <p className='text-sm text-gray-700'>{invoice.NOTES}</p>
+                    <FileText className='h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0' />
+                    <p className='text-sm text-gray-700'>{invoice?.NOTES}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Footer */}
-            <div className='mt-12 pt-8 border-t border-gray-200'>
-              <div className='text-center text-sm text-gray-500'>
+            <div className='mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-gray-200'>
+              <div className='text-center text-xs sm:text-sm text-gray-500'>
                 <p>شكراً لاختياركم عيادة الشفاء</p>
                 <p className='mt-1'>Thank you for choosing Al-Shifa Clinic</p>
-                <p className='mt-2'>
-                  +01201927213 للاستفسارات:  | info@alshifa-clinic.com
+                <p className='mt-2 break-words'>
+                  للاستفسارات: +20 1210927213 | info@alshifa-clinic.com
                 </p>
               </div>
             </div>

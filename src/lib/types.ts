@@ -57,6 +57,10 @@ export interface Appointment {
   PAYMENT_AMOUNT: number | null;
   PAYMENT_METHOD?: string | null;
   CONSULTATION_FEE?: number;
+  HAS_INVOICE?: number;
+  INVOICE_ID?: number | null;
+  INVOICE_NUMBER?: string | null;
+  INVOICE_PAYMENT_STATUS?: string | null;
 }
 
 // ========= Invoices =========

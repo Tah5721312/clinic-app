@@ -45,7 +45,70 @@ export async function PUT(request: NextRequest, { params }: Params) {
       body.schedule = new Date(body.schedule);
     }
 
-    const rowsAffected = await updateAppointment(Number(id), body);
+    // Get current appointment to compare with update data
+    const currentAppointment = await getAppointmentById(Number(id));
+    if (!currentAppointment) {
+      return NextResponse.json(
+        { error: 'Appointment not found' },
+        { status: 404 }
+      );
+    }
+
+    // Only include fields that have actually changed
+    const updateData: any = {};
+    
+    if (body.patient_id !== undefined && body.patient_id !== currentAppointment.PATIENT_ID) {
+      updateData.patient_id = body.patient_id;
+    }
+    
+    if (body.doctor_id !== undefined && body.doctor_id !== currentAppointment.DOCTOR_ID) {
+      updateData.doctor_id = body.doctor_id;
+    }
+    
+    if (body.schedule !== undefined) {
+      const currentSchedule = new Date(currentAppointment.SCHEDULE);
+      const newSchedule = new Date(body.schedule);
+      if (currentSchedule.getTime() !== newSchedule.getTime()) {
+        updateData.schedule = body.schedule;
+      }
+    }
+    
+    if (body.reason !== undefined && body.reason !== currentAppointment.REASON) {
+      updateData.reason = body.reason;
+    }
+    
+    if (body.note !== undefined && body.note !== (currentAppointment.NOTE || '')) {
+      updateData.note = body.note;
+    }
+    
+    if (body.status !== undefined && body.status !== currentAppointment.STATUS) {
+      updateData.status = body.status;
+    }
+    
+    if (body.cancellationReason !== undefined && body.cancellationReason !== (currentAppointment.CANCELLATIONREASON || '')) {
+      updateData.cancellationReason = body.cancellationReason;
+    }
+    
+    if (body.appointment_type !== undefined && body.appointment_type !== (currentAppointment.APPOINTMENT_TYPE || 'consultation')) {
+      updateData.appointment_type = body.appointment_type;
+    }
+    
+    if (body.payment_status !== undefined && body.payment_status !== (currentAppointment.PAYMENT_STATUS || 'unpaid')) {
+      updateData.payment_status = body.payment_status;
+    }
+    
+    if (body.payment_amount !== undefined && body.payment_amount !== (currentAppointment.PAYMENT_AMOUNT || 0)) {
+      updateData.payment_amount = body.payment_amount;
+    }
+
+    console.log('Filtered update data:', updateData);
+
+    // If no fields to update, return success
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ message: 'No changes to update' });
+    }
+
+    const rowsAffected = await updateAppointment(Number(id), updateData);
 
     if (rowsAffected === 0) {
       return NextResponse.json(

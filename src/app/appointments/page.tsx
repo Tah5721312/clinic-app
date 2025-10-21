@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search, CreditCard, DollarSign } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search, CreditCard, DollarSign, Receipt, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -78,14 +78,11 @@ export default function AppointmentsPage() {
         return 'Invalid Date';
       }
 
-      // تنسيق التاريخ
-      return dateObj.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      // تنسيق التاريخ بصيغة yyyy/mm/dd
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}/${month}/${day}`;
     } catch (error) {
       // console.error('Date formatting error:', error);
       return 'Invalid Date';
@@ -303,75 +300,210 @@ export default function AppointmentsPage() {
           )}
         </div>
 
-        {/* Appointments List */}
+        {/* Appointments Table */}
         {filteredAppointments.length > 0 ? (
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-            {filteredAppointments.map(
-              (appointment: Appointment, index: number) => (
-                <div
-                  key={appointment.APPOINTMENT_ID || `appointment-${index}`}
-                  className='bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow'
-                >
-                  <div className='flex justify-between items-start mb-4'>
+          <div className='bg-white rounded-lg shadow overflow-hidden'>
+            {/* Desktop Table */}
+            <div className='hidden lg:block overflow-x-auto'>
+              <table className='min-w-full divide-y divide-gray-200'>
+                <thead className='bg-gray-50'>
+                  <tr>
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Appointment
+                    </th>
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Date
+                    </th>
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Patient
+                    </th>
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Doctor
+                    </th>
+                   
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Status
+                    </th>
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Payment
+                    </th>
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Method
+                    </th>
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Invoice
+                    </th>
+                    <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className='bg-white divide-y divide-gray-200'>
+                  {filteredAppointments.map((appointment: Appointment, index: number) => (
+                    <tr key={`appointment-${appointment.APPOINTMENT_ID}-${appointment.PATIENT_ID}-${appointment.DOCTOR_ID}-${index}`} className='hover:bg-gray-50'>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div className='flex items-center'>
+                          <Calendar className='w-4 h-4 text-blue-600 mr-2' />
+                          <div>
+                            <div className='text-sm font-medium text-gray-900'>
+                              #{appointment.APPOINTMENT_ID}
+                            </div>
+                            <div className='text-sm text-gray-500'>
+                              {appointment.APPOINTMENT_TYPE || 'consultation'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm text-gray-900'>
+                        {formatDateTime(appointment.SCHEDULE)}
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div className='text-sm text-gray-900'>
+                          {appointment.PATIENT_NAME || `ID: ${appointment.PATIENT_ID}`}
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div className='text-sm text-gray-900'>
+                          {appointment.DOCTOR_NAME || `ID: ${appointment.DOCTOR_ID}`}
+                        </div>
+                      </td>
+                      {/* <td className='px-6 py-4'>
+                        <div className='text-sm text-gray-900 max-w-xs truncate' title={appointment.REASON}>
+                          {appointment.REASON}
+                        </div>
+                        {appointment.NOTE && (
+                          <div className='text-xs text-gray-500 max-w-xs truncate' title={appointment.NOTE}>
+                            Note: {appointment.NOTE}
+                          </div>
+                        )}
+                      </td> */}
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.STATUS)}`}>
+                          {appointment.STATUS}
+                        </span>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div className='flex flex-col gap-1'>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(appointment.PAYMENT_STATUS || 'unpaid')}`}>
+                            {appointment.PAYMENT_STATUS || 'unpaid'}
+                          </span>
+                          {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
+                            <span className='text-xs text-gray-600'>
+                              {appointment.PAYMENT_AMOUNT} EGP
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div className='text-sm text-gray-900'>
+                          {appointment.PAYMENT_METHOD || '-'}
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap'>
+                        <div className='flex items-center justify-center'>
+                          {appointment.HAS_INVOICE ? (
+                            <div className='flex flex-col items-center gap-1'>
+                              <div className='flex items-center gap-1'>
+                                <CheckCircle className='w-4 h-4 text-green-600' />
+                                <span className='text-xs text-green-600 font-medium'>Yes</span>
+                              </div>
+                              {appointment.INVOICE_NUMBER && (
+                                <Link
+                                  href={`/invoices/${appointment.INVOICE_ID}`}
+                                  className='text-xs text-blue-600 hover:text-blue-800 underline'
+                                >
+                                  #{appointment.INVOICE_NUMBER}
+                                </Link>
+                              )}
+                            </div>
+                          ) : (
+                            <div className='flex items-center gap-1'>
+                              <XCircle className='w-4 h-4 text-gray-400' />
+                              <span className='text-xs text-gray-500'>No</span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                        <div className='flex flex-col gap-1'>
+                          <Link
+                            href={`/appointments/${appointment.APPOINTMENT_ID}`}
+                            className='text-blue-600 hover:text-blue-900'
+                          >
+                            View
+                          </Link>
+                          {!appointment.HAS_INVOICE && (
+                            <Link
+                              href={`/invoices/new?patientId=${appointment.PATIENT_ID}&appointmentId=${appointment.APPOINTMENT_ID}`}
+                              className='text-purple-600 hover:text-purple-900'
+                            >
+                              Create Invoice
+                            </Link>
+                          )}
+                          <Link
+                            href={`/appointments/new?doctorId=${appointment.DOCTOR_ID}&patientId=${appointment.PATIENT_ID}`}
+                            className='text-green-600 hover:text-green-900'
+                          >
+                            Book Similar
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className='lg:hidden'>
+              {filteredAppointments.map((appointment: Appointment, index: number) => (
+                <div key={`mobile-appointment-${appointment.APPOINTMENT_ID}-${appointment.PATIENT_ID}-${appointment.DOCTOR_ID}-${index}`} className='border-b border-gray-200 p-4 last:border-b-0'>
+                  <div className='flex justify-between items-start mb-3'>
                     <div className='flex items-center space-x-2'>
-                      <Calendar className='w-5 h-5 text-blue-600' />
+                      <Calendar className='w-4 h-4 text-blue-600' />
                       <span className='font-semibold text-gray-900'>
-                        Appointment #{appointment.APPOINTMENT_ID}
+                        #{appointment.APPOINTMENT_ID}
                       </span>
                     </div>
                     <div className='flex flex-col gap-1'>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                          appointment.STATUS
-                        )}`}
-                      >
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.STATUS)}`}>
                         {appointment.STATUS}
                       </span>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${getAppointmentTypeColor(
-                          appointment.APPOINTMENT_TYPE || 'consultation'
-                        )}`}
-                      >
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAppointmentTypeColor(appointment.APPOINTMENT_TYPE || 'consultation')}`}>
                         {appointment.APPOINTMENT_TYPE || 'consultation'}
                       </span>
                     </div>
                   </div>
 
-                  <div className='space-y-3'>
-                    <div className='flex items-center text-sm text-gray-600'>
+                  <div className='space-y-2 text-sm'>
+                    <div className='flex items-center text-gray-600'>
                       <Clock className='w-4 h-4 mr-2 text-gray-400' />
                       <span>{formatDateTime(appointment.SCHEDULE)}</span>
                     </div>
 
-                    <div className='flex items-center text-sm text-gray-600'>
+                    <div className='flex items-center text-gray-600'>
                       <User className='w-4 h-4 mr-2 text-gray-400' />
                       <span>
-                        <strong>Patient:</strong>{' '}
-                        {appointment.PATIENT_NAME ||
-                          `ID: ${appointment.PATIENT_ID}`}
+                        <strong>Patient:</strong> {appointment.PATIENT_NAME || `ID: ${appointment.PATIENT_ID}`}
                       </span>
                     </div>
 
-                    <div className='flex items-center text-sm text-gray-600'>
+                    <div className='flex items-center text-gray-600'>
                       <User className='w-4 h-4 mr-2 text-gray-400' />
                       <span>
-                        <strong>Doctor:</strong>{' '}
-                        {appointment.DOCTOR_NAME ||
-                          `ID: ${appointment.DOCTOR_ID}`}
+                        <strong>Doctor:</strong> {appointment.DOCTOR_NAME || `ID: ${appointment.DOCTOR_ID}`}
                       </span>
                     </div>
 
-                    {appointment.REASON && (
-                      <div className='flex items-start text-sm text-gray-600'>
-                        <FileText className='w-4 h-4 mr-2 text-gray-400 mt-0.5' />
-                        <div>
-                          <strong>Reason:</strong> {appointment.REASON}
-                        </div>
+                    <div className='flex items-start text-gray-600'>
+                      <FileText className='w-4 h-4 mr-2 text-gray-400 mt-0.5' />
+                      <div>
+                        <strong>Reason:</strong> {appointment.REASON}
                       </div>
-                    )}
+                    </div>
 
                     {appointment.NOTE && (
-                      <div className='flex items-start text-sm text-gray-600'>
+                      <div className='flex items-start text-gray-600'>
                         <FileText className='w-4 h-4 mr-2 text-gray-400 mt-0.5' />
                         <div>
                           <strong>Note:</strong> {appointment.NOTE}
@@ -379,51 +511,85 @@ export default function AppointmentsPage() {
                       </div>
                     )}
 
-                    {/* Payment Information */}
-                    <div className='flex items-center text-sm text-gray-600'>
+                    <div className='flex items-center text-gray-600'>
                       <CreditCard className='w-4 h-4 mr-2 text-gray-400' />
                       <span>
                         <strong>Payment:</strong>{' '}
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                          appointment.PAYMENT_STATUS || 'unpaid'
-                        )}`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(appointment.PAYMENT_STATUS || 'unpaid')}`}>
                           {appointment.PAYMENT_STATUS || 'unpaid'}
                         </span>
+                        {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
+                          <span className='mr-2'> - {appointment.PAYMENT_AMOUNT} EGP</span>
+                        )}
                       </span>
                     </div>
 
-                    {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
-                      <div className='flex items-center text-sm text-gray-600'>
-                        <DollarSign className='w-4 h-4 mr-2 text-gray-400' />
+                    {appointment.PAYMENT_METHOD && (
+                      <div className='flex items-center text-gray-600'>
+                        <CreditCard className='w-4 h-4 mr-2 text-gray-400' />
                         <span>
-                          <strong>Amount:</strong> {appointment.PAYMENT_AMOUNT} EGP
+                          <strong>Method:</strong> {appointment.PAYMENT_METHOD}
                         </span>
                       </div>
                     )}
+
+                    <div className='flex items-center text-gray-600'>
+                      <Receipt className='w-4 h-4 mr-2 text-gray-400' />
+                      <span>
+                        <strong>Invoice:</strong>{' '}
+                        {appointment.HAS_INVOICE ? (
+                          <span className='flex items-center gap-1'>
+                            <CheckCircle className='w-4 h-4 text-green-600' />
+                            <span className='text-green-600 font-medium'>Yes</span>
+                            {appointment.INVOICE_NUMBER && (
+                              <Link
+                                href={`/invoices/${appointment.INVOICE_ID}`}
+                                className='text-blue-600 hover:text-blue-800 underline ml-1'
+                              >
+                                #{appointment.INVOICE_NUMBER}
+                              </Link>
+                            )}
+                          </span>
+                        ) : (
+                          <span className='flex items-center gap-1'>
+                            <XCircle className='w-4 h-4 text-gray-400' />
+                            <span className='text-gray-500'>No</span>
+                          </span>
+                        )}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className='flex justify-between items-center mt-4 pt-4 border-t'>
-                    <div className='flex gap-2'>
+                  <div className='flex justify-between items-center mt-3 pt-3 border-t border-gray-100'>
+                    <div className='flex gap-3'>
                       <Link
                         href={`/appointments/${appointment.APPOINTMENT_ID}`}
-                        className='text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors'
+                        className='text-blue-600 hover:text-blue-800 font-medium text-sm'
                       >
                         View Details
                       </Link>
+                      {!appointment.HAS_INVOICE && (
+                        <Link
+                          href={`/invoices/new?patientId=${appointment.PATIENT_ID}&appointmentId=${appointment.APPOINTMENT_ID}`}
+                          className='text-purple-600 hover:text-purple-800 font-medium text-sm'
+                        >
+                          Create Invoice
+                        </Link>
+                      )}
                       {appointment.DOCTOR_ID && (
                         <Link
                           href={`/doctors/${appointment.DOCTOR_ID}`}
-                          className='text-green-600 hover:text-green-800 font-medium text-sm transition-colors'
+                          className='text-green-600 hover:text-green-800 font-medium text-sm'
                         >
-                          View Doctor
+                          Doctor
                         </Link>
                       )}
                       {appointment.PATIENT_ID && (
                         <Link
                           href={`/patients/${appointment.PATIENT_ID}`}
-                          className='text-purple-600 hover:text-purple-800 font-medium text-sm transition-colors'
+                          className='text-purple-600 hover:text-purple-800 font-medium text-sm'
                         >
-                          View Patient
+                          Patient
                         </Link>
                       )}
                     </div>
@@ -435,8 +601,8 @@ export default function AppointmentsPage() {
                     </Link>
                   </div>
                 </div>
-              )
-            )}
+              ))}
+            </div>
           </div>
         ) : (
           <div className='text-center py-12'>

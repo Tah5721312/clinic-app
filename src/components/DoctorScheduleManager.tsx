@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { DoctorSchedule, CreateScheduleDto, UpdateScheduleDto } from '@/lib/types';
 import { Plus, Edit, Trash2, Clock, Calendar, Save, X } from 'lucide-react';
 import { Can } from '@/components/Can';
+import { DOMAIN } from '@/lib/constants';
 
 interface DoctorScheduleManagerProps {
   doctorId: number;
@@ -58,7 +59,7 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/doctors/${doctorId}/schedule`);
+      const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}/schedule`);
       if (!response.ok) {
         throw new Error('Failed to fetch schedules');
       }
@@ -81,7 +82,7 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
       if (editingSchedule) {
         // Update existing schedule
         console.log('Updating schedule:', editingSchedule, 'with data:', formData);
-        const response = await fetch(`/api/doctors/${doctorId}/schedule/${editingSchedule}`, {
+        const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}/schedule/${editingSchedule}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
         setTimeout(() => setSuccess(''), 3000);
       } else {
         // Create new schedule
-        const response = await fetch(`/api/doctors/${doctorId}/schedule`, {
+        const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}/schedule`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -193,7 +194,7 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
     if (!confirm('هل أنت متأكد من حذف هذا الجدول الزمني؟')) return;
 
     try {
-      const response = await fetch(`/api/doctors/${doctorId}/schedule/${scheduleId}`, {
+      const response = await fetch(`${DOMAIN}/api/doctors/${doctorId}/schedule/${scheduleId}`, {
         method: 'DELETE',
       });
 

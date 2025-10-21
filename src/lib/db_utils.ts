@@ -616,10 +616,13 @@ export async function getAllAppointments(filters?: {
            NVL(a.payment_amount, 0) as payment_amount,
            a.payment_method as payment_method,
            p.name as patient_name, d.name as doctor_name, p.identificationnumber,
-           NVL(d.consultation_fee, 0) as consultation_fee
+           NVL(d.consultation_fee, 0) as consultation_fee,
+           CASE WHEN i.invoice_id IS NOT NULL THEN 1 ELSE 0 END as has_invoice,
+           i.invoice_id, i.invoice_number, i.payment_status as invoice_payment_status
     FROM TAH57.APPOINTMENTS a 
     JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
     JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
+    LEFT JOIN TAH57.INVOICES i ON a.appointment_id = i.appointment_id
   `;
 
   const params: oracledb.BindParameters = {};
@@ -663,6 +666,10 @@ export async function getAllAppointments(filters?: {
     PAYMENT_METHOD: string | null;
     IDENTIFICATIONNUMBER: string;
     CONSULTATION_FEE: number;
+    HAS_INVOICE: number;
+    INVOICE_ID: number | null;
+    INVOICE_NUMBER: string | null;
+    INVOICE_PAYMENT_STATUS: string | null;
   }>(query, params).then((result) => result.rows);
 }
 
@@ -686,6 +693,10 @@ export async function getPatientAppointments(patientId: number) {
     PAYMENT_AMOUNT: number;
     PAYMENT_METHOD: string | null;
     CONSULTATION_FEE: number;
+    HAS_INVOICE: number;
+    INVOICE_ID: number | null;
+    INVOICE_NUMBER: string | null;
+    INVOICE_PAYMENT_STATUS: string | null;
   }>(
     `
     SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.reason, a.note, a.status, a.cancellationreason,
@@ -694,10 +705,13 @@ export async function getPatientAppointments(patientId: number) {
            NVL(a.payment_amount, 0) as payment_amount,
            a.payment_method as payment_method,
            p.name as patient_name, d.name as doctor_name,
-           NVL(d.consultation_fee, 0) as consultation_fee
+           NVL(d.consultation_fee, 0) as consultation_fee,
+           CASE WHEN i.invoice_id IS NOT NULL THEN 1 ELSE 0 END as has_invoice,
+           i.invoice_id, i.invoice_number, i.payment_status as invoice_payment_status
     FROM TAH57.APPOINTMENTS a 
     JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
     JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
+    LEFT JOIN TAH57.INVOICES i ON a.appointment_id = i.appointment_id
     WHERE a.patient_id = :patientId
     ORDER BY a.schedule DESC`,
     { patientId }
@@ -1012,11 +1026,6 @@ export async function updateAppointment(
     params.appointment_type = appointment.appointment_type;
   }
 
-  if (appointment.payment_status !== undefined) {
-    fields.push('payment_status = :payment_status');
-    params.payment_status = appointment.payment_status;
-  }
-
   if (appointment.payment_amount !== undefined) {
     fields.push('payment_amount = :payment_amount');
     params.payment_amount = appointment.payment_amount;
@@ -1026,12 +1035,87 @@ export async function updateAppointment(
     throw new Error('No fields to update');
   }
 
-  return executeQuery(
+  // If payment_amount is being updated, calculate and update payment_status automatically
+  // Only auto-calculate if payment_status is not explicitly provided
+  if (appointment.payment_amount !== undefined && appointment.payment_status === undefined) {
+    try {
+      // Get the consultation_fee for this appointment
+      const feeResult = await executeQuery<{ CONSULTATION_FEE: number }>(
+        `SELECT d.CONSULTATION_FEE FROM TAH57.APPOINTMENTS a 
+         JOIN TAH57.DOCTORS d ON a.DOCTOR_ID = d.DOCTOR_ID 
+         WHERE a.APPOINTMENT_ID = :id`,
+        { id }
+      );
+      
+      const consultationFee = feeResult.rows[0]?.CONSULTATION_FEE || 0;
+      const paidAmount = appointment.payment_amount || 0;
+      
+      // Calculate payment status
+      const paymentStatus = calculatePaymentStatus(paidAmount, consultationFee);
+      
+      // Add payment_status to the update
+      fields.push('payment_status = :payment_status');
+      params.payment_status = paymentStatus;
+      
+      console.log(`Auto-calculating payment status for appointment ${id}: paid=${paidAmount}, fee=${consultationFee}, status=${paymentStatus}`);
+    } catch (error) {
+      console.error('Error calculating payment status for appointment:', error);
+      // Don't throw error here to avoid breaking the appointment update
+    }
+  } else if (appointment.payment_status !== undefined) {
+    // If payment_status is explicitly provided, use it
+    fields.push('payment_status = :payment_status');
+    params.payment_status = appointment.payment_status;
+  }
+
+  const result = await executeQuery(
     `UPDATE TAH57.APPOINTMENTS SET ${fields.join(
       ', '
     )} WHERE appointment_id = :id`,
     params
-  ).then((result) => result.rowsAffected || 0);
+  );
+
+  // If payment_amount was updated, also update the related invoice's payment status
+  if (appointment.payment_amount !== undefined) {
+    try {
+      // Find the invoice related to this appointment
+      const invoiceResult = await executeQuery<{ 
+        INVOICE_ID: number;
+        TOTAL_AMOUNT: number;
+      }>(
+        `SELECT INVOICE_ID, TOTAL_AMOUNT FROM TAH57.INVOICES WHERE APPOINTMENT_ID = :appointmentId`,
+        { appointmentId: id }
+      );
+      
+      if (invoiceResult.rows.length > 0) {
+        const invoice = invoiceResult.rows[0];
+        const paidAmount = appointment.payment_amount || 0;
+        
+        // Calculate payment status for invoice
+        const paymentStatus = calculatePaymentStatus(paidAmount, invoice.TOTAL_AMOUNT);
+        
+        // Update the invoice's payment information
+        await executeQuery(
+          `UPDATE TAH57.INVOICES 
+           SET PAID_AMOUNT = :paid_amount, 
+               PAYMENT_STATUS = :payment_status
+           WHERE INVOICE_ID = :invoice_id`,
+          { 
+            invoice_id: invoice.INVOICE_ID,
+            paid_amount: paidAmount, 
+            payment_status: paymentStatus
+          }
+        );
+        
+        console.log(`Updated invoice ${invoice.INVOICE_ID} payment status to ${paymentStatus} based on appointment payment`);
+      }
+    } catch (error) {
+      console.error('Error updating invoice payment status from appointment:', error);
+      // Don't throw error here to avoid breaking the appointment update
+    }
+  }
+
+  return result.rowsAffected || 0;
 }
 
 
@@ -1140,6 +1224,21 @@ export async function getPatientIdByUserEmail(email: string) {
   );
   
   return result.rows[0]?.PATIENT_ID || null;
+}
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Calculate payment status based on paid amount and total amount
+ */
+function calculatePaymentStatus(paidAmount: number, totalAmount: number): 'paid' | 'partial' | 'unpaid' {
+  if (paidAmount >= totalAmount) {
+    return 'paid';
+  } else if (paidAmount > 0) {
+    return 'partial';
+  } else {
+    return 'unpaid';
+  }
 }
 
 // ==================== INVOICES ====================
@@ -1289,6 +1388,39 @@ export async function createInvoice(
   const outBinds = result.outBinds as { id?: number[] } | undefined;
   const newId = outBinds?.id?.[0];
   if (!newId) throw new Error('Failed to retrieve new invoice id');
+  
+  // If there's an appointment_id, update the appointment's payment information
+  if (data.appointment_id) {
+    try {
+      // Calculate payment status based on paid_amount and total_amount
+      let paymentStatus = 'unpaid';
+      
+      if (paid >= total) {
+        paymentStatus = 'paid';
+      } else if (paid > 0) {
+        paymentStatus = 'partial';
+      }
+      
+      // Update the appointment's payment information
+      await executeQuery(
+        `UPDATE TAH57.APPOINTMENTS 
+         SET PAYMENT_AMOUNT = :paid_amount, 
+             PAYMENT_METHOD = :payment_method,
+             PAYMENT_STATUS = :payment_status
+         WHERE APPOINTMENT_ID = :appointment_id`,
+        { 
+          appointment_id: data.appointment_id, 
+          paid_amount: paid, 
+          payment_method: data.payment_method || null,
+          payment_status: paymentStatus
+        }
+      );
+    } catch (error) {
+      console.error('Error updating appointment payment info during invoice creation:', error);
+      // Don't throw error here to avoid breaking the invoice creation
+    }
+  }
+  
   return newId;
 }
 
@@ -1324,6 +1456,60 @@ export async function updateInvoice(invoiceId: number, data: Partial<CreateInvoi
     `UPDATE TAH57.INVOICES SET ${fields.join(', ')} WHERE INVOICE_ID = :invoiceId`,
     params
   );
+
+  // If paid_amount or payment_method was updated, also update the related appointment
+  if (data.paid_amount !== undefined || data.payment_method !== undefined) {
+    try {
+      // Get the appointment_id and total_amount for this invoice
+      const invoiceResult = await executeQuery<{ 
+        APPOINTMENT_ID: number | null;
+        TOTAL_AMOUNT: number;
+      }>(
+        `SELECT APPOINTMENT_ID, TOTAL_AMOUNT FROM TAH57.INVOICES WHERE INVOICE_ID = :invoiceId`,
+        { invoiceId }
+      );
+      
+      const appointmentId = invoiceResult.rows[0]?.APPOINTMENT_ID;
+      const totalAmount = invoiceResult.rows[0]?.TOTAL_AMOUNT || 0;
+      
+      if (appointmentId) {
+      // Calculate payment status based on paid_amount and total_amount
+      const paidAmount = Math.max(0, data.paid_amount ?? 0);
+      const paymentStatus = calculatePaymentStatus(paidAmount, totalAmount);
+        
+        // Update the appointment's payment information
+        const appointmentFields: string[] = [];
+        const appointmentParams: any = { appointmentId };
+        
+        if (data.paid_amount !== undefined) {
+          appointmentFields.push('PAYMENT_AMOUNT = :paid_amount');
+          appointmentParams.paid_amount = paidAmount;
+        }
+        
+        if (data.payment_method !== undefined) {
+          appointmentFields.push('PAYMENT_METHOD = :payment_method');
+          appointmentParams.payment_method = data.payment_method || null;
+        }
+        
+        // Always update payment status when paid_amount changes
+        if (data.paid_amount !== undefined) {
+          appointmentFields.push('PAYMENT_STATUS = :payment_status');
+          appointmentParams.payment_status = paymentStatus;
+        }
+        
+        if (appointmentFields.length > 0) {
+          await executeQuery(
+            `UPDATE TAH57.APPOINTMENTS SET ${appointmentFields.join(', ')} WHERE APPOINTMENT_ID = :appointmentId`,
+            appointmentParams
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error updating appointment payment info:', error);
+      // Don't throw error here to avoid breaking the invoice update
+    }
+  }
+
   return result.rowsAffected || 0;
 }
 
@@ -1338,6 +1524,45 @@ export async function updateInvoicePayment(invoiceId: number, paidAmount: number
   `,
     { invoiceId, paid_amount: paidAmount, payment_method: paymentMethod || null }
   );
+
+  // Also update the related appointment's payment information
+  try {
+    // Get the appointment_id and total_amount for this invoice
+    const invoiceResult = await executeQuery<{ 
+      APPOINTMENT_ID: number | null;
+      TOTAL_AMOUNT: number;
+    }>(
+      `SELECT APPOINTMENT_ID, TOTAL_AMOUNT FROM TAH57.INVOICES WHERE INVOICE_ID = :invoiceId`,
+      { invoiceId }
+    );
+    
+    const appointmentId = invoiceResult.rows[0]?.APPOINTMENT_ID;
+    const totalAmount = invoiceResult.rows[0]?.TOTAL_AMOUNT || 0;
+    
+    if (appointmentId) {
+      // Calculate payment status based on paid_amount and total_amount
+      const paymentStatus = calculatePaymentStatus(paidAmount, totalAmount);
+      
+      // Update the appointment's payment information
+      await executeQuery(
+        `UPDATE TAH57.APPOINTMENTS 
+         SET PAYMENT_AMOUNT = :paid_amount, 
+             PAYMENT_METHOD = :payment_method,
+             PAYMENT_STATUS = :payment_status
+         WHERE APPOINTMENT_ID = :appointmentId`,
+        { 
+          appointmentId, 
+          paid_amount: paidAmount, 
+          payment_method: paymentMethod || null,
+          payment_status: paymentStatus
+        }
+      );
+    }
+  } catch (error) {
+    console.error('Error updating appointment payment info:', error);
+    // Don't throw error here to avoid breaking the invoice update
+  }
+
   return result.rowsAffected || 0;
 }
 

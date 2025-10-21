@@ -207,32 +207,34 @@ export default function InvoiceViewPage() {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4 sm:space-y-6'>
       {/* Header */}
-      <div className='flex justify-between items-center'>
-        <div className='flex items-center'>
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4'>
+        <div className='flex items-center flex-wrap'>
           <Button
             variant='outline'
             onClick={() => router.back()}
-            className='mr-4'
+            className='mr-4 mb-2 sm:mb-0'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Back
           </Button>
-          <Receipt className='h-8 w-8 text-blue-600 mr-3' />
-          <div>
-            <h1 className='text-2xl font-bold text-gray-900'>
-              Invoice {invoice.INVOICE_NUMBER}
-            </h1>
-            <p className='text-gray-600'>Invoice Details</p>
+          <div className='flex items-center'>
+            <Receipt className='h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mr-3' />
+            <div>
+              <h1 className='text-lg sm:text-2xl font-bold text-gray-900'>
+                Invoice {invoice.INVOICE_NUMBER}
+              </h1>
+              <p className='text-sm sm:text-base text-gray-600'>Invoice Details</p>
+            </div>
           </div>
         </div>
 
-        <div className='flex space-x-3'>
+        <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
           <Button
             variant='outline'
             onClick={() => router.push(`/invoices/${invoice.INVOICE_ID}/edit`)}
-            className='flex items-center'
+            className='flex items-center justify-center'
           >
             <Edit className='h-4 w-4 mr-2' />
             Edit
@@ -240,7 +242,7 @@ export default function InvoiceViewPage() {
           <Button
             variant='outline'
             onClick={handleDelete}
-            className='flex items-center text-red-600 hover:text-red-700'
+            className='flex items-center justify-center text-red-600 hover:text-red-700'
           >
             <Trash2 className='h-4 w-4 mr-2' />
             Delete
@@ -248,15 +250,15 @@ export default function InvoiceViewPage() {
         </div>
       </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6'>
         {/* Invoice Details */}
-        <div className='lg:col-span-2 space-y-6'>
+        <div className='lg:col-span-2 space-y-4 sm:space-y-6'>
           {/* Basic Information */}
-          <div className='bg-white rounded-lg shadow p-6'>
+          <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Invoice Information
             </h2>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
               <div>
                 <label className='block text-sm font-medium text-gray-500'>
                   Invoice Number
@@ -298,11 +300,11 @@ export default function InvoiceViewPage() {
           </div>
 
           {/* Patient Information */}
-          <div className='bg-white rounded-lg shadow p-6'>
+          <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Patient Information
             </h2>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
               <div>
                 <label className='block text-sm font-medium text-gray-500'>
                   Patient Name
@@ -333,11 +335,11 @@ export default function InvoiceViewPage() {
 
           {/* Appointment Information */}
           {invoice.APPOINTMENT_ID && (
-            <div className='bg-white rounded-lg shadow p-6'>
+            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
               <h2 className='text-lg font-semibold text-gray-900 mb-4'>
                 Appointment Information
               </h2>
-              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                 <div>
                   <label className='block text-sm font-medium text-gray-500'>
                     Doctor
@@ -370,7 +372,7 @@ export default function InvoiceViewPage() {
 
           {/* Notes */}
           {invoice.NOTES && (
-            <div className='bg-white rounded-lg shadow p-6'>
+            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
               <h2 className='text-lg font-semibold text-gray-900 mb-4'>
                 Notes
               </h2>
@@ -380,8 +382,8 @@ export default function InvoiceViewPage() {
         </div>
 
         {/* Payment Information */}
-        <div className='space-y-6'>
-          <div className='bg-white rounded-lg shadow p-6'>
+        <div className='space-y-4 sm:space-y-6'>
+          <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Payment Information
             </h2>
@@ -431,7 +433,7 @@ export default function InvoiceViewPage() {
                   </select>
                 </div>
 
-                <div className='flex space-x-2'>
+                <div className='flex flex-col sm:flex-row gap-2'>
                   <Button
                     variant='primary'
                     size='sm'
