@@ -5,6 +5,11 @@ const nextConfig = {
   },
 
   reactStrictMode: true,
+  
+  // Enable network access
+  experimental: {
+serverExternalPackages: ['...']
+  },
 
   // Uncoment to add domain whitelist
   // images: {
