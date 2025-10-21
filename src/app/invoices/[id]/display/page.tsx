@@ -1,11 +1,12 @@
 import InvoiceDisplay from '@/components/InvoiceDisplay';
 
 interface InvoiceDisplayPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function InvoiceDisplayPage({ params }: InvoiceDisplayPageProps) {
-  return <InvoiceDisplay invoiceId={params.id} />;
+export default async function InvoiceDisplayPage({ params }: InvoiceDisplayPageProps) {
+  const { id } = await params;
+  return <InvoiceDisplay invoiceId={id} />;
 }

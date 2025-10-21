@@ -3,10 +3,11 @@ import { executeQuery } from '@/lib/database';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(params.id);
+    const { id } = await params;
+    const userId = parseInt(id);
 
     const query = `
       SELECT 
@@ -94,10 +95,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(params.id);
+    const { id } = await params;
+    const userId = parseInt(id);
     const body = await request.json();
     const { username, email, fullName, roleId, newUserId } = body;
 
@@ -236,15 +238,16 @@ export async function PUT(
 // ***************
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
 
-    if (!params?.id || isNaN(Number(params.id))) {
+    if (!id || isNaN(Number(id))) {
       return NextResponse.json({ error: 'Missing user ID' }, { status: 400 });
     }
     
-    const userId = parseInt(params.id);
+    const userId = parseInt(id);
 
     const query = `DELETE FROM TAH57.USERS WHERE USER_ID = :userId`;
 
