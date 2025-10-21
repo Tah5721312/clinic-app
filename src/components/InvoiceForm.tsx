@@ -87,9 +87,16 @@ export default function InvoiceForm({
       const appointment = appointments.find(a => a.APPOINTMENT_ID === formData.appointment_id);
       if (appointment) {
         setSelectedAppointment(appointment);
+        // Also set the amount if it's not already set
+        if (formData.amount === 0) {
+          setFormData(prev => ({
+            ...prev,
+            amount: appointment.CONSULTATION_FEE || 0
+          }));
+        }
       }
     }
-  }, [appointments, formData.appointment_id]);
+  }, [appointments, formData.appointment_id, formData.amount]);
 
   useEffect(() => {
     // Fetch patients for dropdown
@@ -156,7 +163,13 @@ export default function InvoiceForm({
     setSelectedAppointment(appointment);
     setFormData(prev => ({
       ...prev,
-      appointment_id: appointment ? appointment.APPOINTMENT_ID : undefined
+      appointment_id: appointment ? appointment.APPOINTMENT_ID : undefined,
+      // Automatically populate amount with consultation fee when appointment is selected
+      amount: appointment?.CONSULTATION_FEE || 0,
+      // Automatically populate paid_amount with payment_amount from appointment
+      paid_amount: appointment?.PAYMENT_AMOUNT || 0,
+      // Automatically populate payment_method from appointment
+      payment_method: appointment?.PAYMENT_METHOD || ''
     }));
     setIsAppointmentDropdownOpen(false);
   };

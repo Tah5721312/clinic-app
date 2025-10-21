@@ -25,6 +25,7 @@ interface FormData {
   appointment_type: string;
   payment_status: string;
   payment_amount: number;
+  payment_method: string;
 }
 
 export default function EnhancedAppointmentForm({
@@ -64,6 +65,7 @@ export default function EnhancedAppointmentForm({
     appointment_type: 'consultation',
     payment_status: 'unpaid',
     payment_amount: 0,
+    payment_method: '',
   });
 
   // Update form data when props change
@@ -320,6 +322,7 @@ export default function EnhancedAppointmentForm({
         appointment_type: 'consultation',
         payment_status: 'unpaid',
         payment_amount: 0,
+        payment_method: '',
       });
       setSelectedDate('');
       setAvailableTimeSlots([]);
@@ -670,6 +673,25 @@ export default function EnhancedAppointmentForm({
             step="0.01"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            طريقة الدفع
+          </label>
+          <select
+            name="payment_method"
+            value={formData.payment_method}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">اختر طريقة الدفع</option>
+            <option value="cash">نقداً</option>
+            <option value="card">بطاقة ائتمان/خصم</option>
+            <option value="bank_transfer">تحويل بنكي</option>
+            <option value="insurance">تأمين</option>
+            <option value="other">أخرى</option>
+          </select>
         </div>
 
         {/* Submit Button */}

@@ -25,6 +25,7 @@ interface FormData {
   appointment_type: string;
   payment_status: string;
   payment_amount: number;
+  payment_method: string;
 }
 
 export default function AppointmentForm({
@@ -58,6 +59,7 @@ export default function AppointmentForm({
     appointment_type: 'consultation',
     payment_status: 'unpaid',
     payment_amount: 0,
+    payment_method: '',
   });
 
   // Update form data when props change
@@ -182,6 +184,7 @@ export default function AppointmentForm({
         appointment_type: 'consultation',
         payment_status: 'unpaid',
         payment_amount: 0,
+        payment_method: '',
       });
       setSelectedSpecialty('');
       setSelectedDoctor(null);
@@ -531,6 +534,31 @@ export default function AppointmentForm({
               placeholder='0.00'
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
             />
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <label
+              htmlFor='payment_method'
+              className='flex items-center text-sm font-medium text-gray-700 mb-2'
+            >
+              <FileText className='w-4 h-4 mr-2' />
+              Payment Method
+            </label>
+            <select
+              id='payment_method'
+              name='payment_method'
+              value={formData.payment_method}
+              onChange={handleInputChange}
+              className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+            >
+              <option value=''>Select payment method</option>
+              <option value='cash'>Cash</option>
+              <option value='card'>Credit/Debit Card</option>
+              <option value='bank_transfer'>Bank Transfer</option>
+              <option value='insurance'>Insurance</option>
+              <option value='other'>Other</option>
+            </select>
           </div>
 
           {/* Notes */}

@@ -7,7 +7,7 @@ import {
   Trash2,
   DollarSign,
   Calendar,
-  User,
+  User,Printer,
   CreditCard,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -353,6 +353,18 @@ export default function InvoiceTable({
                       </Button>
                     )}
 
+                     <Button
+                        variant='outline'
+                        size='sm'
+                        className='p-2 '
+                        title='print Invoice'
+                        onClick={() => window.open(`/invoices/${invoice.INVOICE_ID}/display`)}
+                      >
+                        <Printer className='h-4 w-4'/>
+
+                      </Button>
+
+
                     {onDelete && (
                       <Button
                         variant='outline'
@@ -364,6 +376,9 @@ export default function InvoiceTable({
                         <Trash2 className='h-4 w-4' />
                       </Button>
                     )}
+                    
+                   
+
                   </div>
                 </td>
               )}

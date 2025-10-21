@@ -614,7 +614,9 @@ export async function getAllAppointments(filters?: {
            NVL(a.appointment_type, 'consultation') as appointment_type,
            NVL(a.payment_status, 'unpaid') as payment_status,
            NVL(a.payment_amount, 0) as payment_amount,
-           p.name as patient_name, d.name as doctor_name, p.identificationnumber
+           a.payment_method as payment_method,
+           p.name as patient_name, d.name as doctor_name, p.identificationnumber,
+           NVL(d.consultation_fee, 0) as consultation_fee
     FROM TAH57.APPOINTMENTS a 
     JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
     JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
@@ -658,6 +660,9 @@ export async function getAllAppointments(filters?: {
     APPOINTMENT_TYPE: string;
     PAYMENT_STATUS: string;
     PAYMENT_AMOUNT: number;
+    PAYMENT_METHOD: string | null;
+    IDENTIFICATIONNUMBER: string;
+    CONSULTATION_FEE: number;
   }>(query, params).then((result) => result.rows);
 }
 
@@ -679,13 +684,17 @@ export async function getPatientAppointments(patientId: number) {
     APPOINTMENT_TYPE: string;
     PAYMENT_STATUS: string;
     PAYMENT_AMOUNT: number;
+    PAYMENT_METHOD: string | null;
+    CONSULTATION_FEE: number;
   }>(
     `
     SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.reason, a.note, a.status, a.cancellationreason,
            NVL(a.appointment_type, 'consultation') as appointment_type,
            NVL(a.payment_status, 'unpaid') as payment_status,
            NVL(a.payment_amount, 0) as payment_amount,
-           p.name as patient_name, d.name as doctor_name 
+           a.payment_method as payment_method,
+           p.name as patient_name, d.name as doctor_name,
+           NVL(d.consultation_fee, 0) as consultation_fee
     FROM TAH57.APPOINTMENTS a 
     JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id 
     JOIN TAH57.DOCTORS d ON a.doctor_id = d.doctor_id 
@@ -737,6 +746,7 @@ export async function createAppointment(appointment: {
   appointment_type?: string;
   payment_status?: string;
   payment_amount?: number;
+  payment_method?: string;
 }) {
   const {
     patient_id,
@@ -748,6 +758,7 @@ export async function createAppointment(appointment: {
     appointment_type = 'consultation',
     payment_status = 'unpaid',
     payment_amount = 0,
+    payment_method = null,
   } = appointment;
 
   // تحويلات التاريخ/الوقت
@@ -768,8 +779,8 @@ export async function createAppointment(appointment: {
     try {
       await executeQuery(
         `
-        INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, schedule_at, reason, note, status, appointment_type, payment_status, payment_amount) 
-        VALUES (:patient_id, :doctor_id, TO_DATE(:schedule_date, 'YYYY-MM-DD'), :schedule_at, :reason, :note, :status, :appointment_type, :payment_status, :payment_amount)`,
+        INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, schedule_at, reason, note, status, appointment_type, payment_status, payment_amount, payment_method) 
+        VALUES (:patient_id, :doctor_id, TO_DATE(:schedule_date, 'YYYY-MM-DD'), :schedule_at, :reason, :note, :status, :appointment_type, :payment_status, :payment_amount, :payment_method)`,
         {
           patient_id: Number(patient_id),
           doctor_id: Number(doctor_id),
@@ -781,6 +792,7 @@ export async function createAppointment(appointment: {
           appointment_type,
           payment_status,
           payment_amount: payment_amount || 0,
+          payment_method: payment_method || null,
         }
       );
       return;
@@ -792,8 +804,8 @@ export async function createAppointment(appointment: {
     // إذا لم يوجد الحقل الجديد، نعود للإدخال القديم باستخدام TIMESTAMP
     await executeQuery(
       `
-      INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status, appointment_type, payment_status, payment_amount) 
-      VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status, :appointment_type, :payment_status, :payment_amount)`,
+      INSERT INTO TAH57.APPOINTMENTS (patient_id, doctor_id, schedule, reason, note, status, appointment_type, payment_status, payment_amount, payment_method) 
+      VALUES (:patient_id, :doctor_id, TO_TIMESTAMP(:schedule, 'YYYY-MM-DD HH24:MI:SS.FF'), :reason, :note, :status, :appointment_type, :payment_status, :payment_amount, :payment_method)`,
       {
         patient_id: Number(patient_id),
         doctor_id: Number(doctor_id),
@@ -804,6 +816,7 @@ export async function createAppointment(appointment: {
         appointment_type,
         payment_status,
         payment_amount: payment_amount || 0,
+        payment_method: payment_method || null,
       }
     );
   };

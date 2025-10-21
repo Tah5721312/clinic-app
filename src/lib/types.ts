@@ -55,6 +55,8 @@ export interface Appointment {
   APPOINTMENT_TYPE: 'consultation' | 'follow_up' | 'emergency';
   PAYMENT_STATUS: 'unpaid' | 'partial' | 'paid' | 'refunded';
   PAYMENT_AMOUNT: number | null;
+  PAYMENT_METHOD?: string | null;
+  CONSULTATION_FEE?: number;
 }
 
 // ========= Invoices =========
