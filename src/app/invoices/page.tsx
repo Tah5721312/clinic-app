@@ -10,6 +10,8 @@ import {
   Download,
   RefreshCw,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import { Invoice, InvoiceFilters, Doctor } from '@/lib/types';
@@ -31,6 +33,7 @@ export default function InvoicesPage() {
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedDoctor, setSelectedDoctor] = useState<number | null>(null);
   const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
 
   // Fetch specialties and doctors
   const { data: specialties } = useSpecialties();
@@ -74,6 +77,14 @@ export default function InvoicesPage() {
   useEffect(() => {
     fetchInvoices(filters);
   }, [filters]);
+
+  // Initialize selectedDate with today's date
+  useEffect(() => {
+    if (!selectedDate) {
+      const today = new Date().toISOString().split('T')[0];
+      setSelectedDate(today);
+    }
+  }, [selectedDate]);
 
   // Filter invoices based on search term
   const filteredInvoices = invoices.filter((invoice) => {
@@ -232,7 +243,47 @@ export default function InvoicesPage() {
     setSearchTerm('');
     setSelectedSpecialty('');
     setSelectedDoctor(null);
+    setSelectedDate('');
   };
+
+  // Date navigation helper functions
+  const incrementDateByDays = (baseDateStr: string, days: number) => {
+    const base = baseDateStr ? new Date(baseDateStr) : new Date();
+    const next = new Date(base);
+    next.setDate(base.getDate() + days);
+    return next.toISOString().split('T')[0];
+  };
+
+  const handleNextDay = () => {
+    const nextDate = incrementDateByDays(selectedDate || new Date().toISOString().split('T')[0], 1);
+    setSelectedDate(nextDate);
+    setFilters(prev => ({ ...prev, date_from: nextDate }));
+  };
+
+  const handlePrevDay = () => {
+    const base = selectedDate || new Date().toISOString().split('T')[0];
+    const prevDate = incrementDateByDays(base, -1);
+    setSelectedDate(prevDate);
+    setFilters(prev => ({ ...prev, date_from: prevDate }));
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const date = e.target.value;
+    setSelectedDate(date);
+    setFilters(prev => ({ ...prev, date_from: date || undefined }));
+  };
+
+  // Get today's date for minimum date
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Current date label for display
+  const currentDateStr = selectedDate || today;
+  const currentDateLabel = new Date(currentDateStr).toLocaleDateString('ar-EG', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  const canGoPrevDay = (incrementDateByDays(currentDateStr, -1) >= today);
 
   const exportInvoices = () => {
     // Simple CSV export
@@ -470,12 +521,41 @@ export default function InvoicesPage() {
             </label>
             <input
               type='date'
-              value={filters.date_from || ''}
-              onChange={(e) =>
-                handleFilterChange('date_from', e.target.value || undefined)
-              }
+              value={selectedDate || filters.date_from || ''}
+              onChange={handleDateChange}
+              min={today}
               className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
             />
+            <div className='mt-2 flex items-center justify-between gap-2'>
+              <button
+                type='button'
+                onClick={handlePrevDay}
+                disabled={!canGoPrevDay}
+                className={`inline-flex items-center px-3 py-1 border rounded-md text-sm ${
+                  canGoPrevDay
+                    ? 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                    : 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                }`}
+                aria-label='اليوم السابق'
+                title='اليوم السابق'
+              >
+                <ChevronLeft className='w-4 h-4 mr-1' />
+              </button>
+
+              <span className='text-sm text-gray-600 text-center flex-1'>
+                {currentDateLabel}
+              </span>
+
+              <button
+                type='button'
+                onClick={handleNextDay}
+                className='inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 text-sm'
+                aria-label='اليوم التالي'
+                title='اليوم التالي'
+              >
+                <ChevronRight className='w-4 h-4 ml-1' />
+              </button>
+            </div>
           </div>
         </div>
 

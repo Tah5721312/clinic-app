@@ -1607,6 +1607,60 @@ export async function getMonthlyRevenue(): Promise<MonthlyRevenueRow[]> {
   }
 }
 
+/**
+ * جلب إجمالي الإيرادات
+ */
+export async function getTotalRevenue(): Promise<number> {
+  const result = await executeQuery<{ TOTAL_REVENUE: number }>(
+    `SELECT SUM(TOTAL_AMOUNT) AS TOTAL_REVENUE FROM TAH57.INVOICES`
+  );
+  return result.rows[0]?.TOTAL_REVENUE || 0;
+}
+
+/**
+ * جلب إجمالي الإيرادات الشهرية (الشهر الحالي)
+ */
+export async function getCurrentMonthRevenue(): Promise<number> {
+  const result = await executeQuery<{ MONTHLY_REVENUE: number }>(
+    `SELECT SUM(TOTAL_AMOUNT) AS MONTHLY_REVENUE 
+     FROM TAH57.INVOICES 
+     WHERE TO_CHAR(INVOICE_DATE, 'YYYY-MM') = TO_CHAR(SYSDATE, 'YYYY-MM')`
+  );
+  return result.rows[0]?.MONTHLY_REVENUE || 0;
+}
+
+/**
+ * جلب إجمالي الإيرادات اليومية (اليوم الحالي)
+ */
+export async function getCurrentDayRevenue(): Promise<number> {
+  const result = await executeQuery<{ DAILY_REVENUE: number }>(
+    `SELECT SUM(TOTAL_AMOUNT) AS DAILY_REVENUE 
+     FROM TAH57.INVOICES 
+     WHERE TRUNC(INVOICE_DATE) = TRUNC(SYSDATE)`
+  );
+  return result.rows[0]?.DAILY_REVENUE || 0;
+}
+
+/**
+ * جلب إجمالي الإيرادات المدفوعة
+ */
+export async function getTotalPaidRevenue(): Promise<number> {
+  const result = await executeQuery<{ TOTAL_PAID: number }>(
+    `SELECT SUM(PAID_AMOUNT) AS TOTAL_PAID FROM TAH57.INVOICES`
+  );
+  return result.rows[0]?.TOTAL_PAID || 0;
+}
+
+/**
+ * جلب إجمالي الإيرادات المتبقية (غير المدفوعة)
+ */
+export async function getTotalRemainingRevenue(): Promise<number> {
+  const result = await executeQuery<{ TOTAL_REMAINING: number }>(
+    `SELECT SUM(TOTAL_AMOUNT - PAID_AMOUNT) AS TOTAL_REMAINING FROM TAH57.INVOICES`
+  );
+  return result.rows[0]?.TOTAL_REMAINING || 0;
+}
+
 // ==================== DOCTOR SCHEDULE MANAGEMENT FUNCTIONS ====================
 
 /**

@@ -1,8 +1,9 @@
 'use client';
 
-import { Calendar, Stethoscope, Users } from 'lucide-react';
+import { Calendar, Stethoscope, Users, DollarSign, TrendingUp, Clock } from 'lucide-react';
 
 import { useAppointments, useDoctors, usePatients } from '@/hooks/useApiData';
+import { useRevenue } from '@/hooks/useRevenue';
 
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import RoleDebugger from '@/components/RoleDebugger';
@@ -17,9 +18,22 @@ interface StatCardProps {
   icon: React.ReactNode;
   color: string;
   loading?: boolean;
+  isCurrency?: boolean;
 }
 
-function StatCard({ title, value, icon, color, loading }: StatCardProps) {
+function StatCard({ title, value, icon, color, loading, isCurrency = false }: StatCardProps) {
+  const formatValue = (val: number) => {
+    if (isCurrency) {
+      return new Intl.NumberFormat('ar-EG', {
+        style: 'currency',
+        currency: 'EGP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(val);
+    }
+    return val;
+  };
+
   return (
     <div className={`${color} rounded-lg shadow-lg p-6 text-white`}>
       <div className='flex items-center justify-between'>
@@ -29,7 +43,7 @@ function StatCard({ title, value, icon, color, loading }: StatCardProps) {
             {loading ? (
               <span className='animate-pulse bg-white/20 h-8 w-16 rounded inline-block'></span>
             ) : (
-              value
+              formatValue(value)
             )}
           </div>
         </div>
@@ -60,9 +74,14 @@ export default function Dashboard({ userId, role }: DashboardProps) {
     loading: appointmentsLoading,
     error: appointmentsError,
   } = useAppointments();
+  const {
+    data: revenueData,
+    loading: revenueLoading,
+    error: revenueError,
+  } = useRevenue();
 
-  const _loading = patientsLoading || doctorsLoading || appointmentsLoading;
-  const error = patientsError || doctorsError || appointmentsError;
+  const _loading = patientsLoading || doctorsLoading || appointmentsLoading || revenueLoading;
+  const error = patientsError || doctorsError || appointmentsError || revenueError;
 
   if (error) {
     return (
@@ -110,6 +129,59 @@ export default function Dashboard({ userId, role }: DashboardProps) {
             color='bg-gradient-to-r from-purple-500 to-purple-600'
             loading={appointmentsLoading}
           />
+        </div>
+
+        {/* Revenue Section */}
+        <div className='bg-white rounded-lg shadow p-6'>
+          <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+            إحصائيات الإيرادات
+          </h2>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+            <StatCard
+              title='إجمالي الإيرادات'
+              value={revenueData?.total || 0}
+              icon={<DollarSign size={32} />}
+              color='bg-gradient-to-r from-emerald-500 to-emerald-600'
+              loading={revenueLoading}
+              isCurrency={true}
+            />
+
+            <StatCard
+              title='الإيرادات الشهرية'
+              value={revenueData?.monthly || 0}
+              icon={<TrendingUp size={32} />}
+              color='bg-gradient-to-r from-orange-500 to-orange-600'
+              loading={revenueLoading}
+              isCurrency={true}
+            />
+
+            <StatCard
+              title='الإيرادات اليومية'
+              value={revenueData?.daily || 0}
+              icon={<Clock size={32} />}
+              color='bg-gradient-to-r from-cyan-500 to-cyan-600'
+              loading={revenueLoading}
+              isCurrency={true}
+            />
+
+            <StatCard
+              title='الإيرادات المدفوعة'
+              value={revenueData?.paid || 0}
+              icon={<DollarSign size={32} />}
+              color='bg-gradient-to-r from-green-500 to-green-600'
+              loading={revenueLoading}
+              isCurrency={true}
+            />
+
+            <StatCard
+              title='الإيرادات المتبقية'
+              value={revenueData?.remaining || 0}
+              icon={<DollarSign size={32} />}
+              color='bg-gradient-to-r from-red-500 to-red-600'
+              loading={revenueLoading}
+              isCurrency={true}
+            />
+          </div>
         </div>
 
         {/* Quick Actions Section */}
