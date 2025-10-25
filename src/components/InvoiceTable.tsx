@@ -351,7 +351,8 @@ export default function InvoiceTable({
                           size='sm'
                           className='p-2'
                           onClick={() => onEdit(invoice)}
-                          title='Edit Invoice'
+                          title={invoice.PAYMENT_STATUS === 'paid' ? 'Cannot edit paid invoice' : 'Edit Invoice'}
+                          disabled={invoice.PAYMENT_STATUS === 'paid'}
                         >
                           <Edit className='h-4 w-4' />
                         </Button>
@@ -581,6 +582,8 @@ export default function InvoiceTable({
                       onEdit(invoice);
                     }}
                     className='flex items-center'
+                    disabled={invoice.PAYMENT_STATUS === 'paid'}
+                    title={invoice.PAYMENT_STATUS === 'paid' ? 'Cannot edit paid invoice' : 'Edit Invoice'}
                   >
                     <Edit className='h-4 w-4 mr-1' />
                     Edit
