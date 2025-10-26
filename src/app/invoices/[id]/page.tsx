@@ -220,12 +220,12 @@ export default function InvoiceViewPage() {
             Back
           </Button>
           <div className='flex items-center'>
-            <Receipt className='h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mr-3' />
+            <Receipt className='h-6 w-6 sm:h-8 sm:w-8 text-orange-500 mr-3' />
             <div>
-              <h1 className='text-lg sm:text-2xl font-bold text-gray-900'>
+              <h1 className='text-lg sm:text-2xl font-bold'>
                 Invoice {invoice.INVOICE_NUMBER}
               </h1>
-              <p className='text-sm sm:text-base text-gray-600'>Invoice Details</p>
+              <p className='text-sm sm:text-base '>Invoice Details</p>
             </div>
           </div>
         </div>
@@ -254,7 +254,7 @@ export default function InvoiceViewPage() {
         {/* Invoice Details */}
         <div className='lg:col-span-2 space-y-4 sm:space-y-6'>
           {/* Basic Information */}
-          <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+          <div className='card rounded-lg shadow p-4 sm:p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Invoice Information
             </h2>
@@ -300,7 +300,7 @@ export default function InvoiceViewPage() {
           </div>
 
           {/* Patient Information */}
-          <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+          <div className='card rounded-lg shadow p-4 sm:p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Patient Information
             </h2>
@@ -335,7 +335,7 @@ export default function InvoiceViewPage() {
 
           {/* Appointment Information */}
           {invoice.APPOINTMENT_ID && (
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='card rounded-lg shadow p-4 sm:p-6'>
               <h2 className='text-lg font-semibold text-gray-900 mb-4'>
                 Appointment Information
               </h2>
@@ -372,7 +372,7 @@ export default function InvoiceViewPage() {
 
           {/* Notes */}
           {invoice.NOTES && (
-            <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+            <div className='card rounded-lg shadow p-4 sm:p-6'>
               <h2 className='text-lg font-semibold text-gray-900 mb-4'>
                 Notes
               </h2>
@@ -383,7 +383,7 @@ export default function InvoiceViewPage() {
 
         {/* Payment Information */}
         <div className='space-y-4 sm:space-y-6'>
-          <div className='bg-white rounded-lg shadow p-4 sm:p-6'>
+          <div className='card rounded-lg shadow p-4 sm:p-6'>
             <h2 className='text-lg font-semibold text-gray-900 mb-4'>
               Payment Information
             </h2>

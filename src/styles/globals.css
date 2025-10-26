@@ -1,30 +1,6 @@
-@import 'tailwindcss';
-@plugin '@tailwindcss/forms';
-
-@theme {
-  /* Font configuration */
-  --font-primary: 'Inter', system-ui, sans-serif;
-
-  /* Primary color palette - converted to modern oklch format */
-  --color-primary-50: oklch(0.97 0.024 213.79);
-  --color-primary-100: oklch(0.94 0.05 213.79);
-  --color-primary-200: oklch(0.86 0.1 213.79);
-  --color-primary-300: oklch(0.76 0.15 213.79);
-  --color-primary-400: oklch(0.7 0.19 213.79);
-  --color-primary-500: oklch(0.61 0.22 213.79);
-  --color-primary-600: oklch(0.52 0.2 213.79);
-  --color-primary-700: oklch(0.43 0.18 213.79);
-  --color-primary-800: oklch(0.37 0.15 213.79);
-  --color-primary-900: oklch(0.31 0.12 213.79);
-  --color-primary-950: oklch(0.18 0.07 213.79);
-
-  /* Dark color */
-  --color-dark: #222222;
-
-  /* Animation configuration */
-  --animate-flicker: flicker 3s linear infinite;
-  --animate-shimmer: shimmer 1.3s linear infinite;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Animation keyframes */
 @keyframes flicker {
@@ -122,6 +98,63 @@
   /* Class to adjust with sticky footer */
   .min-h-main {
     @apply min-h-[calc(100vh-56px)];
+  }
+
+  /* تحسينات للوضع المظلم */
+  .dark {
+    color-scheme: dark;
+  }
+
+  /* تحسين مظهر العناصر في الوضع المظلم */
+  .dark input,
+  .dark textarea,
+  .dark select {
+    @apply bg-gray-100 border-gray-300 text-gray-800;
+  }
+
+  .dark input:focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    @apply border-primary-500 ring-primary-500/20;
+  }
+
+  /* تحسين مظهر البطاقات */
+  .dark .card {
+    @apply bg-card-dark border-gray-300;
+  }
+
+  /* بطاقة متجاوبة مع الوضع المظلم */
+  .card {
+    @apply bg-card-light dark:bg-card-dark;
+  }
+
+  /* عنوان البطاقة */
+  .card-title {
+    @apply text-gray-900 dark:text-gray-800;
+  }
+
+  /* نص البطاقة */
+  .card-text {
+    @apply text-gray-600 dark:text-gray-100;
+  }
+
+  /* حدود البطاقة */
+  .card-border {
+    @apply border border-gray-200 dark:border-gray-600;
+  }
+
+  /* هوفر البطاقة */
+  .card-hover {
+    @apply hover:bg-gray-50 dark:hover:bg-gray-700;
+  }
+
+  /* تحسين مظهر الأزرار */
+  .dark .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white;
+  }
+
+  .dark .btn-secondary {
+    @apply bg-dark-700 hover:bg-dark-600 text-text-light border-dark-600;
   }
 }
 

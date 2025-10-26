@@ -66,7 +66,7 @@ export default async function ProfilePage({ params }: Props) {
   }
   
   return (
-    <main className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100 py-12 px-4">
+    <main className="min-h-screen  py-12 px-4">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-8 text-white">

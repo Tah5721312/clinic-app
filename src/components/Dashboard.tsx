@@ -97,10 +97,10 @@ export default function Dashboard({ userId, role }: DashboardProps) {
     <ErrorBoundary>
       <div className='space-y-6'>
         <div>
-          <h1 className='text-3xl font-bold text-gray-900'>
+          <h1 className='text-3xl font-bold '>
             Medical Clinic Dashboard
           </h1>
-          <p className='text-gray-600 mt-2'>
+          <p className=' mt-2'>
             Overview of your clinic's key statistics
           </p>
         </div>
@@ -132,8 +132,8 @@ export default function Dashboard({ userId, role }: DashboardProps) {
         </div>
 
         {/* Revenue Section */}
-        <div className='bg-white rounded-lg shadow p-6'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+        <div className='card rounded-lg shadow p-6'>
+          <h2 className='text-xl font-semibold card-title mb-4'>
             إحصائيات الإيرادات
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
@@ -185,19 +185,19 @@ export default function Dashboard({ userId, role }: DashboardProps) {
         </div>
 
         {/* Quick Actions Section */}
-        <div className='bg-white rounded-lg shadow p-6'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4'>
+        <div className='card rounded-lg shadow p-6'>
+          <h2 className='text-xl font-semibold card-title mb-4'>
             Quick Actions
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             <a
               href='/patients'
-              className='flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors'
+              className='flex items-center p-4 card-border rounded-lg card-hover transition-colors'
             >
               <Users className='text-blue-500 mr-3' size={24} />
               <div>
-                <h3 className='font-medium text-gray-900'>Manage Patients</h3>
-                <p className='text-sm text-gray-600'>
+                <h3 className='font-medium card-title'>Manage Patients</h3>
+                <p className='text-sm card-title'>
                   View and manage patient records
                 </p>
               </div>
@@ -205,12 +205,12 @@ export default function Dashboard({ userId, role }: DashboardProps) {
 
             <a
               href='/doctors'
-              className='flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors'
+              className='flex items-center p-4 card-border rounded-lg card-hover transition-colors'
             >
               <Stethoscope className='text-green-500 mr-3' size={24} />
               <div>
-                <h3 className='font-medium text-gray-900'>Manage Doctors</h3>
-                <p className='text-sm text-gray-600'>
+                <h3 className='font-medium card-title'>Manage Doctors</h3>
+                <p className='text-sm card-title'>
                   View and manage doctor profiles
                 </p>
               </div>
@@ -218,27 +218,26 @@ export default function Dashboard({ userId, role }: DashboardProps) {
 
             <a
               href='/appointments'
-              className='flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors'
+              className='flex items-center p-4 card-border rounded-lg card-hover transition-colors'
             >
               <Calendar className='text-purple-500 mr-3' size={24} />
               <div>
-                <h3 className='font-medium text-gray-900'>
+                <h3 className='font-medium card-title'>
                   Manage Appointments
                 </h3>
-                <p className='text-sm text-gray-600'>
+                <p className='text-sm card-title'>
                   Schedule and manage appointments
                 </p>
               </div>
             </a>
           </div>
         </div>
+
+        <UserManagement />
+
+        {/* معلومات تشخيصية للأدوار والصلاحيات */}
+        <RoleDebugger userId={userId} role={role} />
       </div>
-
-          <UserManagement />
-
-           {/* معلومات تشخيصية للأدوار والصلاحيات */}
-           <RoleDebugger userId={userId} role={role} />
-
     </ErrorBoundary>
   );
 }

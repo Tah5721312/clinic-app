@@ -89,8 +89,8 @@ export default function PatientsPage() {
         {/* Header */}
           <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900'>المرضى</h1>
-            <p className='text-gray-600 mt-1'>
+            <h1 className='text-3xl font-bold '>المرضى</h1>
+            <p className='mt-1 card-text'>
               {isPatient 
                 ? 'بياناتي الشخصية - عرض معلوماتي الطبية' 
                 : isDoctor 
@@ -99,12 +99,12 @@ export default function PatientsPage() {
               }
             </p>
             {isPatient && (
-              <p className='text-sm text-blue-600 mt-1'>
+              <p className='text-sm card-text mt-1'>
                 أنت تشاهد بياناتك الشخصية فقط
               </p>
             )}
             {/* Debug Info */}
-            <div className='hidden sm:block text-xs text-gray-500 mt-2'>
+            <div className='hidden sm:block text-xs card-text mt-2'>
               Specialties: {specialties?.length || 0} | Loading: {specialtiesLoading ? 'Yes' : 'No'} | Error: {specialtiesError ? 'Yes' : 'No'}
               {isDoctor && ` | Doctor ID: ${currentUserId}`}
               {isPatient && ` | Patient ID: ${currentUserId}`}

@@ -310,7 +310,7 @@ export default function InvoiceForm({
 
   return (
     <div className='max-w-2xl mx-auto'>
-      <div className='bg-white rounded-lg shadow-lg p-6'>
+      <div className='card rounded-lg shadow-lg p-6'>
         <div className='flex items-center mb-6'>
           <Receipt className='w-6 h-6 text-blue-600 mr-2' />
           <div>
@@ -402,10 +402,10 @@ export default function InvoiceForm({
                 <div className="flex items-center">
                   {selectedAppointment ? (
                     <>
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getAvatarColor(selectedAppointment.DOCTOR_NAME || 'Doctor')} shadow-sm mr-3`}>
+                      <div className={`card-title w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getAvatarColor(selectedAppointment.DOCTOR_NAME || 'Doctor')} shadow-sm mr-3`}>
                         {getInitials(selectedAppointment.DOCTOR_NAME || 'Doctor')}
                       </div>
-                      <span>
+                      <span className={"card-title"}>
                         {selectedAppointment.DOCTOR_NAME} - {new Date(selectedAppointment.SCHEDULE).toLocaleDateString()}
                       </span>
                     </>
@@ -415,7 +415,7 @@ export default function InvoiceForm({
                     </span>
                   )}
                 </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${isAppointmentDropdownOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`card-title w-4 h-4 transition-transform ${isAppointmentDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Options */}

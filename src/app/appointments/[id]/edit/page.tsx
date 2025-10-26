@@ -146,7 +146,7 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
 
   if (!appointment) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen card flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-md p-6 max-w-md w-full text-center">
           <div className="text-red-500 mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -167,7 +167,7 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8" dir="rtl">
+    <div className=" card py-8" dir="rtl">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8 bg-white rounded-xl shadow-sm p-6">

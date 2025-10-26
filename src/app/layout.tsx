@@ -100,7 +100,7 @@ export default async function RootLayout({
   return (
     <html>
       {/* <body>{children}</body> */}
-      <body>
+      <body className="bg-white dark:bg-dark-900 text-text-dark dark:text-text-light transition-colors duration-200">
         <Providers>
           <AbilityProvider rules={abilityRules}>
             <Navigation />

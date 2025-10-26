@@ -110,8 +110,8 @@ export default function EditInvoicePage() {
           Back
         </Button>
         <div>
-          <h1 className='text-2xl font-bold text-gray-900'>Edit Invoice</h1>
-          <p className='text-gray-600'>Update invoice details</p>
+          <h1 className='text-2xl font-bold '>Edit Invoice</h1>
+          <p className=''>Update invoice details</p>
         </div>
       </div>
 

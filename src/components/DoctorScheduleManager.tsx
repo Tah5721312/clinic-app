@@ -239,10 +239,10 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold">إدارة الجدول الزمني - {doctorName}</h3>
+      <div className="flex justify-between items-center ">
+        <h3 className="card-title text-xl font-bold">إدارة الجدول الزمني - {doctorName}</h3>
         <div className="flex gap-2">
           <button
             onClick={() => {
@@ -389,7 +389,7 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
           
           return (
             <div key={day.value} className="bg-white border border-gray-200 rounded-lg p-4">
-              <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <h4 className="card-title text-lg font-semibold mb-3 flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
                 {day.label}
               </h4>
@@ -408,8 +408,8 @@ export default function DoctorScheduleManager({ doctorId, doctorName, canEdit = 
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-gray-500" />
+                        <div className="card-title flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
                           <span className="font-medium">
                             {schedule.START_TIME} - {schedule.END_TIME}
                           </span>

@@ -354,8 +354,8 @@ export default function EnhancedAppointmentForm({
   const canGoPrevDay = (incrementDateByDays(currentDateStr, -1) >= today);
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">حجز موعد جديد</h2>
+    <div className="max-w-2xl mx-auto p-6 card rounded-lg shadow-md">
+      <h2 className="card-title text-2xl font-bold mb-6 text-center">حجز موعد جديد</h2>
 
       {error && (
         <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -422,7 +422,7 @@ export default function EnhancedAppointmentForm({
               onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500  flex items-center justify-between"
             >
-              <div className="flex items-center">
+              <div className="card-title  flex items-center">
                 {selectedDoctor ? (
                   <>
                     {/* Doctor Avatar */}
@@ -458,7 +458,7 @@ export default function EnhancedAppointmentForm({
                   >
                     <div className="flex items-center">
                       {/* Doctor Avatar */}
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getAvatarColor(doctor.NAME)} shadow-sm ml-3`}>
+                      <div className={` w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getAvatarColor(doctor.NAME)} shadow-sm ml-3`}>
                         {doctor.IMAGE ? (
                           <img 
                             src={doctor.IMAGE} 
@@ -470,7 +470,7 @@ export default function EnhancedAppointmentForm({
                         )}
                       </div>
                       <div className="text-right">
-                        <div className="font-medium">{doctor.NAME}</div>
+                        <div className="font-medium card-title ">{doctor.NAME}</div>
                         <div className="text-sm text-gray-500">{doctor.SPECIALTY}</div>
                       </div>
                     </div>

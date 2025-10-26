@@ -337,10 +337,10 @@ export default function InvoicesPage() {
       {/* Header */}
       <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
         <div className='flex items-center'>
-          <Receipt className='h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mr-2 sm:mr-3' />
+          <Receipt className='h-6 w-6 sm:h-8 sm:w-8 text-orange-500 mr-2 sm:mr-3' />
           <div>
-            <h1 className='text-xl sm:text-2xl font-bold text-gray-900'>Invoices</h1>
-            <p className='text-sm sm:text-base text-gray-600'>
+            <h1 className='text-xl sm:text-2xl font-bold '>Invoices</h1>
+            <p className='text-sm sm:text-base '>
               Manage patient invoices and payments
             </p>
           </div>
@@ -371,7 +371,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* Filters */}
-      <div className='bg-white p-3 sm:p-4 rounded-lg shadow'>
+      <div className='card p-3 sm:p-4 rounded-lg shadow'>
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4'>
           {/* Search */}
           <div>
@@ -418,7 +418,7 @@ export default function InvoicesPage() {
               <button
                 type='button'
                 onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between'
+                className='card-title w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between'
               >
                 <div className='flex items-center'>
                   {selectedDoctor && doctors ? (
@@ -458,9 +458,9 @@ export default function InvoicesPage() {
                     className='w-full px-3 py-2 text-left hover:bg-gray-100 flex items-center'
                   >
                     <div className='w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center mr-2'>
-                      <span className='text-xs'>All</span>
+                      <span className='text-xs card-title'>All</span>
                     </div>
-                    <span>All Doctors</span>
+                    <span className='font-medium card-title '>All Doctors</span>
                   </button>
                   {doctors?.map((doctor) => (
                     <button
@@ -481,7 +481,7 @@ export default function InvoicesPage() {
                         )}
                       </div>
                       <div>
-                        <div className='font-medium'>{doctor.NAME}</div>
+                        <div className='font-medium card-title '>{doctor.NAME}</div>
                         <div className='text-sm text-gray-500'>{doctor.SPECIALTY}</div>
                       </div>
                     </button>
@@ -542,7 +542,7 @@ export default function InvoicesPage() {
                 <ChevronLeft className='w-4 h-4 mr-1' />
               </button>
 
-              <span className='text-sm text-gray-600 text-center flex-1'>
+              <span className='text-sm card-title text-center flex-1'>
                 {currentDateLabel}
               </span>
 

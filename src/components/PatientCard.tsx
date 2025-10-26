@@ -49,7 +49,7 @@ export default function PatientCard({ patient }: PatientCardProps) {
   };
 
   return (
-    <div className='bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100'>
+    <div className='card rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-100'>
       <div className='p-6'>
         {/* Header with avatar and basic info */}
         <div className='flex items-start gap-4 mb-5'>

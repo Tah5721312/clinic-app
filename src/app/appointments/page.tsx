@@ -148,8 +148,8 @@ export default function AppointmentsPage() {
         {/* Header */}
         <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
           <div>
-            <h1 className='text-3xl font-bold text-gray-900'>المواعيد</h1>
-            <p className='text-gray-600 mt-1'>
+            <h1 className='text-3xl font-bold '>المواعيد</h1>
+            <p className=' mt-1'>
               {isPatient 
                 ? 'مواعيدي - عرض مواعيدي الطبية' 
                 : isDoctor 
@@ -302,11 +302,11 @@ export default function AppointmentsPage() {
 
         {/* Appointments Table */}
         {filteredAppointments.length > 0 ? (
-          <div className='bg-white rounded-lg shadow overflow-hidden'>
+          <div className='card rounded-lg shadow overflow-hidden'>
             {/* Desktop Table */}
-            <div className='hidden lg:block overflow-x-auto'>
+            <div className=' hidden lg:block overflow-x-auto'>
               <table className='min-w-full divide-y divide-gray-200'>
-                <thead className='bg-gray-50'>
+                <thead className='card'>
                   <tr>
                     <th className='px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider'>
                       Appointment

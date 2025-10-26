@@ -373,7 +373,7 @@ export default function PatientDetailPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h2 className="text-2xl font-bold">تفاصيل المريض</h2>
-          <p className="text-gray-600">معلومات المريض الكاملة وتاريخ المواعيد</p>
+          <p className="">معلومات المريض الكاملة وتاريخ المواعيد</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ButtonLink href={`/patients/${patientId}/edit`} variant="primary">
@@ -390,14 +390,14 @@ export default function PatientDetailPage() {
           </ButtonLink>
           </Can>
 
-          <ButtonLink href="/patients" variant="outline">
+          <ButtonLink  href="/patients" variant="outline">
             رجوع
           </ButtonLink>
         </div>
       </div>
 
       {/* Patient Info Card */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      <div className="card rounded-lg shadow-md overflow-hidden mb-6">
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-shrink-0">
@@ -406,7 +406,7 @@ export default function PatientDetailPage() {
               </div>
             </div>
             <div className="flex-grow">
-              <h3 className="text-2xl font-bold mb-2">{patient.NAME}</h3>
+              <h3 className="card-title text-2xl font-bold mb-2">{patient.NAME}</h3>
               <p className="text-blue-600 font-medium text-lg mb-4">
                 معرف المريض: {patient.PATIENT_ID}
               </p>
@@ -468,13 +468,13 @@ export default function PatientDetailPage() {
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="flex space-x-8" role="tablist">
+        <nav className="flex gap-4" role="tablist">
           <button
             onClick={() => setActiveTab('details')}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'details'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              ? 'border-orange-500 text-orange-400'
+              : 'border-transparent card-text'
+            }`}
             role="tab"
             aria-selected={activeTab === 'details'}
           >
@@ -483,9 +483,9 @@ export default function PatientDetailPage() {
           <button
             onClick={() => setActiveTab('appointments')}
             className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'appointments'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              ? 'border-orange-500 text-orange-400'
+              : 'border-transparent card-text'
+            }`}
             role="tab"
             aria-selected={activeTab === 'appointments'}
           >
@@ -496,12 +496,12 @@ export default function PatientDetailPage() {
 
       {/* Details Tab */}
       {activeTab === 'details' && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4">معلومات مفصلة</h3>
+        <div className="card rounded-lg shadow-md p-6">
+          <h3 className="card-title text-xl font-bold mb-4">معلومات مفصلة</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-lg font-medium mb-3">معلومات الاتصال</h4>
+              <h4 className="card-title text-lg font-medium mb-3">معلومات الاتصال</h4>
               <div className="space-y-2">
                 {patient.EMAIL && (
                   <p className="text-gray-600 flex items-center">
@@ -537,7 +537,7 @@ export default function PatientDetailPage() {
             </div>
 
             <div>
-              <h4 className="text-lg font-medium mb-3">المعلومات الشخصية</h4>
+              <h4 className="card-title text-lg font-medium mb-3">المعلومات الشخصية</h4>
               <div className="space-y-2">
                 {patient.DATEOFBIRTH && (
                   <p className="text-gray-600 flex items-center">
@@ -573,7 +573,7 @@ export default function PatientDetailPage() {
           {/* Insurance Information */}
           {(patient.INSURANCEPROVIDER || patient.INSURANCEPOLICYNUMBER) && (
             <div className="mt-6">
-              <h4 className="text-lg font-medium mb-2">معلومات التأمين</h4>
+              <h4 className="card-title text-lg font-medium mb-2">معلومات التأمين</h4>
               <div className="bg-blue-50 p-3 rounded">
                 {patient.INSURANCEPROVIDER && (
                   <p className="text-gray-700 mb-1">
@@ -591,7 +591,7 @@ export default function PatientDetailPage() {
 
           {patient.ADDRESS && (
             <div className="mt-6">
-              <h4 className="text-lg font-medium mb-2">العنوان</h4>
+              <h4 className="card-title text-lg font-medium mb-2">العنوان</h4>
               <p className="text-gray-700 bg-gray-50 p-3 rounded">{patient.ADDRESS}</p>
             </div>
           )}
@@ -600,14 +600,14 @@ export default function PatientDetailPage() {
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
             {patient.PASTMEDICALHISTORY && (
               <div>
-                <h4 className="text-lg font-medium mb-2">التاريخ الطبي</h4>
+                <h4 className="card-title text-lg font-medium mb-2">التاريخ الطبي</h4>
                 <p className="text-gray-700 bg-gray-50 p-3 rounded whitespace-pre-wrap">{patient.PASTMEDICALHISTORY}</p>
               </div>
             )}
 
             {patient.FAMILYMEDICALHISTORY && (
               <div>
-                <h4 className="text-lg font-medium mb-2">التاريخ الطبي العائلي</h4>
+                <h4 className="card-title text-lg font-medium mb-2">التاريخ الطبي العائلي</h4>
                 <p className="text-gray-700 bg-gray-50 p-3 rounded whitespace-pre-wrap">{patient.FAMILYMEDICALHISTORY}</p>
               </div>
             )}
@@ -631,10 +631,10 @@ export default function PatientDetailPage() {
 
       {/* Appointments Tab */}
       {activeTab === 'appointments' && (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="card rounded-lg shadow-md overflow-hidden">
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">
+              <h3 className="card-title text-xl font-bold">
                 مواعيد المريض
                 <span className="text-sm text-gray-500 mr-2">({appointments.length} مواعيد)</span>
               </h3>
@@ -764,6 +764,8 @@ export default function PatientDetailPage() {
           </div>
         </div>
       )}
+
+      
     </div>
   );
 }

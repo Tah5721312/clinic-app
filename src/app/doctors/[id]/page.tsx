@@ -478,7 +478,7 @@ export default function DoctorDetailPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h2 className="text-2xl font-bold">تفاصيل الطبيب</h2>
-          <p className="text-gray-600">معلومات كاملة عن الطبيب وجدول المواعيد</p>
+          <p className="">معلومات كاملة عن الطبيب وجدول المواعيد</p>
         </div>
         <div className="flex gap-2">
 
@@ -511,7 +511,7 @@ export default function DoctorDetailPage() {
       </div>
 
       {/* معلومات الطبيب */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+      <div className="card rounded-lg shadow-md overflow-hidden mb-6">
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Doctor Image - Clickable */}
@@ -559,7 +559,7 @@ export default function DoctorDetailPage() {
             </div>
             
             <div className="flex-grow">
-              <h3 className="text-2xl font-bold mb-2">{doctor.NAME}</h3>
+              <h3 className="card-title text-2xl font-bold mb-2">{doctor.NAME}</h3>
               <p className="text-blue-600 font-medium text-lg mb-4">{doctor.SPECIALTY}</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -618,8 +618,8 @@ export default function DoctorDetailPage() {
               
               {doctor.BIO && (
                 <div className="mt-4">
-                  <p className="font-medium mb-2">السيرة الذاتية:</p>
-                  <p className="text-gray-700">{doctor.BIO}</p>
+                  <p className="card-title font-medium mb-2">السيرة الذاتية:</p>
+                  <p className="card-title">{doctor.BIO}</p>
                 </div>
               )}
             </div>
@@ -629,52 +629,48 @@ export default function DoctorDetailPage() {
 
       {/* التبويبات */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="flex space-x-8 space-x-reverse">
+        <nav className="flex gap-6">
           <button
             onClick={() => setActiveTab('details')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'details'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-orange-500 text-orange-400'
+              : 'border-transparent card-text'
             }`}
           >
             التفاصيل
           </button>
-    
           {canViewSchedule() && (
-          
           <button
             onClick={() => setActiveTab('appointments')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'appointments'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-orange-500 text-orange-400'
+                : 'border-transparent card-text'
             }`}
           >
             المواعيد ({appointments.length})
           </button>
           )}
-         
           {canViewSchedule() && (
             <button
               onClick={() => setActiveTab('schedule')}
               className={`py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === 'schedule'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-orange-500 text-orange-400'
+                  : 'border-transparent card-text'
               }`}
             >
               الجدول الزمني
             </button>
           )}
-          
         </nav>
       </div>
 
       {/* محتوى التبويبات */}
       {activeTab === 'details' && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4">معلومات الاتصال</h3>
+        <div className="card rounded-lg shadow-md p-6">
+          <h3 className="card-title text-xl font-bold mb-4">معلومات الاتصال</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-gray-600">
@@ -728,7 +724,7 @@ export default function DoctorDetailPage() {
           
           {doctor.BIO && (
             <div className="mt-6">
-              <h4 className="text-lg font-medium mb-2">السيرة الذاتية</h4>
+              <h4 className="card-title text-lg font-medium mb-2">السيرة الذاتية</h4>
               <p className="text-gray-700">{doctor.BIO}</p>
             </div>
           )}
@@ -736,10 +732,10 @@ export default function DoctorDetailPage() {
       )}
 
       {activeTab === 'appointments' && (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="card rounded-lg shadow-md overflow-hidden">
           <div className="p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">
+              <h3 className="card-title text-xl font-bold">
                 مواعيد الطبيب 
                 <span className="text-sm text-gray-500 mr-2">({appointments.length} مواعيد)</span>
               </h3>
@@ -913,13 +909,17 @@ export default function DoctorDetailPage() {
                             {getPaymentStatusText(appointment.PAYMENT_STATUS || 'unpaid')}
                           </span>
                         </div>
-                        {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
+                        {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 ? (
                           <div className="flex items-center gap-2 mt-2">
                             <DollarSign className="w-4 h-4 text-green-600" />
                             <span className="text-sm text-gray-600">المبلغ:</span>
                             <span className="text-sm font-semibold text-green-600">
                               {appointment.PAYMENT_AMOUNT} جنيه مصري
                             </span>
+                          </div>
+                        ) : (
+                          <div className="mt-2">
+                            <span className="text-sm text-gray-500">لا يوجد مبلغ</span>
                           </div>
                         )}
                       </div>
@@ -962,29 +962,29 @@ export default function DoctorDetailPage() {
                 </div>
 
                 {/* Desktop table */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                <div className="hidden md:block w-full">
+                  <table className="w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider">
                           المريض
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider">
                           التاريخ والوقت
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider">
                           نوع الموعد
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider">
                           حالة الدفع
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider">
                           السبب
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider">
                           الحالة
                         </th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-6 py-3  text-xs font-medium text-gray-500 uppercase tracking-wider">
                           الإجراءات
                         </th>
                       </tr>
@@ -992,17 +992,17 @@ export default function DoctorDetailPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {appointments.map((appointment) => (
                         <tr key={appointment.APPOINTMENT_ID} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-4">
                             <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 text-gray-500" />
-                              <div className="text-sm font-medium text-gray-900">
+                              <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                              <div className="text-sm font-medium text-gray-900 break-words">
                                 {appointment.PATIENT_NAME}
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-4">
                             <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-gray-500" />
+                              <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
                               <div>
                                 <div className="text-sm text-gray-900">
                                   {new Date(appointment.SCHEDULE).toLocaleDateString('ar-SA')}
@@ -1013,36 +1013,35 @@ export default function DoctorDetailPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-4">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getAppointmentTypeColor(appointment.APPOINTMENT_TYPE || 'consultation')}`}>
                               {getAppointmentTypeText(appointment.APPOINTMENT_TYPE || 'consultation')}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="w-4 h-4 text-gray-500" />
-                              <div>
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(appointment.PAYMENT_STATUS || 'unpaid')}`}>
-                                  {getPaymentStatusText(appointment.PAYMENT_STATUS || 'unpaid')}
-                                </span>
-                                {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 && (
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <DollarSign className="w-3 h-3 text-green-600" />
-                                    <span className="text-xs text-green-600 font-semibold">
-                                      {appointment.PAYMENT_AMOUNT} جنيه
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
+                          <td className="px-3 py-4">
+                            <div className="flex flex-col gap-1">
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentStatusColor(appointment.PAYMENT_STATUS || 'unpaid')}`}>
+                                {getPaymentStatusText(appointment.PAYMENT_STATUS || 'unpaid')}
+                              </span>
+                              {appointment.PAYMENT_AMOUNT && appointment.PAYMENT_AMOUNT > 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <DollarSign className="w-3 h-3 text-green-600" />
+                                  <span className="text-xs text-green-600 font-semibold">
+                                    {appointment.PAYMENT_AMOUNT} جنيه
+                                  </span>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-gray-500">لا يوجد</p>
+                              )}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-3 py-4 text-sm text-gray-500">
                             <div className="flex items-center gap-1">
-                              <Stethoscope className="w-4 h-4 text-gray-500" />
-                              {appointment.REASON}
+                              <Stethoscope className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                              <span className="break-words">{appointment.REASON}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 py-4">
                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                               ${appointment.STATUS === 'scheduled' ? 'bg-green-100 text-green-800' : ''}
                               ${appointment.STATUS === 'pending' ? 'bg-yellow-100 text-yellow-800' : ''}
@@ -1053,7 +1052,7 @@ export default function DoctorDetailPage() {
                               {appointment.STATUS === 'cancelled' && 'ملغي'}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <td className="px-6 py-4 text-sm font-medium">
                             <div className="flex gap-2">
                               <Link
                                 href={`/appointments/${appointment.APPOINTMENT_ID}/edit`}
@@ -1107,7 +1106,7 @@ export default function DoctorDetailPage() {
       )}
 
       {activeTab === 'schedule' && canViewSchedule() && (
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="card rounded-lg shadow-md p-6">
           <DoctorScheduleManager 
             doctorId={Number(doctorId)} 
             doctorName={doctor.NAME}

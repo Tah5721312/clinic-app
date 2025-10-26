@@ -8,7 +8,7 @@ const nextConfig = {
   
   // Enable network access
   experimental: {
-serverExternalPackages: ['...']
+    // serverExternalPackages is not a valid Next.js experimental option
   },
 
   // Uncoment to add domain whitelist

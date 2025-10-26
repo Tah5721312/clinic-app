@@ -70,8 +70,8 @@ export default function DoctorsPage() {
           {/* Header */}
           <div className='flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4'>
             <div>
-              <h1 className='text-3xl font-bold text-gray-900'>Doctors</h1>
-              <p className='text-gray-600 mt-1'>
+              <h1 className='text-3xl font-bold'>Doctors</h1>
+              <p className=' mt-1'>
                 Manage and view doctor profiles
               </p>
             </div>
