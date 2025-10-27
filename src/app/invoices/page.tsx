@@ -34,6 +34,7 @@ export default function InvoicesPage() {
   const [selectedDoctor, setSelectedDoctor] = useState<number | null>(null);
   const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
+  const [identificationNumber, setIdentificationNumber] = useState('');
 
   // Fetch specialties and doctors
   const { data: specialties } = useSpecialties();
@@ -56,6 +57,43 @@ export default function InvoicesPage() {
         queryParams.append('date_to', filterParams.date_to);
       if (filterParams?.doctor_id)
         queryParams.append('doctor_id', filterParams.doctor_id.toString());
+
+      const response = await fetch(
+        `${DOMAIN}/api/invoices?${queryParams.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch invoices');
+      }
+
+      const data = await response.json();
+      setInvoices(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search by identification number
+  const searchByIdentificationNumber = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const queryParams = new URLSearchParams();
+      if (identificationNumber && identificationNumber.trim())
+        queryParams.append('identificationNumber', identificationNumber.trim());
+      
+      // Add other filters
+      if (filters.payment_status)
+        queryParams.append('payment_status', filters.payment_status);
+      if (filters.date_from)
+        queryParams.append('date_from', filters.date_from);
+      if (filters.date_to)
+        queryParams.append('date_to', filters.date_to);
+      if (filters.doctor_id)
+        queryParams.append('doctor_id', filters.doctor_id.toString());
 
       const response = await fetch(
         `${DOMAIN}/api/invoices?${queryParams.toString()}`
@@ -244,6 +282,8 @@ export default function InvoicesPage() {
     setSelectedSpecialty('');
     setSelectedDoctor(null);
     setSelectedDate('');
+    setIdentificationNumber('');
+    fetchInvoices({});
   };
 
   // Date navigation helper functions
@@ -372,7 +412,7 @@ export default function InvoicesPage() {
 
       {/* Filters */}
       <div className='card p-3 sm:p-4 rounded-lg shadow'>
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4'>
           {/* Search */}
           <div>
             <label className='block text-sm font-medium text-gray-700 mb-1'>
@@ -387,6 +427,37 @@ export default function InvoicesPage() {
                 placeholder='Search invoices...'
                 className='pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
               />
+            </div>
+          </div>
+
+          {/* Identification Number */}
+          <div>
+            <label className='block text-sm font-medium text-gray-700 mb-1'>
+              الرقم القومى
+            </label>
+            <div className='flex gap-2'>
+              <div className='relative flex-1'>
+                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
+                <input
+                  type='text'
+                  value={identificationNumber}
+                  onChange={(e) => setIdentificationNumber(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      searchByIdentificationNumber();
+                    }
+                  }}
+                  placeholder='الرقم القومى'
+                  className='pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                />
+              </div>
+              <button
+                onClick={searchByIdentificationNumber}
+                disabled={loading}
+                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center'
+              >
+                <Search className='h-4 w-4' />
+              </button>
             </div>
           </div>
 

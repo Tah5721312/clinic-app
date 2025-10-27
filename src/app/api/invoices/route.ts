@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('date_from');
     const dateTo = searchParams.get('date_to');
     const doctorId = searchParams.get('doctor_id');
+    const identificationNumber = searchParams.get('identificationNumber');
     const monthlyRevenue = searchParams.get('monthly_revenue') === 'true';
 
     // Get current user session
@@ -47,6 +48,7 @@ export async function GET(request: NextRequest) {
       date_from: dateFrom || undefined,
       date_to: dateTo || undefined,
       doctor_id: doctorId ? Number(doctorId) : undefined,
+      identificationNumber: identificationNumber || undefined,
     };
 
     const invoices = await getAllInvoices(filters);

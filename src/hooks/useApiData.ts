@@ -95,11 +95,13 @@ export function useAppointmentsWithFilters(params?: {
   doctorId?: number | string;
   specialty?: string;
   identificationNumber?: string;
+  invoiceNumber?: string;
 }) {
   const qs = new URLSearchParams();
   if (params?.doctorId) qs.set('doctorId', String(params.doctorId));
   if (params?.specialty && params.specialty.trim()) qs.set('specialty', params.specialty);
   if (params?.identificationNumber && params.identificationNumber.trim()) qs.set('identificationNumber', params.identificationNumber);
+  if (params?.invoiceNumber && params.invoiceNumber.trim()) qs.set('invoiceNumber', params.invoiceNumber);
   const endpoint = qs.toString() ? `${DOMAIN}/api/appointments?${qs.toString()}` : `${DOMAIN}/api/appointments`;
   return useApiData<Appointment[]>(endpoint);
 }

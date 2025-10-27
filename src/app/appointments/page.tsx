@@ -21,10 +21,12 @@ export default function AppointmentsPage() {
   const initialSpecialty = searchParams.get('specialty') || '';
   const initialDoctorId = searchParams.get('doctorId') || '';
   const initialIdentificationNumber = searchParams.get('identificationNumber') || '';
+  const initialInvoiceNumber = searchParams.get('invoiceNumber') || '';
 
   const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty);
   const [selectedDoctorId, setSelectedDoctorId] = useState(initialDoctorId);
   const [identificationNumber, setIdentificationNumber] = useState(initialIdentificationNumber);
+  const [invoiceNumber, setInvoiceNumber] = useState(initialInvoiceNumber);
   const [filter, setFilter] = useState<
     'all' | 'pending' | 'scheduled' | 'cancelled'
   >('all');
@@ -37,6 +39,7 @@ export default function AppointmentsPage() {
     doctorId: initialDoctorId || undefined,
     specialty: initialSpecialty || undefined,
     identificationNumber: initialIdentificationNumber || undefined,
+    invoiceNumber: initialInvoiceNumber || undefined,
   });
   const { data: doctors } = useDoctors(selectedSpecialty || undefined);
   const { data: specialties } = useSpecialties();
@@ -45,15 +48,26 @@ export default function AppointmentsPage() {
     const s = searchParams.get('specialty') || '';
     const d = searchParams.get('doctorId') || '';
     const i = searchParams.get('identificationNumber') || '';
+    const inv = searchParams.get('invoiceNumber') || '';
     setSelectedSpecialty(s);
     setSelectedDoctorId(d);
     setIdentificationNumber(i);
+    setInvoiceNumber(inv);
   }, [searchParams]);
+
+  // Helper function to get display status
+  const getDisplayStatus = (appointment: Appointment) => {
+    // If payment is paid, status should be scheduled
+    if (appointment.PAYMENT_STATUS === 'paid') {
+      return 'scheduled';
+    }
+    return appointment.STATUS;
+  };
 
   const filteredAppointments =
     appointments?.filter((appointment: Appointment) => {
       if (filter === 'all') return true;
-      return appointment.STATUS === filter;
+      return getDisplayStatus(appointment) === filter;
     }) || [];
 
   const formatDateTime = (date: Date | string | null | undefined) => {
@@ -271,6 +285,21 @@ export default function AppointmentsPage() {
                 </div>
               )}
               {!isPatient && (
+                <div className='relative w-full sm:w-64'>
+                  <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
+                    <Receipt className='w-4 h-4' />
+                  </span>
+
+                  <input
+                    type='text'
+                    placeholder='رقم الفاتورة'
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  />
+                </div>
+              )}
+              {!isPatient && (
                 <button
                   onClick={() => {
                     const sp = new URLSearchParams(Array.from(searchParams.entries()));
@@ -278,6 +307,7 @@ export default function AppointmentsPage() {
                     // Don't set doctorId for doctors since they can only see their own appointments
                     if (!isDoctor && selectedDoctorId) sp.set('doctorId', selectedDoctorId); else sp.delete('doctorId');
                     if (identificationNumber && identificationNumber.trim()) sp.set('identificationNumber', identificationNumber.trim()); else sp.delete('identificationNumber');
+                    if (invoiceNumber && invoiceNumber.trim()) sp.set('invoiceNumber', invoiceNumber.trim()); else sp.delete('invoiceNumber');
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
                   }}
@@ -288,16 +318,18 @@ export default function AppointmentsPage() {
                   <span>بحث</span>
                 </button>
               )}
-              {!isPatient && (selectedSpecialty || (!isDoctor && selectedDoctorId) || identificationNumber) && (
+              {!isPatient && (selectedSpecialty || (!isDoctor && selectedDoctorId) || identificationNumber || invoiceNumber) && (
                 <button
                   onClick={() => {
                     setSelectedSpecialty('');
                     setSelectedDoctorId('');
                     setIdentificationNumber('');
+                    setInvoiceNumber('');
                     const sp = new URLSearchParams(Array.from(searchParams.entries()));
                     sp.delete('specialty');
                     sp.delete('doctorId');
                     sp.delete('identificationNumber');
+                    sp.delete('invoiceNumber');
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
                   }}
@@ -417,8 +449,8 @@ export default function AppointmentsPage() {
                         )}
                       </td> */}
                       <td className='px-6 py-4 whitespace-nowrap'>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.STATUS)}`}>
-                          {appointment.STATUS}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(getDisplayStatus(appointment))}`}>
+                          {getDisplayStatus(appointment)}
                         </span>
                       </td>
                       <td className='px-6 py-4 whitespace-nowrap'>
@@ -514,8 +546,8 @@ export default function AppointmentsPage() {
                       </span>
                     </div>
                     <div className='flex flex-col gap-1'>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(appointment.STATUS)}`}>
-                        {appointment.STATUS}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(getDisplayStatus(appointment))}`}>
+                        {getDisplayStatus(appointment)}
                       </span>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAppointmentTypeColor(appointment.APPOINTMENT_TYPE || 'consultation')}`}>
                         {appointment.APPOINTMENT_TYPE || 'consultation'}

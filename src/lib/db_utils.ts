@@ -608,6 +608,7 @@ export async function getAllAppointments(filters?: {
   doctorId?: number;
   specialty?: string;
   identificationNumber?: string;
+  invoiceNumber?: string;
 }) {
   let query = `
     SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.reason, a.note, a.status, a.cancellationreason,
@@ -642,6 +643,11 @@ export async function getAllAppointments(filters?: {
   if (filters?.identificationNumber && filters.identificationNumber.trim()) {
     where.push('p.identificationnumber LIKE :identificationNumber');
     params.identificationNumber = `%${filters.identificationNumber}%`;
+  }
+
+  if (filters?.invoiceNumber && filters.invoiceNumber.trim()) {
+    where.push('i.invoice_number LIKE :invoiceNumber');
+    params.invoiceNumber = `%${filters.invoiceNumber}%`;
   }
 
   if (where.length > 0) {
@@ -1355,6 +1361,7 @@ export async function getAllInvoices(filters?: {
   date_from?: string; // YYYY-MM-DD
   date_to?: string;   // YYYY-MM-DD
   doctor_id?: number;
+  identificationNumber?: string;
 }): Promise<Invoice[]> {
   // Prefer the view for enriched data
   let query = `
@@ -1408,6 +1415,11 @@ export async function getAllInvoices(filters?: {
   if (filters?.doctor_id) {
     whereClauses.push('d.DOCTOR_ID = :doctor_id');
     params.doctor_id = filters.doctor_id;
+  }
+
+  if (filters?.identificationNumber && filters.identificationNumber.trim()) {
+    whereClauses.push('p.IDENTIFICATIONNUMBER LIKE :identificationNumber');
+    params.identificationNumber = `%${filters.identificationNumber}%`;
   }
 
   if (whereClauses.length > 0) {
