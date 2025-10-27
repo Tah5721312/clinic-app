@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     // ✅ Check if user exists
     const result = await connection.execute(
-      `SELECT ID FROM USERS WHERE EMAIL = :email`,
+      `SELECT USER_ID FROM USERS WHERE EMAIL = :email`,
       { email },
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );

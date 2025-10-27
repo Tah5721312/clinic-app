@@ -5,7 +5,7 @@ import ThreeDGallery from "@/components/ThreeDGallery";
 
 export default function Hero() {
   return (
-    <header className="bg-white">
+    <header className="">
       <div className="container mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 items-center my-10">
         
         {/* البلوك الأول: النص */}
@@ -13,7 +13,7 @@ export default function Hero() {
           className="flex flex-col items-center justify-center text-center lg:col-span-2 space-y-6 px-4 mt-15"
           dir="rtl"
         >
-          <h1 className="text-[20px] lg:text-[40px] font-bold leading-[45px] lg:leading-[60px] w-full max-w-full whitespace-nowrap text-gray-800">
+          <h1 className="card-text text-[20px] lg:text-[40px] font-bold leading-[45px] lg:leading-[60px] w-full max-w-full whitespace-nowrap text-gray-800">
             منظومة ادارة العيادات 
           </h1>
           {/* <h2 className="text-[30px] lg:text-[48px] font-bold leading-[45px] lg:leading-[60px] w-full max-w-full break-words text-gray-800">

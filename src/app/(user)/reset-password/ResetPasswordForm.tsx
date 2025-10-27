@@ -35,8 +35,13 @@ const ResetPasswordForm = () => {
   return (
     <section className="grid text-center items-center min-h-[80vh]">
       <div>
-        <h3 className="text-3xl font-bold text-blue-gray-800 mb-4">Reset Password</h3>
-        <form onSubmit={handleSubmit} className="mx-auto max-w-[24rem] text-left space-y-4">
+        <h3 className="text-3xl font-bold text-blue-gray-800 mb-2">
+          Reset Password
+        </h3>
+        <p className="mb-8  font-normal text-[18px]">
+          Enter your email and new password
+        </p>
+        <form onSubmit={handleSubmit} className="card mx-auto max-w-[24rem] text-left p-6 rounded-lg shadow-md space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -70,6 +75,13 @@ const ResetPasswordForm = () => {
           >
             {loading ? "Updating..." : "Update Password"}
           </button>
+          
+          <p className="mt-4 text-gray-600 text-sm text-center">
+            Remember your password?{" "}
+            <a href="/login" className="font-medium text-gray-900 hover:text-blue-600">
+              Sign In
+            </a>
+          </p>
         </form>
       </div>
     </section>
