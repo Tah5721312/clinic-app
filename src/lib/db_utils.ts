@@ -617,6 +617,7 @@ export async function getAllAppointments(filters?: {
            a.payment_method as payment_method,
            p.name as patient_name, d.name as doctor_name, p.identificationnumber,
            NVL(d.consultation_fee, 0) as consultation_fee,
+           NVL(d.follow_up_fee, 0) as follow_up_fee,
            CASE WHEN i.invoice_id IS NOT NULL THEN 1 ELSE 0 END as has_invoice,
            i.invoice_id, i.invoice_number, i.payment_status as invoice_payment_status
     FROM TAH57.APPOINTMENTS a 
@@ -666,6 +667,7 @@ export async function getAllAppointments(filters?: {
     PAYMENT_METHOD: string | null;
     IDENTIFICATIONNUMBER: string;
     CONSULTATION_FEE: number;
+    FOLLOW_UP_FEE: number;
     HAS_INVOICE: number;
     INVOICE_ID: number | null;
     INVOICE_NUMBER: string | null;
@@ -693,6 +695,7 @@ export async function getPatientAppointments(patientId: number) {
     PAYMENT_AMOUNT: number;
     PAYMENT_METHOD: string | null;
     CONSULTATION_FEE: number;
+    FOLLOW_UP_FEE: number;
     HAS_INVOICE: number;
     INVOICE_ID: number | null;
     INVOICE_NUMBER: string | null;
@@ -706,6 +709,7 @@ export async function getPatientAppointments(patientId: number) {
            a.payment_method as payment_method,
            p.name as patient_name, d.name as doctor_name,
            NVL(d.consultation_fee, 0) as consultation_fee,
+           NVL(d.follow_up_fee, 0) as follow_up_fee,
            CASE WHEN i.invoice_id IS NOT NULL THEN 1 ELSE 0 END as has_invoice,
            i.invoice_id, i.invoice_number, i.payment_status as invoice_payment_status
     FROM TAH57.APPOINTMENTS a 
@@ -1039,25 +1043,34 @@ export async function updateAppointment(
   // Only auto-calculate if payment_status is not explicitly provided
   if (appointment.payment_amount !== undefined && appointment.payment_status === undefined) {
     try {
-      // Get the consultation_fee for this appointment
-      const feeResult = await executeQuery<{ CONSULTATION_FEE: number }>(
-        `SELECT d.CONSULTATION_FEE FROM TAH57.APPOINTMENTS a 
+      // Get the appointment type and the appropriate fee for this appointment
+      const feeResult = await executeQuery<{ 
+        APPOINTMENT_TYPE: string;
+        CONSULTATION_FEE: number;
+        FOLLOW_UP_FEE: number;
+      }>(
+        `SELECT a.APPOINTMENT_TYPE, d.CONSULTATION_FEE, d.FOLLOW_UP_FEE FROM TAH57.APPOINTMENTS a 
          JOIN TAH57.DOCTORS d ON a.DOCTOR_ID = d.DOCTOR_ID 
          WHERE a.APPOINTMENT_ID = :id`,
         { id }
       );
       
+      const appointmentType = feeResult.rows[0]?.APPOINTMENT_TYPE || 'consultation';
       const consultationFee = feeResult.rows[0]?.CONSULTATION_FEE || 0;
+      const followUpFee = feeResult.rows[0]?.FOLLOW_UP_FEE || 0;
+      
+      // Determine the correct fee based on appointment type
+      const expectedFee = appointmentType === 'follow_up' ? followUpFee : consultationFee;
       const paidAmount = appointment.payment_amount || 0;
       
       // Calculate payment status
-      const paymentStatus = calculatePaymentStatus(paidAmount, consultationFee);
+      const paymentStatus = calculatePaymentStatus(paidAmount, expectedFee);
       
       // Add payment_status to the update
       fields.push('payment_status = :payment_status');
       params.payment_status = paymentStatus;
       
-      console.log(`Auto-calculating payment status for appointment ${id}: paid=${paidAmount}, fee=${consultationFee}, status=${paymentStatus}`);
+      console.log(`Auto-calculating payment status for appointment ${id}: type=${appointmentType}, paid=${paidAmount}, fee=${expectedFee}, status=${paymentStatus}`);
     } catch (error) {
       console.error('Error calculating payment status for appointment:', error);
       // Don't throw error here to avoid breaking the appointment update
@@ -1074,6 +1087,99 @@ export async function updateAppointment(
     )} WHERE appointment_id = :id`,
     params
   );
+
+  // If appointment_type was updated, update the related invoice amount if not fully paid
+  if (appointment.appointment_type !== undefined) {
+    try {
+      // Find the invoice related to this appointment and check if it's fully paid
+      const invoiceResult = await executeQuery<{ 
+        INVOICE_ID: number;
+        PAID_AMOUNT: number;
+        PAYMENT_STATUS: string;
+        AMOUNT: number;
+      }>(
+        `SELECT INVOICE_ID, PAID_AMOUNT, PAYMENT_STATUS, AMOUNT 
+         FROM TAH57.INVOICES 
+         WHERE APPOINTMENT_ID = :appointmentId`,
+        { appointmentId: id }
+      );
+      
+      if (invoiceResult.rows.length > 0) {
+        const invoice = invoiceResult.rows[0];
+        
+        // Only update if the invoice is not fully paid
+        if (invoice.PAYMENT_STATUS !== 'paid' && invoice.PAID_AMOUNT < invoice.AMOUNT) {
+          console.log(`Invoice ${invoice.INVOICE_ID} is not fully paid. Updating amount based on new appointment type: ${appointment.appointment_type}`);
+          
+          // Get the new fee based on the updated appointment type
+          const feeResult = await executeQuery<{ 
+            DOCTOR_ID: number;
+            CONSULTATION_FEE: number;
+            FOLLOW_UP_FEE: number;
+          }>(
+            `SELECT a.DOCTOR_ID, d.CONSULTATION_FEE, d.FOLLOW_UP_FEE 
+             FROM TAH57.APPOINTMENTS a 
+             JOIN TAH57.DOCTORS d ON a.DOCTOR_ID = d.DOCTOR_ID 
+             WHERE a.APPOINTMENT_ID = :id`,
+            { id }
+          );
+          
+          if (feeResult.rows.length > 0) {
+            const consultationFee = feeResult.rows[0]?.CONSULTATION_FEE || 0;
+            const followUpFee = feeResult.rows[0]?.FOLLOW_UP_FEE || 0;
+            
+            // Determine the correct fee based on the new appointment type
+            const newAmount = appointment.appointment_type === 'follow_up' ? followUpFee : consultationFee;
+            
+            console.log(`Updating invoice amount from ${invoice.AMOUNT} to ${newAmount} based on appointment type: ${appointment.appointment_type}`);
+            
+            // Get current discount to calculate new total
+            const discountResult = await executeQuery<{ DISCOUNT: number }>(
+              `SELECT DISCOUNT FROM TAH57.INVOICES WHERE INVOICE_ID = :invoice_id`,
+              { invoice_id: invoice.INVOICE_ID }
+            );
+            
+            const currentDiscount = discountResult.rows[0]?.DISCOUNT || 0;
+            const newTotalAmount = Math.max(0, newAmount - currentDiscount);
+            
+            // Calculate new payment status based on paid amount vs new total
+            const paidAmount = invoice.PAID_AMOUNT || 0;
+            let newPaymentStatus = 'unpaid';
+            
+            if (paidAmount >= newTotalAmount && newTotalAmount > 0) {
+              newPaymentStatus = 'paid';
+            } else if (paidAmount > 0) {
+              newPaymentStatus = 'partial';
+            }
+            
+            console.log(`Recalculating payment status: paid=${paidAmount}, newTotal=${newTotalAmount}, status=${newPaymentStatus}`);
+            
+            // Update the invoice amount, total, and payment status
+            await executeQuery(
+              `UPDATE TAH57.INVOICES 
+               SET AMOUNT = :new_amount,
+                   TOTAL_AMOUNT = :new_total_amount,
+                   PAYMENT_STATUS = :payment_status
+               WHERE INVOICE_ID = :invoice_id`,
+              { 
+                invoice_id: invoice.INVOICE_ID,
+                new_amount: newAmount,
+                new_total_amount: newTotalAmount,
+                payment_status: newPaymentStatus
+              }
+            );
+            
+            console.log(`Successfully updated invoice ${invoice.INVOICE_ID}: amount=${newAmount}, total=${newTotalAmount}, status=${newPaymentStatus}`);
+          }
+        } else {
+          console.log(`Invoice ${invoice.INVOICE_ID} is already paid. Skipping amount update.`);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating invoice amount when appointment type changed:', error);
+      // Don't throw error here to avoid breaking the appointment update
+    }
+  }
 
   // If payment_amount was updated, also update the related invoice's payment status
   if (appointment.payment_amount !== undefined) {
@@ -1357,7 +1463,44 @@ export async function createInvoice(
   data: CreateInvoiceDto,
   createdBy?: number
 ): Promise<number> {
-  const total = Math.max(0, (data.total_amount ?? data.amount - (data.discount || 0)));
+  // If appointment_id is provided, fetch the appointment to get appointment_type and calculate the correct fee
+  let calculatedAmount = data.amount;
+  let appointmentType = '';
+  let doctorId = 0;
+  
+  if (data.appointment_id) {
+    try {
+      const appointmentResult = await executeQuery<{
+        APPOINTMENT_TYPE: string;
+        DOCTOR_ID: number;
+      }>(
+        `SELECT APPOINTMENT_TYPE, DOCTOR_ID FROM TAH57.APPOINTMENTS WHERE APPOINTMENT_ID = :appointment_id`,
+        { appointment_id: data.appointment_id }
+      );
+      
+      if (appointmentResult.rows.length > 0) {
+        appointmentType = appointmentResult.rows[0].APPOINTMENT_TYPE || 'consultation';
+        doctorId = appointmentResult.rows[0].DOCTOR_ID;
+        
+        // Fetch the correct fee based on appointment type
+        const feeColumn = appointmentType === 'follow_up' ? 'FOLLOW_UP_FEE' : 'CONSULTATION_FEE';
+        const doctorResult = await executeQuery<{ FEE: number }>(
+          `SELECT ${feeColumn} as FEE FROM TAH57.DOCTORS WHERE DOCTOR_ID = :doctor_id`,
+          { doctor_id: doctorId }
+        );
+        
+        if (doctorResult.rows.length > 0 && doctorResult.rows[0].FEE) {
+          calculatedAmount = doctorResult.rows[0].FEE;
+          console.log(`Automatically setting invoice amount to ${calculatedAmount} based on appointment type: ${appointmentType}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching appointment/doctor details for invoice:', error);
+      // Continue with provided amount if error occurs
+    }
+  }
+  
+  const total = Math.max(0, (data.total_amount ?? calculatedAmount - (data.discount || 0)));
   const paid = data.paid_amount ?? 0;
   const result = await executeReturningQuery(
     `
@@ -1374,7 +1517,7 @@ export async function createInvoice(
     {
       patient_id: data.patient_id,
       appointment_id: data.appointment_id || null,
-      amount: data.amount,
+      amount: calculatedAmount,
       discount: data.discount ?? 0,
       total_amount: total,
       paid_amount: paid,
@@ -1392,10 +1535,12 @@ export async function createInvoice(
   // If there's an appointment_id, update the appointment's payment information
   if (data.appointment_id) {
     try {
-      // Calculate payment status based on paid_amount and total_amount
+      let expectedFee = calculatedAmount; // Use the calculated amount based on appointment type
+      
+      // Calculate payment status based on paid_amount and expected fee
       let paymentStatus = 'unpaid';
       
-      if (paid >= total) {
+      if (paid >= expectedFee) {
         paymentStatus = 'paid';
       } else if (paid > 0) {
         paymentStatus = 'partial';

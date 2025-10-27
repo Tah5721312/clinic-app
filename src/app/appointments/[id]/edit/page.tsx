@@ -2,12 +2,14 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Appointment, Doctor, Patient } from '@/lib/types';
 import { DOMAIN } from '@/lib/constants';
 import { CreditCard, DollarSign } from 'lucide-react';
 
 export default function EditAppointmentPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
@@ -17,6 +19,8 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
   
   // Fix for Next.js 15 params
   const resolvedParams = use(params);
+
+  const isSuperAdmin = session?.user?.isAdmin || session?.user?.roleId === 211;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,7 +99,8 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
         cancellationReason: appointment.CANCELLATIONREASON || '',
         appointment_type: appointment.APPOINTMENT_TYPE || 'consultation',
         payment_status: appointment.PAYMENT_STATUS || 'unpaid',
-        payment_amount: appointment.PAYMENT_AMOUNT || 0
+        // payment_amount is disabled - it was paid at booking time and should not be changed
+        // payment_amount: appointment.PAYMENT_AMOUNT || 0
       };
       
       console.log('Sending update data:', updateData);
@@ -160,6 +165,29 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
           >
             العودة إلى قائمة المواعيد
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if appointment is paid and prevent editing (unless super admin)
+  if (appointment.PAYMENT_STATUS === 'paid' && !isSuperAdmin) {
+    return (
+      <div className="min-h-screen card flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-md p-6 max-w-md w-full text-center">
+          <div className="text-yellow-500 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-gray-800 mb-2">لا يمكن تعديل الموعد المدفوع</h2>
+          <p className="text-gray-600 mb-4">هذا الموعد تم دفع تكلفته بالكامل ولا يمكن تعديله.</p>
+          <button
+            onClick={() => router.push(`/appointments/${resolvedParams.id}`)}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-200"
+          >
+            العودة إلى تفاصيل الموعد
           </button>
         </div>
       </div>
@@ -332,6 +360,7 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
                     <DollarSign className="w-4 h-4 ml-1" />
                     مبلغ الدفع (جنيه مصري)
                   </div>
+                  <span className="text-xs text-gray-500 mt-1 block">(غير قابل للتعديل - يتم دفعه عند الحجز)</span>
                 </label>
                 <input
                   type="number"
@@ -341,7 +370,8 @@ export default function EditAppointmentPage({ params }: { params: Promise<{ id: 
                   step="0.01"
                   value={appointment.PAYMENT_AMOUNT || 0}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                  disabled
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
                   placeholder="0.00"
                 />
               </div>

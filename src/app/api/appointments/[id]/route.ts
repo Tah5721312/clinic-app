@@ -1,6 +1,7 @@
 // app/api/appointments/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getAppointmentById, updateAppointment, deleteAppointment, updateAppointmentStatus } from '@/lib/db_utils';
+import { auth } from '@/auth';
 
 interface Params {
   params: Promise<{
@@ -51,6 +52,18 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return NextResponse.json(
         { error: 'Appointment not found' },
         { status: 404 }
+      );
+    }
+
+    // Get session to check if user is super admin
+    const session = await auth();
+    const isSuperAdmin = session?.user?.isAdmin || session?.user?.roleId === 211;
+
+    // Prevent editing if appointment payment status is paid (unless super admin)
+    if (currentAppointment.PAYMENT_STATUS === 'paid' && !isSuperAdmin) {
+      return NextResponse.json(
+        { error: 'Cannot edit a fully paid appointment' },
+        { status: 403 }
       );
     }
 
@@ -210,8 +223,36 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
+    const appointmentId = Number(id);
 
-    const rowsAffected = await deleteAppointment(Number(id));
+    // Get current appointment to check status and payment
+    const currentAppointment = await getAppointmentById(appointmentId);
+    
+    if (!currentAppointment) {
+      return NextResponse.json(
+        { error: 'Appointment not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get session to check if user is super admin
+    const session = await auth();
+    const isSuperAdmin = session?.user?.isAdmin || (session?.user as any)?.roleId === 211;
+
+    // Check if appointment can be deleted
+    const canDelete =
+      isSuperAdmin ||
+      currentAppointment.STATUS === 'cancelled' ||
+      (currentAppointment.STATUS === 'pending' && (currentAppointment.PAYMENT_STATUS || 'unpaid') === 'unpaid');
+
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: 'Cannot delete this appointment. Only cancelled appointments or unpaid pending appointments can be deleted.' },
+        { status: 403 }
+      );
+    }
+
+    const rowsAffected = await deleteAppointment(appointmentId);
 
     if (rowsAffected === 0) {
       return NextResponse.json(

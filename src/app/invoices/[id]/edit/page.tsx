@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 
 import { Invoice, CreateInvoiceDto } from '@/lib/types';
 import InvoiceForm from '@/components/InvoiceForm';
@@ -13,6 +14,7 @@ export default function EditInvoicePage() {
   const params = useParams<{ id: string }>();
   const id = Array.isArray(params?.id) ? params?.id[0] : params?.id;
   const router = useRouter();
+  const { data: session } = useSession();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +82,32 @@ export default function EditInvoicePage() {
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
             Back to Invoices
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if invoice is paid and prevent editing (unless super admin)
+  const isSuperAdmin = session?.user?.isAdmin || session?.user?.roleId === 211;
+  
+  if (invoice.PAYMENT_STATUS === 'paid' && !isSuperAdmin) {
+    return (
+      <div className='text-center py-12'>
+        <h3 className='mt-2 text-sm font-medium text-gray-900'>
+          Cannot Edit Paid Invoice
+        </h3>
+        <p className='mt-1 text-sm text-gray-500'>
+          This invoice has been fully paid and cannot be edited.
+        </p>
+        <div className='mt-6'>
+          <Button
+            variant='outline'
+            onClick={() => router.push(`/invoices/${id}`)}
+            className='flex items-center'
+          >
+            <ArrowLeft className='h-4 w-4 mr-2' />
+            Back to Invoice
           </Button>
         </div>
       </div>

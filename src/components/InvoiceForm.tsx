@@ -89,9 +89,14 @@ export default function InvoiceForm({
         setSelectedAppointment(appointment);
         // Also set the amount if it's not already set
         if (formData.amount === 0) {
+          // Determine the correct fee based on appointment type
+          const fee = appointment.APPOINTMENT_TYPE === 'follow_up' 
+            ? (appointment.FOLLOW_UP_FEE || 0)
+            : (appointment.CONSULTATION_FEE || 0);
+          
           setFormData(prev => ({
             ...prev,
-            amount: appointment.CONSULTATION_FEE || 0,
+            amount: fee,
             // Auto-populate payment data from appointment
             paid_amount: appointment.PAYMENT_AMOUNT || 0,
             payment_method: appointment.PAYMENT_METHOD || ''
@@ -147,11 +152,16 @@ export default function InvoiceForm({
             if (appointmentId && filteredAppointments.length > 0) {
               const appointment = filteredAppointments.find((a: Appointment) => a.APPOINTMENT_ID === parseInt(appointmentId));
               if (appointment) {
+                // Determine the correct fee based on appointment type
+                const fee = appointment.APPOINTMENT_TYPE === 'follow_up' 
+                  ? (appointment.FOLLOW_UP_FEE || 0)
+                  : (appointment.CONSULTATION_FEE || 0);
+                
                 setSelectedAppointment(appointment);
                 setFormData(prev => ({
                   ...prev,
                   appointment_id: parseInt(appointmentId),
-                  amount: appointment.CONSULTATION_FEE || 0,
+                  amount: fee,
                   paid_amount: appointment.PAYMENT_AMOUNT || 0,
                   payment_method: appointment.PAYMENT_METHOD || ''
                 }));
@@ -190,11 +200,17 @@ export default function InvoiceForm({
 
   const handleAppointmentSelect = (appointment: Appointment | null) => {
     setSelectedAppointment(appointment);
+    
+    // Determine the correct fee based on appointment type
+    const fee = appointment?.APPOINTMENT_TYPE === 'follow_up' 
+      ? (appointment?.FOLLOW_UP_FEE || 0)
+      : (appointment?.CONSULTATION_FEE || 0);
+    
     setFormData(prev => ({
       ...prev,
       appointment_id: appointment ? appointment.APPOINTMENT_ID : undefined,
-      // Automatically populate amount with consultation fee when appointment is selected
-      amount: appointment?.CONSULTATION_FEE || 0,
+      // Automatically populate amount with the appropriate fee based on appointment type
+      amount: fee,
       // Automatically populate paid_amount with payment_amount from appointment
       paid_amount: appointment?.PAYMENT_AMOUNT || 0,
       // Automatically populate payment_method from appointment

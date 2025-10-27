@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search, CreditCard, DollarSign, Receipt, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search, CreditCard, DollarSign, Receipt, CheckCircle, XCircle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 
 import { Appointment } from '@/lib/types';
 import { useAppointmentsWithFilters, useDoctors, useSpecialties } from '@/hooks/useApiData';
+import { DOMAIN } from '@/lib/constants';
 
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import ButtonLink from '@/components/links/ButtonLink';
@@ -87,6 +88,44 @@ export default function AppointmentsPage() {
       // console.error('Date formatting error:', error);
       return 'Invalid Date';
     }
+  };
+
+  const handleDeleteAppointment = async (appointmentId: number) => {
+    if (!confirm('Are you sure you want to delete this appointment?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${DOMAIN}/api/appointments/${appointmentId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete appointment');
+      }
+
+      // Refetch appointments after deletion
+      refetch();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete appointment');
+    }
+  };
+
+  // Check if current user is super admin
+  const isSuperAdmin = session?.user?.isAdmin || (session?.user as any)?.roleId === 211;
+
+  // Check if appointment can be deleted
+  const canDeleteAppointment = (appointment: Appointment) => {
+    // Super Admin can delete all appointments
+    if (isSuperAdmin) {
+      return true;
+    }
+    
+    // Regular users can only delete if: Status is cancelled OR (Status is pending AND Payment is unpaid)
+    return (
+      appointment.STATUS === 'cancelled' ||
+      (appointment.STATUS === 'pending' && (appointment.PAYMENT_STATUS || 'unpaid') === 'unpaid')
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -412,7 +451,7 @@ export default function AppointmentsPage() {
                                   href={`/invoices/${appointment.INVOICE_ID}`}
                                   className='text-xs text-blue-600 hover:text-blue-800 underline'
                                 >
-                                  #{appointment.INVOICE_NUMBER}
+                                 <p> #{appointment.INVOICE_NUMBER}</p>
                                 </Link>
                               )}
                             </div>
@@ -446,6 +485,15 @@ export default function AppointmentsPage() {
                           >
                             Book Similar
                           </Link>
+                          {canDeleteAppointment(appointment) && (
+                            <button
+                              onClick={() => handleDeleteAppointment(appointment.APPOINTMENT_ID)}
+                              className='text-red-600 hover:text-red-900 flex items-center gap-1'
+                            >
+                              <Trash2 className='w-4 h-4' />
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -593,12 +641,23 @@ export default function AppointmentsPage() {
                         </Link>
                       )}
                     </div>
-                    <Link
-                      href={`/appointments/new?doctorId=${appointment.DOCTOR_ID}&patientId=${appointment.PATIENT_ID}`}
-                      className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors'
-                    >
-                      Book Similar
-                    </Link>
+                    <div className='flex gap-2'>
+                      {canDeleteAppointment(appointment) && (
+                        <button
+                          onClick={() => handleDeleteAppointment(appointment.APPOINTMENT_ID)}
+                          className='bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors flex items-center gap-1'
+                        >
+                          <Trash2 className='w-4 h-4' />
+                          Delete
+                        </button>
+                      )}
+                      <Link
+                        href={`/appointments/new?doctorId=${appointment.DOCTOR_ID}&patientId=${appointment.PATIENT_ID}`}
+                        className='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors'
+                      >
+                        Book Similar
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ))}

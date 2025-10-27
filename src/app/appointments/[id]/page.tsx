@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Calendar, Clock, FileText, User, Phone, Mail, ArrowLeft, Edit, Trash2, CreditCard, DollarSign } from 'lucide-react';
 
@@ -15,6 +16,7 @@ import { DOMAIN } from '@/lib/constants';
 export default function AppointmentDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { data: session } = useSession();
   const appointmentId = params.id as string;
 
   const [appointment, setAppointment] = useState<Appointment | null>(null);
@@ -22,6 +24,8 @@ export default function AppointmentDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const isSuperAdmin = session?.user?.isAdmin || session?.user?.roleId === 211;
 
   useEffect(() => {
     if (appointmentId) {
@@ -241,20 +245,24 @@ export default function AppointmentDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <ButtonLink
-            href={`/appointments/${appointmentId}/edit`}
-            variant="outline"
-            leftIcon={Edit}
-          >
-            Edit
-          </ButtonLink>
-          <button
-            onClick={handleDelete}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete
-          </button>
+          {(appointment.PAYMENT_STATUS !== 'paid' || isSuperAdmin) && (
+            <ButtonLink
+              href={`/appointments/${appointmentId}/edit`}
+              variant="outline"
+              leftIcon={Edit}
+            >
+              Edit
+            </ButtonLink>
+          )}
+          {isSuperAdmin && (
+            <button
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+          )}
         </div>
       </div>
 

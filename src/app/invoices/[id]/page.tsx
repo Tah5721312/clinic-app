@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   Receipt,
   Edit,
@@ -22,6 +23,7 @@ export default function InvoiceViewPage() {
   const params = useParams<{ id: string }>();
   const id = Array.isArray(params?.id) ? params?.id[0] : params?.id;
   const router = useRouter();
+  const { data: session } = useSession();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,8 @@ export default function InvoiceViewPage() {
     paid_amount: 0,
     payment_method: '',
   });
+
+  const isSuperAdmin = session?.user?.isAdmin || session?.user?.roleId === 211;
 
   useEffect(() => {
     const fetchInvoice = async () => {
@@ -231,22 +235,26 @@ export default function InvoiceViewPage() {
         </div>
 
         <div className='flex flex-col sm:flex-row gap-2 w-full sm:w-auto'>
-          <Button
-            variant='outline'
-            onClick={() => router.push(`/invoices/${invoice.INVOICE_ID}/edit`)}
-            className='flex items-center justify-center'
-          >
-            <Edit className='h-4 w-4 mr-2' />
-            Edit
-          </Button>
-          <Button
-            variant='outline'
-            onClick={handleDelete}
-            className='flex items-center justify-center text-red-600 hover:text-red-700'
-          >
-            <Trash2 className='h-4 w-4 mr-2' />
-            Delete
-          </Button>
+          {(invoice.PAYMENT_STATUS !== 'paid' || isSuperAdmin) && (
+            <Button
+              variant='outline'
+              onClick={() => router.push(`/invoices/${invoice.INVOICE_ID}/edit`)}
+              className='flex items-center justify-center'
+            >
+              <Edit className='h-4 w-4 mr-2' />
+              Edit
+            </Button>
+          )}
+          {isSuperAdmin && (
+            <Button
+              variant='outline'
+              onClick={handleDelete}
+              className='flex items-center justify-center text-red-600 hover:text-red-700'
+            >
+              <Trash2 className='h-4 w-4 mr-2' />
+              Delete
+            </Button>
+          )}
         </div>
       </div>
 

@@ -22,6 +22,7 @@ CREATE TABLE TAH57.Doctors (
     CONSTRAINT chk_experience CHECK (experience BETWEEN 0 AND 50),
     CONSTRAINT pk_doctors PRIMARY KEY (doctor_id)
 );
+
 -----------------------------------------------------
 
 -- جدول المرضى (Patients)
@@ -65,7 +66,8 @@ CREATE TABLE TAH57.Appointments (
     appointment_id      NUMBER(20) ,
     patient_id           NUMBER      NOT NULL,
     doctor_id            NUMBER      NOT NULL,
-    schedule             TIMESTAMP   NOT NULL,
+appointment_type
+    schedule             DATE    NOT NULL,
     reason               VARCHAR2(500 CHAR) NOT NULL,
     note                 VARCHAR2(1000 CHAR),
     status               VARCHAR2(20 CHAR) DEFAULT 'pending' NOT NULL,
@@ -74,6 +76,269 @@ CREATE TABLE TAH57.Appointments (
     CONSTRAINT fk_appointment_patient FOREIGN KEY (patient_id) REFERENCES TAH57.Patients(patient_id),
     CONSTRAINT fk_appointment_doctor FOREIGN KEY (doctor_id) REFERENCES TAH57.Doctors(doctor_id)
 );
+
+--------------*******************
+-- إضافة عمود نوع الموعد
+ALTER TABLE TAH57.APPOINTMENTS 
+ADD appointment_type VARCHAR2(20) DEFAULT 'consultation';
+
+ALTER TABLE TAH57.APPOINTMENTS
+ADD (payment_method VARCHAR2(50 Byte));
+
+
+ALTER TABLE TAH57.APPOINTMENTS
+ADD (SCHEDULE_at VARCHAR2(10 Byte));
+
+-- إضافة constraint للتأكد من القيم الصحيحة
+ALTER TABLE TAH57.APPOINTMENTS 
+ADD CONSTRAINT chk_appointment_type 
+CHECK (appointment_type IN ('consultation', 'follow_up', 'emergency'));
+
+-- إضافة عمود حالة الدفع
+ALTER TABLE TAH57.APPOINTMENTS 
+ADD payment_status VARCHAR2(20) DEFAULT 'unpaid';
+
+-- إضافة constraint لحالة الدفع
+ALTER TABLE TAH57.APPOINTMENTS 
+ADD CONSTRAINT chk_payment_status 
+CHECK (payment_status IN ('unpaid', 'partial', 'paid', 'refunded'));
+
+-- إضافة عمود المبلغ المدفوع (اختياري)
+ALTER TABLE TAH57.APPOINTMENTS 
+ADD payment_amount NUMBER(10,2) DEFAULT 0;
+
+ALTER TABLE TAH57.APPOINTMENTS
+  ADD CONSTRAINT UC_APPT_DOC_DATE_TIME
+  UNIQUE (DOCTOR_ID, SCHEDULE, SCHEDULE_AT);
+
+
+-- إضافة تعليقات على الأعمدة الجديدة
+COMMENT ON COLUMN TAH57.APPOINTMENTS.appointment_type IS 'نوع الموعد: كشف عادي، متابعة، طوارئ';
+COMMENT ON COLUMN TAH57.APPOINTMENTS.payment_status IS 'حالة الدفع: غير مدفوع، جزئي، مدفوع، مسترد';
+COMMENT ON COLUMN TAH57.APPOINTMENTS.payment_amount IS 'المبلغ المدفوع للموعد';
+
+------------****************----------------------
+
+-- إضافة عمود سعر الكشف
+ALTER TABLE TAH57.DOCTORS 
+ADD consultation_fee NUMBER(10,2) DEFAULT 0;
+
+
+ALTER TABLE TAH57.DOCTORS
+ADD (follow_up_fee NUMBER(10));
+
+-- إضافة تعليق على عمود متابعة
+COMMENT ON COLUMN TAH57.DOCTORS.follow_up_fee IS 'سعر المتابعة بالجنيه المصري';
+
+
+-- إضافة constraint للتأكد من أن السعر موجب
+ALTER TABLE TAH57.DOCTORS 
+ADD CONSTRAINT chk_consultation_fee 
+CHECK (consultation_fee >= 0);
+
+-- إضافة عمود الحالة (متاح/غير متاح)
+ALTER TABLE TAH57.DOCTORS 
+ADD is_available NUMBER(1) DEFAULT 1;
+
+-- إضافة constraint للتأكد من القيمة 0 أو 1
+ALTER TABLE TAH57.DOCTORS 
+ADD CONSTRAINT chk_is_available 
+CHECK (is_available IN (0, 1));
+
+-- إضافة عمود تاريخ آخر تحديث للحالة (اختياري)
+ALTER TABLE TAH57.DOCTORS 
+ADD availability_updated_at TIMESTAMP;
+
+-- إضافة تعليقات على الأعمدة الجديدة
+COMMENT ON COLUMN TAH57.DOCTORS.consultation_fee IS 'سعر الكشف بالجنيه المصري';
+COMMENT ON COLUMN TAH57.DOCTORS.is_available IS '1 = متاح للحجز، 0 = غير متاح';
+COMMENT ON COLUMN TAH57.DOCTORS.availability_updated_at IS 'تاريخ آخر تحديث لحالة التوفر';
+
+
+
+-- تحديث جميع المواعيد الحالية لتكون من نوع "consultation"
+UPDATE TAH57.APPOINTMENTS 
+SET appointment_type = 'consultation'
+WHERE appointment_type IS NULL;
+
+-- تحديث جميع المواعيد الحالية لتكون غير مدفوعة
+UPDATE TAH57.APPOINTMENTS 
+SET payment_status = 'unpaid'
+WHERE payment_status IS NULL;
+
+-- تحديث جميع الدكاترة ليكونوا متاحين
+UPDATE TAH57.DOCTORS 
+SET is_available = 1
+WHERE is_available IS NULL;
+
+-- تحديث سعر الكشف لبعض الدكاترة (مثال)
+UPDATE TAH57.DOCTORS 
+SET consultation_fee = 300
+WHERE specialty = 'طب القلب';
+
+UPDATE TAH57.DOCTORS 
+SET consultation_fee = 250
+WHERE specialty = 'طب الأطفال';
+
+UPDATE TAH57.DOCTORS 
+SET consultation_fee = 350
+WHERE specialty = 'الجراحة العامة';
+
+UPDATE TAH57.DOCTORS 
+SET consultation_fee = 200
+WHERE consultation_fee = 0;
+
+COMMIT;
+
+-- Index على نوع الموعد
+CREATE INDEX idx_appointments_type 
+ON TAH57.APPOINTMENTS(appointment_type);
+
+-- Index على حالة الدفع
+CREATE INDEX idx_appointments_payment 
+ON TAH57.APPOINTMENTS(payment_status);
+
+-- Index على حالة توفر الدكتور
+CREATE INDEX idx_doctors_available 
+ON TAH57.DOCTORS(is_available);
+
+-- Index مركب على الحالتين
+CREATE INDEX idx_appointments_status 
+ON TAH57.APPOINTMENTS(status, payment_status);
+
+-------------------******************************-------------
+-- Doctor Schedules Table Migration
+-- This table will store doctor's weekly schedule and available time slots
+
+-- Drop table if exists
+DROP TABLE TAH57.DOCTOR_SCHEDULES CASCADE CONSTRAINTS;
+
+-- Create doctor schedules table
+CREATE TABLE TAH57.DOCTOR_SCHEDULES (
+    SCHEDULE_ID NUMBER(20) PRIMARY KEY,
+    DOCTOR_ID NUMBER(20) NOT NULL,
+    DAY_OF_WEEK NUMBER(1) NOT NULL, -- 1=Sunday, 2=Monday, ..., 7=Saturday
+    START_TIME VARCHAR2(8) NOT NULL, -- Format: 'HH:MM' (24-hour format)
+    END_TIME VARCHAR2(8) NOT NULL,   -- Format: 'HH:MM' (24-hour format)
+    SLOT_DURATION NUMBER(3) DEFAULT 30, -- Duration of each slot in minutes
+    IS_AVAILABLE NUMBER(1) DEFAULT 1, -- 1=Available, 0=Unavailable
+    CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UPDATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign key constraint
+    CONSTRAINT FK_DOCTOR_SCHEDULE_DOCTOR 
+        FOREIGN KEY (DOCTOR_ID) 
+        REFERENCES TAH57.DOCTORS(DOCTOR_ID) 
+        ON DELETE CASCADE,
+    
+    -- Check constraints
+    CONSTRAINT CHK_DAY_OF_WEEK CHECK (DAY_OF_WEEK BETWEEN 1 AND 7),
+    CONSTRAINT CHK_START_TIME CHECK (REGEXP_LIKE(START_TIME, '^([01]?[0-9]|2[0-3]):[0-5][0-9]$')),
+    CONSTRAINT CHK_END_TIME CHECK (REGEXP_LIKE(END_TIME, '^([01]?[0-9]|2[0-3]):[0-5][0-9]$')),
+    CONSTRAINT CHK_SLOT_DURATION CHECK (SLOT_DURATION > 0 AND SLOT_DURATION <= 480), -- Max 8 hours
+    CONSTRAINT CHK_IS_AVAIL_schedual CHECK (IS_AVAILABLE IN (0, 1)),
+    CONSTRAINT CHK_TIME_ORDER CHECK (START_TIME < END_TIME)
+);
+
+-- Create sequence for schedule IDs
+CREATE SEQUENCE TAH57.DOCTOR_SCHEDULES_seq
+START WITH 1
+INCREMENT BY 1
+NOCACHE;
+
+-- Create trigger for auto-generating schedule IDs
+CREATE OR REPLACE TRIGGER TAH57.trg_doctor_schedules_id
+BEFORE INSERT ON TAH57.DOCTOR_SCHEDULES
+FOR EACH ROW
+BEGIN
+  :NEW.SCHEDULE_ID := TO_NUMBER('77' || TAH57.DOCTOR_SCHEDULES_seq.NEXTVAL);
+  :NEW.UPDATED_AT := CURRENT_TIMESTAMP;
+END;
+/
+
+-- Create trigger for updating updated_at timestamp
+CREATE OR REPLACE TRIGGER TAH57.doctor_schedules_bur
+    BEFORE UPDATE ON TAH57.DOCTOR_SCHEDULES
+    FOR EACH ROW
+BEGIN
+    :NEW.UPDATED_AT := CURRENT_TIMESTAMP;
+END;
+/
+
+-- Create indexes for better performance
+CREATE INDEX IDX_DOCTOR_SCHEDULES_DOCTOR_ID ON TAH57.DOCTOR_SCHEDULES(DOCTOR_ID);
+CREATE INDEX IDX_DOCTOR_SCHEDULES_DAY ON TAH57.DOCTOR_SCHEDULES(DAY_OF_WEEK);
+CREATE INDEX IDX_DOCTOR_SCHEDULES_AVAILABLE ON TAH57.DOCTOR_SCHEDULES(IS_AVAILABLE);
+
+-- Insert sample schedule data for existing doctors
+-- Doctor 751 (د. أحمد مصطفى) - Heart specialist
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(751, 1, '09:00', '17:00', 30, 1); -- Sunday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(751, 2, '09:00', '17:00', 30, 1); -- Monday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(751, 3, '09:00', '17:00', 30, 1); -- Tuesday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(751, 4, '09:00', '17:00', 30, 1); -- Wednesday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(751, 5, '09:00', '17:00', 30, 1); -- Thursday
+
+-- Doctor 752 (د. سارة علي) - Pediatric specialist
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(752, 1, '08:00', '16:00', 30, 1); -- Sunday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(752, 2, '08:00', '16:00', 30, 1); -- Monday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(752, 3, '08:00', '16:00', 30, 1); -- Tuesday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(752, 4, '08:00', '16:00', 30, 1); -- Wednesday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(752, 5, '08:00', '16:00', 30, 1); -- Thursday
+
+-- Doctor 753 (د. محمد حسن) - General Surgery
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(753, 1, '10:00', '18:00', 45, 1); -- Sunday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(753, 2, '10:00', '18:00', 45, 1); -- Monday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(753, 3, '10:00', '18:00', 45, 1); -- Tuesday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(753, 4, '10:00', '18:00', 45, 1); -- Wednesday
+INSERT INTO TAH57.DOCTOR_SCHEDULES (DOCTOR_ID, DAY_OF_WEEK, START_TIME, END_TIME, SLOT_DURATION, IS_AVAILABLE) VALUES
+(753, 5, '10:00', '18:00', 45, 1); -- Thursday
+
+COMMIT;
+
+-- Create a view for easy schedule management
+CREATE OR REPLACE VIEW TAH57.VW_DOCTOR_SCHEDULES AS
+SELECT 
+    ds.SCHEDULE_ID,
+    ds.DOCTOR_ID,
+    d.NAME as DOCTOR_NAME,
+    d.SPECIALTY,
+    ds.DAY_OF_WEEK,
+    CASE ds.DAY_OF_WEEK
+        WHEN 1 THEN 'الأحد'
+        WHEN 2 THEN 'الاثنين'
+        WHEN 3 THEN 'الثلاثاء'
+        WHEN 4 THEN 'الأربعاء'
+        WHEN 5 THEN 'الخميس'
+        WHEN 6 THEN 'الجمعة'
+        WHEN 7 THEN 'السبت'
+    END as DAY_NAME_AR,
+    ds.START_TIME,
+    ds.END_TIME,
+    ds.SLOT_DURATION,
+    ds.IS_AVAILABLE,
+    ds.CREATED_AT,
+    ds.UPDATED_AT
+FROM TAH57.DOCTOR_SCHEDULES ds
+INNER JOIN TAH57.DOCTORS d ON ds.DOCTOR_ID = d.DOCTOR_ID
+ORDER BY ds.DOCTOR_ID, ds.DAY_OF_WEEK, ds.START_TIME;
+
+-- Grant permissions
+GRANT SELECT, INSERT, UPDATE, DELETE ON TAH57.DOCTOR_SCHEDULES TO TAH57;
+GRANT SELECT ON TAH57.VW_DOCTOR_SCHEDULES TO TAH57;
 
 --*****************************************************
 -- 1. جدول الأدوار
@@ -97,6 +362,7 @@ CREATE TABLE TAH57.USERS (
     PASSWORD VARCHAR2(255) NOT NULL,
     ROLE_ID NUMBER NOT NULL,
     FULL_NAME VARCHAR2(200),
+IS_ADMIN NUMBER(1) DEFAULT 0,
     PHONE VARCHAR2(20),
     IS_ACTIVE NUMBER(1) DEFAULT 1,
     CREATED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -685,43 +951,4 @@ INSERT INTO TAH57.MedicalRecords (PATIENT_ID,DOCTOR_ID,DIAGNOSIS,SYMPTOMS,MEDICA
     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 );
 -----------------*******************************-------------
-
-
-
-
------------------------------
-
-CREATE SEQUENCE tah57.ROLES_seq
-START WITH 1
-INCREMENT BY 1
-NOCACHE;
------------------------------------------
-CREATE OR REPLACE TRIGGER trg_ROLES_id
-BEFORE INSERT ON tah57.ROLES
-FOR EACH ROW
-BEGIN
-  :NEW.ROLES_ID := TO_NUMBER('21' || tah57.ROLES_seq.NEXTVAL);
-   :NEW.UPDATED_AT := CURRENT_TIMESTAMP;
-END;
-/
-
------------------------------
-
-CREATE SEQUENCE tah57.PERMISSIONS_seq
-START WITH 1
-INCREMENT BY 1
-NOCACHE;
------------------------------------------
-CREATE OR REPLACE TRIGGER trg_PERMISSIONS_id
-BEFORE INSERT ON tah57.PERMISSIONS
-FOR EACH ROW
-BEGIN
-  :NEW.PERMISSIONS_ID := TO_NUMBER('22' || tah57.PERMISSIONS_seq.NEXTVAL);
-   
-END;
-/
-
---*****************************************************
-
-
 
