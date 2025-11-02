@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search, CreditCard, DollarSign, Receipt, CheckCircle, XCircle, Trash2, Grid3x3 } from 'lucide-react';
+import { Calendar, Clock, FileText, Plus, User, Stethoscope, Search, CreditCard, DollarSign, Receipt, CheckCircle, XCircle, Trash2, Grid3x3, Download, FileDown } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -10,6 +10,7 @@ import { toastError } from '@/lib/toast';
 import { Appointment } from '@/lib/types';
 import { useAppointmentsWithFilters, useDoctors, useSpecialties } from '@/hooks/useApiData';
 import { DOMAIN } from '@/lib/constants';
+import { exportAppointmentsToPDF, exportAppointmentsToExcel } from '@/lib/exportUtils';
 
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import ButtonLink from '@/components/links/ButtonLink';
@@ -365,7 +366,7 @@ export default function AppointmentsPage() {
                 </div>
               </div>
             </div>
-            <div className='flex gap-2 w-full sm:w-auto'>
+            <div className='flex flex-wrap gap-2 w-full sm:w-auto'>
               <ButtonLink
                 href={`/appointments/calendar${selectedDoctorId ? `?doctorId=${selectedDoctorId}` : ''}${selectedSpecialty ? `${selectedDoctorId ? '&' : '?'}specialty=${selectedSpecialty}` : ''}`}
                 variant='outline'
@@ -374,6 +375,32 @@ export default function AppointmentsPage() {
               >
                 التقويم
               </ButtonLink>
+              {!isPatient && filteredAppointments.length > 0 && (
+                <>
+                  <button
+                    onClick={async () => {
+                      const filename = `appointments_${new Date().toISOString().split('T')[0]}.pdf`;
+                      await exportAppointmentsToPDF(filteredAppointments, filename);
+                    }}
+                    className='inline-flex items-center justify-center px-3 py-2 text-sm sm:text-base bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-full sm:w-auto gap-2'
+                    title='تصدير PDF'
+                  >
+                    <FileDown className='w-4 h-4' />
+                    <span>PDF</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const filename = `appointments_${new Date().toISOString().split('T')[0]}.xlsx`;
+                      exportAppointmentsToExcel(filteredAppointments, filename);
+                    }}
+                    className='inline-flex items-center justify-center px-3 py-2 text-sm sm:text-base bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors w-full sm:w-auto gap-2'
+                    title='تصدير Excel'
+                  >
+                    <Download className='w-4 h-4' />
+                    <span>Excel</span>
+                  </button>
+                </>
+              )}
               <ButtonLink
                 href='/appointments/new'
                 variant='primary'
