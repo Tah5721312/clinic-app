@@ -2,34 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-
-// Sun icon component
-const SunIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    height="20"
-    width="20"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-    className="w-5 h-5"
-  >
-    <path d="M9.305 1.667V3.75h1.389V1.667h-1.39zm-4.707 1.95l-.982.982L5.09 6.072l.982-.982-1.473-1.473zm10.802 0L13.927 5.09l.982.982 1.473-1.473-.982-.982zM10 5.139a4.872 4.872 0 00-4.862 4.86A4.872 4.872 0 0010 14.862 4.872 4.872 0 0014.86 10 4.872 4.872 0 0010 5.139zm0 1.389A3.462 3.462 0 0113.471 10a3.462 3.462 0 01-3.473 3.472A3.462 3.462 0 016.527 10 3.462 3.462 0 0110 6.528zM1.665 9.305v1.39h2.083v-1.39H1.666zm14.583 0v1.39h2.084v-1.39h-2.084zM5.09 13.928L3.616 15.4l.982.982 1.473-1.473-.982-.982zm9.82 0l-.982.982 1.473 1.473.982-.982-1.473-1.473zM9.305 16.25v2.083h1.389V16.25h-1.39z" />
-  </svg>
-);
-
-// Moon icon component
-const MoonIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    height="20"
-    width="20"
-    viewBox="0 0 20 20"
-    fill="currentColor"
-    className="w-5 h-5"
-  >
-    <path d="M4.2 2.5l-.7 1.8-1.8.7 1.8.7.7 1.8.6-1.8L6.7 5l-1.9-.7-.6-1.8zm15 8.3a6.7 6.7 0 11-6.6-6.6 5.8 5.8 0 006.6 6.6z" />
-  </svg>
-);
+import { Sun, Moon } from 'lucide-react';
 
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -43,36 +16,68 @@ export default function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="relative inline-flex h-8 w-16 items-center rounded-full bg-gray-300">
-        <span className="h-7 w-7 transform rounded-full bg-white shadow-lg translate-x-1 flex items-center justify-center">
-          <div className="w-5 h-5 bg-gray-400 rounded-full"></div>
+      <div className="relative inline-flex h-9 w-16 md:h-10 md:w-20 items-center rounded-full bg-gray-300 dark:bg-gray-600 animate-pulse">
+        <span className="h-7 w-7 md:h-8 md:w-8 transform rounded-full bg-white shadow-lg translate-x-1 flex items-center justify-center">
+          <div className="w-4 h-4 md:w-5 md:h-5 bg-gray-400 rounded-full"></div>
         </span>
       </div>
     );
   }
 
+  const isDark = theme === 'dark';
+
   return (
     <button
       onClick={toggleTheme}
-      className="relative inline-flex h-8 w-16 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-      style={{
-        backgroundColor: theme === 'dark' ? '#8796A5' : '#aab4be',
-      }}
-      aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      className={`
+        relative inline-flex h-9 w-16 md:h-10 md:w-20 items-center rounded-full 
+        transition-all duration-300 ease-in-out 
+        focus:outline-none focus:ring-2 focus:ring-offset-2 
+        focus:ring-blue-400 dark:focus:ring-blue-500
+        hover:scale-105 active:scale-95
+        shadow-md hover:shadow-lg
+        ${isDark ? 'bg-gradient-to-r from-gray-700 to-gray-600' : 'bg-gradient-to-r from-yellow-300 to-orange-300'}
+      `}
+      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
     >
+      {/* Background glow effect */}
       <span
-        className={`h-7 w-7 transform rounded-full bg-white shadow-lg transition-transform duration-200 ease-in-out flex items-center justify-center ${
-          theme === 'dark' ? 'translate-x-8' : 'translate-x-1'
-        }`}
-        style={{
-          backgroundColor: theme === 'dark' ? '#003892' : '#001e3c',
-        }}
+        className={`
+          absolute inset-0 rounded-full
+          transition-opacity duration-300
+          ${isDark ? 'bg-blue-500 opacity-0' : 'bg-yellow-400 opacity-20'}
+        `}
+      />
+      
+      {/* Toggle circle */}
+      <span
+        className={`
+          relative h-7 w-7 md:h-8 md:w-8 transform rounded-full 
+          bg-white dark:bg-blue-900 shadow-lg 
+          transition-all duration-300 ease-in-out
+          flex items-center justify-center
+          ${isDark ? 'translate-x-8 md:translate-x-11' : 'translate-x-1'}
+        `}
       >
-        {theme === 'dark' ? (
-          <MoonIcon />
-        ) : (
-          <SunIcon />
-        )}
+        {/* Icon container with smooth transition */}
+        <span
+          className={`
+            absolute inset-0 flex items-center justify-center
+            transition-all duration-300 ease-in-out
+            ${isDark ? 'opacity-100 rotate-0' : 'opacity-0 -rotate-90'}
+          `}
+        >
+          <Moon className="w-4 h-4 md:w-5 md:h-5 text-blue-600 dark:text-blue-200" />
+        </span>
+        <span
+          className={`
+            absolute inset-0 flex items-center justify-center
+            transition-all duration-300 ease-in-out
+            ${isDark ? 'opacity-0 rotate-90' : 'opacity-100 rotate-0'}
+          `}
+        >
+          <Sun className="w-4 h-4 md:w-5 md:h-5 text-orange-500" />
+        </span>
       </span>
     </button>
   );

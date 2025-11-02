@@ -22,8 +22,8 @@ export const {
   secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-here',
   session: { 
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
-    updateAge: 6 * 60 * 60, // 6 hours in seconds
+    maxAge: 24 * 60 * 60, // 24 hours (1 day) in seconds
+    updateAge: 60 * 60, // 1 hour in seconds - update session every hour if active
   },
   providers: [
     Credentials({
@@ -96,7 +96,7 @@ export const {
     }),
   ],
   jwt: {
-    maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
+    maxAge: 24 * 60 * 60, // 24 hours (1 day) in seconds
   },
   callbacks: {
     async jwt({ token, user }) {

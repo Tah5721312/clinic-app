@@ -9,6 +9,7 @@ import '@/styles/colors.css';
 import { siteConfig } from '@/constant/config';
 import Navigation from '@/components/Navigation';
 import Providers from '@/components/Providers';
+import ScrollToTop from '@/components/ScrollToTop';
 
 
 import { AbilityProvider } from '@/contexts/AbilityContext';
@@ -107,6 +108,7 @@ export default async function RootLayout({
             <main className="container mx-auto p-4">
               {children}
             </main>
+            <ScrollToTop />
           </AbilityProvider>
         </Providers>
       </body>
