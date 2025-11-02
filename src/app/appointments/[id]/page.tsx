@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { Calendar, Clock, FileText, User, Phone, Mail, ArrowLeft, Edit, Trash2, CreditCard, DollarSign } from 'lucide-react';
+import { Calendar, Clock, FileText, User, Phone, Mail, ArrowLeft, Edit, Trash2, CreditCard, DollarSign, Receipt } from 'lucide-react';
 
 import { Appointment, Doctor, Patient } from '@/lib/types';
 
@@ -245,6 +245,15 @@ export default function AppointmentDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          {!appointment.HAS_INVOICE && (
+            <ButtonLink
+              href={`/invoices/new?patientId=${appointment.PATIENT_ID}&appointmentId=${appointment.APPOINTMENT_ID}`}
+              variant="primary"
+              leftIcon={Receipt}
+            >
+              Create Invoice
+            </ButtonLink>
+          )}
           {(appointment.PAYMENT_STATUS !== 'paid' || isSuperAdmin) && (
             <ButtonLink
               href={`/appointments/${appointmentId}/edit`}
@@ -349,6 +358,30 @@ export default function AppointmentDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Invoice Information */}
+          {appointment.HAS_INVOICE && appointment.INVOICE_ID && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Receipt className="w-5 h-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-gray-900">Invoice Created</p>
+                    {appointment.INVOICE_NUMBER && (
+                      <p className="text-gray-600">Invoice #{appointment.INVOICE_NUMBER}</p>
+                    )}
+                  </div>
+                </div>
+                <Link
+                  href={`/invoices/${appointment.INVOICE_ID}`}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2"
+                >
+                  <Receipt className="w-4 h-4" />
+                  View Invoice
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

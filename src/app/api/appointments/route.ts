@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const specialty = searchParams.get('specialty') || undefined;
     const identificationNumber = searchParams.get('identificationNumber') || undefined;
     const invoiceNumber = searchParams.get('invoiceNumber') || undefined;
+    const scheduleDate = searchParams.get('scheduleDate') || undefined;
 
     // Get current user session
     const session = await auth();
@@ -57,6 +58,7 @@ export async function GET(request: NextRequest) {
         specialty,
         identificationNumber,
         invoiceNumber,
+        scheduleDate,
       });
       console.log('🔍 Retrieved all appointments. Count:', appointments?.length || 0);
     }

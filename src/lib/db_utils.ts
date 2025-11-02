@@ -609,6 +609,7 @@ export async function getAllAppointments(filters?: {
   specialty?: string;
   identificationNumber?: string;
   invoiceNumber?: string;
+  scheduleDate?: string;
 }) {
   let query = `
     SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.reason, a.note, a.status, a.cancellationreason,
@@ -648,6 +649,11 @@ export async function getAllAppointments(filters?: {
   if (filters?.invoiceNumber && filters.invoiceNumber.trim()) {
     where.push('i.invoice_number LIKE :invoiceNumber');
     params.invoiceNumber = `%${filters.invoiceNumber}%`;
+  }
+
+  if (filters?.scheduleDate && filters.scheduleDate.trim()) {
+    where.push('TRUNC(a.schedule) = TO_DATE(:scheduleDate, \'YYYY-MM-DD\')');
+    params.scheduleDate = filters.scheduleDate;
   }
 
   if (where.length > 0) {
