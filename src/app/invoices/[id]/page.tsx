@@ -18,6 +18,7 @@ import {
 import { Invoice } from '@/lib/types';
 import Button from '@/components/buttons/Button';
 import { DOMAIN } from '@/lib/constants';
+import { toastError } from '@/lib/toast';
 
 export default function InvoiceViewPage() {
   const params = useParams<{ id: string }>();
@@ -103,7 +104,7 @@ export default function InvoiceViewPage() {
       setInvoice(updatedInvoice);
       setEditingPayment(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update payment');
+      toastError(err instanceof Error ? err.message : 'Failed to update payment');
     }
   };
 
@@ -128,7 +129,7 @@ export default function InvoiceViewPage() {
 
       router.push('/invoices');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete invoice');
+      toastError(err instanceof Error ? err.message : 'Failed to delete invoice');
     }
   };
 

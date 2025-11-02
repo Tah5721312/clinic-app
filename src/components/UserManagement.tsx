@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Edit, Trash2, Search, RotateCcw, Users, Shield } from 'lucide-react';
 import ButtonLink from '@/components/links/ButtonLink';
 import { DOMAIN } from '@/lib/constants';
+import { toastError, toastSuccess } from '@/lib/toast';
 
 interface Permission {
   SUBJECT: string;
@@ -106,13 +107,13 @@ export default function UserManagement() {
         if (response.ok) {
           setUsers(users.filter(u => u.USER_ID !== userId));
           setFilteredUsers(filteredUsers.filter(u => u.USER_ID !== userId));
-          alert('تم حذف المستخدم بنجاح');
+          toastSuccess('تم حذف المستخدم بنجاح');
         } else {
-          alert('فشل في حذف المستخدم');
+          toastError('فشل في حذف المستخدم');
         }
       } catch (error) {
         console.error('Error deleting user:', error);
-        alert('حدث خطأ أثناء حذف المستخدم');
+        toastError('حدث خطأ أثناء حذف المستخدم');
       }
     }
   };
@@ -148,13 +149,13 @@ export default function UserManagement() {
         setOriginalUserId(updatedUser.USER_ID);
         
         setIsEditModalOpen(false);
-        alert('تم تحديث المستخدم بنجاح');
+        toastSuccess('تم تحديث المستخدم بنجاح');
       } else {
-        alert('فشل في تحديث المستخدم');
+        toastError('فشل في تحديث المستخدم');
       }
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('حدث خطأ أثناء تحديث المستخدم');
+      toastError('حدث خطأ أثناء تحديث المستخدم');
     }
   };
 

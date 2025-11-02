@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { toastError } from '@/lib/toast';
 
 import { Appointment } from '@/lib/types';
 import { useAppointmentsWithFilters, useDoctors, useSpecialties } from '@/hooks/useApiData';
@@ -121,7 +122,7 @@ export default function AppointmentsPage() {
       // Refetch appointments after deletion
       refetch();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete appointment');
+      toastError(err instanceof Error ? err.message : 'Failed to delete appointment');
     }
   };
 

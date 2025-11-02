@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { Invoice } from '@/lib/types';
 import Button from '@/components/buttons/Button';
 import { DOMAIN } from '@/lib/constants';
+import { toastError } from '@/lib/toast';
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -129,7 +130,7 @@ export default function InvoiceTable({
       setPaymentData({ paid_amount: 0, payment_method: '' });
     } catch (error) {
       console.error('Error updating payment:', error);
-      alert('Failed to update payment. Please try again.');
+      toastError('Failed to update payment. Please try again.');
     }
   };
 

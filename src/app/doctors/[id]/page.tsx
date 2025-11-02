@@ -9,6 +9,7 @@ import { Camera, X, Upload, Trash2, Edit, DollarSign, CheckCircle, XCircle, Cred
 import { DOMAIN } from '@/lib/constants';
 import { Can } from '@/components/Can';
 import DoctorScheduleManager from '@/components/DoctorScheduleManager';
+import { toastError, toastSuccess, toastWarning } from '@/lib/toast';
 
 // Image Edit Modal Component
 interface ImageEditModalProps {
@@ -309,11 +310,11 @@ export default function DoctorDetailPage() {
       setDoctor(prev => prev ? { ...prev, IMAGE: newImagePath } : null);
       
       // Show success message
-      alert('تم تحديث الصورة بنجاح!');
+      toastSuccess('تم تحديث الصورة بنجاح!');
       
     } catch (error) {
       console.error('Error updating image:', error);
-      alert('حدث خطأ أثناء تحديث الصورة');
+      toastError('حدث خطأ أثناء تحديث الصورة');
     }
   };
 
@@ -330,7 +331,7 @@ export default function DoctorDetailPage() {
       
       // Check if deletion was blocked due to constraints
       if (data.cannotDelete) {
-        alert(data.message); // Show constraint message in modal
+        toastWarning(data.message); // Show constraint message in modal
         return; // Exit without error
       }
       
@@ -338,12 +339,12 @@ export default function DoctorDetailPage() {
         throw new Error(data.message || 'Failed to delete doctor');
       }
       
-      alert('تم حذف الطبيب بنجاح');
+      toastSuccess('تم حذف الطبيب بنجاح');
       router.push('/doctors');
       
     } catch (err: any) {
       console.error('Error deleting doctor:', err);
-      alert('حدث خطأ أثناء حذف الطبيب');
+      toastError('حدث خطأ أثناء حذف الطبيب');
     }
   };
 
@@ -364,11 +365,11 @@ export default function DoctorDetailPage() {
       
       // Remove appointment from local state
       setAppointments(prev => prev.filter(apt => apt.APPOINTMENT_ID !== appointmentId));
-      alert('تم حذف الموعد بنجاح');
+      toastSuccess('تم حذف الموعد بنجاح');
       
     } catch (error) {
       console.error('Error deleting appointment:', error);
-      alert('حدث خطأ أثناء حذف الموعد');
+      toastError('حدث خطأ أثناء حذف الموعد');
     } finally {
       setDeletingAppointment(null);
     }

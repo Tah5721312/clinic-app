@@ -6,6 +6,7 @@ import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon,
 import { Doctor } from '@/lib/types';
 import { useSpecialties } from '@/hooks/useApiData';
 import { DOMAIN } from '@/lib/constants';
+import { toastSuccess } from '@/lib/toast';
 
 
 export default function EditDoctorPage() {
@@ -139,7 +140,7 @@ export default function EditDoctorPage() {
 
       if (response.ok) {
         // نجح التحديث
-        alert('تم تحديث بيانات الطبيب بنجاح!');
+        toastSuccess('تم تحديث بيانات الطبيب بنجاح!');
         router.push('/doctors');
       } else {
         // هناك خطأ

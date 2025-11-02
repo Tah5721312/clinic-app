@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Can } from '@/components/Can';
 import { Actions, Subjects } from '@/lib/ability';
 import ThemeToggle from '@/components/ThemeToggle';
+import GlobalSearch from '@/components/GlobalSearch';
 
 
 
@@ -37,11 +38,16 @@ export default function Navigation() {
         <div className='flex justify-between items-center py-4'>
           <h1 className='text-lg md:text-xl font-bold'>
             <Link href={'/'} className="hover:opacity-80 transition-opacity">
-              Medical Clinic Management System
+              Medical Clinic
             </Link>
           </h1>
 
           <div className='flex items-center gap-3'>
+            {/* Global Search */}
+            <div className="hidden md:block">
+              <GlobalSearch />
+            </div>
+
             {/* Desktop menu */}
             <div className='hidden md:flex items-center space-x-4 space-x-reverse'>
               {commonItems.map((item) => (
@@ -121,6 +127,11 @@ export default function Navigation() {
             {/* Theme Toggle - Mobile (visible on small screens) */}
             <div className="md:hidden">
               <ThemeToggle />
+            </div>
+
+            {/* Global Search - Mobile */}
+            <div className="md:hidden">
+              <GlobalSearch />
             </div>
 
             {/* Mobile hamburger */}

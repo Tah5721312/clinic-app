@@ -158,6 +158,40 @@
   }
 }
 
+/* Toast Notifications - Dark Mode Support */
+.custom-toast-container {
+  z-index: 9999;
+}
+
+.dark .custom-toast-container .Toastify__toast {
+  background: #1f2937;
+  color: #f3f4f6;
+}
+
+.dark .custom-toast-container .Toastify__toast--success {
+  background: #065f46;
+  color: #d1fae5;
+}
+
+.dark .custom-toast-container .Toastify__toast--error {
+  background: #7f1d1d;
+  color: #fee2e2;
+}
+
+.dark .custom-toast-container .Toastify__toast--warning {
+  background: #78350f;
+  color: #fef3c7;
+}
+
+.dark .custom-toast-container .Toastify__toast--info {
+  background: #1e3a8a;
+  color: #dbeafe;
+}
+
+.dark .custom-toast-container .Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 @layer utilities {
   .animated-underline {
     background-image: linear-gradient(#33333300, #33333300),

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, User, Mail, Phone, Stethoscope, Award, Calendar, ImageIcon, FileText, Save, ArrowLeft, Camera, X, Upload } from 'lucide-react';
 import { useSpecialties } from '@/hooks/useApiData';
 import { DOMAIN } from '@/lib/constants';
+import { toastSuccess } from '@/lib/toast';
 
 // File Path Input Component
 interface FilePathInputProps {
@@ -198,7 +199,7 @@ export default function AddDoctorPage() {
       const result = await response.json();
 
       if (response.ok) {
-        alert('تم إضافة الطبيب بنجاح!');
+        toastSuccess('تم إضافة الطبيب بنجاح!');
         router.push('/doctors');
       } else {
         if (result.error === 'Duplicate entry') {

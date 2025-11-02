@@ -19,6 +19,7 @@ import {
 import { Invoice } from '@/lib/types';
 import Button from '@/components/buttons/Button';
 import { DOMAIN } from '@/lib/constants';
+import { toastError, toastWarning } from '@/lib/toast';
 
 interface InvoiceDisplayProps {
   invoiceId: string;
@@ -349,7 +350,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
         // Desktop behavior
         const printWindow = window.open('', '_blank');
         if (!printWindow) {
-          alert('Please allow popups for this site to print');
+          toastWarning('Please allow popups for this site to print');
           return;
         }
 
@@ -364,7 +365,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
       }
     } catch (error) {
       console.error('Error generating print:', error);
-      alert('Error generating print. Please try again.');
+      toastError('Error generating print. Please try again.');
     }
   };
 
@@ -373,7 +374,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
       // Create a new window for PDF generation
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
-        alert('Please allow popups for this site to download PDF');
+        toastWarning('Please allow popups for this site to download PDF');
         return;
       }
 
@@ -425,7 +426,7 @@ export default function InvoiceDisplay({ invoiceId }: InvoiceDisplayProps) {
       printWindow.document.close();
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      toastError('Error generating PDF. Please try again.');
     }
   };
 

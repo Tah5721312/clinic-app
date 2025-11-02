@@ -18,6 +18,7 @@ import { Invoice, InvoiceFilters, Doctor } from '@/lib/types';
 import InvoiceTable from '@/components/InvoiceTable';
 import InvoiceForm from '@/components/InvoiceForm';
 import Button from '@/components/buttons/Button';
+import { toastError } from '@/lib/toast';
 import { DOMAIN } from '@/lib/constants';
 import { useDoctors, useSpecialties } from '@/hooks/useApiData';
 
@@ -163,7 +164,7 @@ export default function InvoicesPage() {
       // Remove the invoice from the list
       setInvoices((prev: Invoice[]) => prev.filter((inv) => inv.INVOICE_ID !== invoiceId));
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete invoice');
+      toastError(err instanceof Error ? err.message : 'Failed to delete invoice');
     }
   };
 
@@ -211,7 +212,7 @@ export default function InvoicesPage() {
         )
       );
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update payment');
+      toastError(err instanceof Error ? err.message : 'Failed to update payment');
     }
   };
 
