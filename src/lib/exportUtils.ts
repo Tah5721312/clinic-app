@@ -1,5 +1,4 @@
 import { jsPDF } from 'jspdf';
-// @ts-ignore - jspdf-autotable doesn't have type definitions
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
