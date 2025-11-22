@@ -1,6 +1,9 @@
 // app/api/patients/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getPatientById, updatePatient, deletePatient } from '@/lib/db_utils';
+import { logAuditEvent } from '@/lib/auditLogger';
+import { getClientIP } from '@/lib/rateLimit';
+import { auth } from '@/auth';
 
 interface Params {
   params: Promise<{
@@ -34,8 +37,12 @@ export async function GET(request: NextRequest, { params }: Params) {
 // PUT - تحديث مريض// 
 
 // PUT - تحديث مريض - نسخة محسنة مع التحقق من الأخطاء
-
 export async function PUT(request: NextRequest, { params }: Params) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -83,11 +90,35 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const rowsAffected = await updatePatient(Number(id), cleanedBody);
 
     if (rowsAffected === 0) {
+      // Log failure
+      await logAuditEvent({
+        user_id: userId,
+        action: 'update',
+        resource: 'Patient',
+        resource_id: Number(id),
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'No rows were updated',
+      });
+
       return NextResponse.json({
         error: 'No rows were updated',
         details: 'Patient may not exist or no changes detected'
       }, { status: 404 });
     }
+
+    // Log successful update
+    await logAuditEvent({
+      user_id: userId,
+      action: 'update',
+      resource: 'Patient',
+      resource_id: Number(id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Updated patient: ${Object.keys(cleanedBody).join(', ')}`,
+    });
 
     return NextResponse.json({
       message: 'Patient updated successfully',
@@ -96,23 +127,30 @@ export async function PUT(request: NextRequest, { params }: Params) {
     });
 
   } catch (error) {
-    console.error('Error updating patient:', error);
-
-    let errorMessage = 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     let statusCode = 500;
 
-    if (error instanceof Error) {
-      errorMessage = error.message;
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'update',
+      resource: 'Patient',
+      resource_id: Number((await params).id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
 
+    console.error('Error updating patient:', error);
+
+    if (error instanceof Error) {
       // معالجة أخطاء Oracle المحددة
       if (error.message.includes('ORA-00904')) {
-        errorMessage = 'Invalid column name in database query';
         statusCode = 400;
       } else if (error.message.includes('ORA-00001')) {
-        errorMessage = 'Duplicate value for unique field';
         statusCode = 409;
       } else if (error.message.includes('ORA-01400')) {
-        errorMessage = 'Required field cannot be null';
         statusCode = 400;
       }
     }
@@ -132,19 +170,52 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 
-// تغيير دالة DELETE لتصبح مثل دالة الأطباء تماماً
+// DELETE - حذف مريض
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const { id } = await params;
+    const patientId = Number(id);
 
-    const rowsAffected = await deletePatient(Number(id));
+    // Get patient info before deletion
+    const patient = await getPatientById(patientId);
+
+    const rowsAffected = await deletePatient(patientId);
 
     if (rowsAffected === 0) {
+      // Log failure
+      await logAuditEvent({
+        user_id: userId,
+        action: 'delete',
+        resource: 'Patient',
+        resource_id: patientId,
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Patient not found',
+      });
+
       return NextResponse.json(
         { error: 'Patient not found' },
         { status: 404 }
       );
     }
+
+    // Log successful deletion
+    await logAuditEvent({
+      user_id: userId,
+      action: 'delete',
+      resource: 'Patient',
+      resource_id: patientId,
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Deleted patient: ${patient?.NAME || patientId}`,
+    });
 
     return NextResponse.json({
       success: true,
@@ -152,6 +223,22 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     });
 
   } catch (error: any) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'delete',
+      resource: 'Patient',
+      resource_id: Number((await params).id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: error?.errorNum === 2292 
+        ? 'Cannot delete patient with associated appointments'
+        : errorMessage,
+    });
+
     console.error('Error deleting patient:', error);
 
     // Handle Foreign Key Constraint Error (Oracle error 2292)
@@ -162,7 +249,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
           cannotDelete: true,
           message: 'لا يمكن حذف المريض قبل حذف أو نقل المواعيد المرتبطة به'
         },
-        { status: 200 } // Return 200 instead of error status
+        { status: 200 }
       );
     }
 

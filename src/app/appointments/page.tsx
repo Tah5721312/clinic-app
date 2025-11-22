@@ -15,6 +15,7 @@ import { exportAppointmentsToPDF, exportAppointmentsToExcel } from '@/lib/export
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import ButtonLink from '@/components/links/ButtonLink';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { TableSkeleton } from '@/components/LoadingSkeleton';
 
 export default function AppointmentsPage() {
   const router = useRouter();
@@ -190,11 +191,17 @@ export default function AppointmentsPage() {
     }
   };
 
-  if (loading) {
+  if (loading && !appointments) {
     return (
-      <div className='flex justify-center items-center h-64'>
-        <LoadingSpinner size='lg' text='Loading appointments...' />
-      </div>
+      <ErrorBoundary>
+        <div className='space-y-6'>
+          <div>
+            <h1 className='text-3xl font-bold '>المواعيد</h1>
+            <p className=' mt-1'>جاري تحميل المواعيد...</p>
+          </div>
+          <TableSkeleton rows={8} />
+        </div>
+      </ErrorBoundary>
     );
   }
 

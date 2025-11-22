@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllAppointments, createAppointment, getPatientAppointments, getDoctorIdByUserEmail, getPatientIdByUserEmail } from '@/lib/db_utils';
 import { auth } from '@/auth';
+import { logAuditEvent } from '@/lib/auditLogger';
+import { getClientIP } from '@/lib/rateLimit';
 
 // GET - جلب جميع المواعيد أو مواعيد طبيب/مريض معين
 export async function GET(request: NextRequest) {
@@ -76,6 +78,11 @@ export async function GET(request: NextRequest) {
 
 // POST - إنشاء موعد جديد
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const body = await request.json();
 
@@ -90,6 +97,17 @@ export async function POST(request: NextRequest) {
     };
 
     if (!result.outBinds?.id || result.outBinds.id.length === 0) {
+      // Log failure
+      await logAuditEvent({
+        user_id: userId,
+        action: 'create',
+        resource: 'Appointment',
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Invalid response from database: missing ID',
+      });
+
       return NextResponse.json(
         { error: 'Invalid response from database: missing ID' },
         { status: 500 }
@@ -98,16 +116,40 @@ export async function POST(request: NextRequest) {
 
     const id = result.outBinds.id[0];
 
+    // Log successful creation
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Appointment',
+      resource_id: Number(id), // Ensure it's a number
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Created appointment for patient ${body.patientId || 'unknown'} with doctor ${body.doctorId || 'unknown'}`,
+    });
+
     return NextResponse.json(
       { message: 'Appointment created successfully', id },
       { status: 201 }
     );
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Appointment',
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
+
     console.error('Error creating appointment:', error);
     return NextResponse.json(
       { error: 'Failed to create appointment' },
       { status: 500 }
     );
   }
-
 }

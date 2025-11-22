@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllPatients, createPatient, getPatientIdByUserEmail } from '@/lib/db_utils';
 import { auth } from '@/auth';
+import { logAuditEvent } from '@/lib/auditLogger';
+import { getClientIP } from '@/lib/rateLimit';
 
 // GET - جلب جميع المرضى
 export async function GET(request: NextRequest) {
@@ -61,6 +63,11 @@ export async function GET(request: NextRequest) {
 // POST - إضافة مريض جديد (مصحح)
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const body = await request.json();
     console.log('بيانات المريض المستلمة:', body);
@@ -74,6 +81,18 @@ export async function POST(request: NextRequest) {
 
     const id = await createPatient(body);
 
+    // Log successful creation
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Patient',
+      resource_id: Number(id), // Ensure it's a number
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Created patient: ${body.name || body.NAME || 'unknown'}`,
+    });
+
     return NextResponse.json(
       {
         message: 'تم إضافة المريض بنجاح',
@@ -82,11 +101,24 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Patient',
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
+
     console.error('خطأ في إضافة المريض:', error);
     return NextResponse.json(
       {
         error: 'فشل في إضافة المريض',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: errorMessage
       },
       { status: 500 }
     );

@@ -1,7 +1,15 @@
 export const siteConfig = {
-  title: 'Next.js + Tailwind CSS + TypeScript Starter',
+  title: 'Medical Clinic Management System',
   description:
-    'A starter for Next.js, Tailwind CSS, and TypeScript with Absolute Import, Seo, Link component, pre-configured with Husky',
+    'Comprehensive medical clinic management system for managing patients, doctors, appointments, and invoices',
   /** Without additional '/' on the end, e.g. https://theodorusclarence.com */
-  url: 'https://tsnext-tw.thcl.dev',
+  url: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+  author: 'Mohamed Abdelftah',
+  keywords: [
+    'medical clinic',
+    'clinic management',
+    'patient management',
+    'appointment scheduling',
+    'healthcare',
+  ],
 };

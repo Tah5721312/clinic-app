@@ -6,6 +6,8 @@ import {
   getMonthlyRevenue,
 } from '@/lib/db_utils';
 import { auth } from '@/auth';
+import { logAuditEvent } from '@/lib/auditLogger';
+import { getClientIP } from '@/lib/rateLimit';
 
 // GET - جلب جميع الفواتير
 export async function GET(request: NextRequest) {
@@ -67,15 +69,29 @@ export async function GET(request: NextRequest) {
 
 // POST - إضافة فاتورة جديدة
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const body = await request.json();
     console.log('بيانات الفاتورة المستلمة:', body);
 
-    // Get current user session
-    const session = await auth();
-    const createdBy = session?.user?.id !== undefined ? Number(session.user.id) : undefined;
-
+    const createdBy = userId !== undefined ? Number(userId) : undefined;
     const invoiceId = await createInvoice(body, createdBy);
+
+    // Log successful creation
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Invoice',
+      resource_id: Number(invoiceId),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Created invoice for patient ${body.patient_id || 'unknown'}`,
+    });
 
     return NextResponse.json(
       {
@@ -85,11 +101,24 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Invoice',
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
+
     console.error('خطأ في إضافة الفاتورة:', error);
     return NextResponse.json(
       {
         error: 'فشل في إضافة الفاتورة',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: errorMessage,
       },
       { status: 500 }
     );

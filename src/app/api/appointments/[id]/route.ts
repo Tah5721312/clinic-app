@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAppointmentById, updateAppointment, deleteAppointment, updateAppointmentStatus } from '@/lib/db_utils';
 import { auth } from '@/auth';
+import { logAuditEvent } from '@/lib/auditLogger';
+import { getClientIP } from '@/lib/rateLimit';
 
 interface Params {
   params: Promise<{
@@ -36,6 +38,11 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 // PUT - تحديث موعد
 export async function PUT(request: NextRequest, { params }: Params) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     // ✅ Await params per Next.js requirement
     const { id } = await params;
@@ -124,14 +131,52 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const rowsAffected = await updateAppointment(Number(id), updateData);
 
     if (rowsAffected === 0) {
+      // Log failure - appointment not found
+      await logAuditEvent({
+        user_id: userId,
+        action: 'update',
+        resource: 'Appointment',
+        resource_id: Number(id),
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Appointment not found',
+      });
+
       return NextResponse.json(
         { error: 'Appointment not found' },
         { status: 404 }
       );
     }
 
+    // Log successful update
+    await logAuditEvent({
+      user_id: userId,
+      action: 'update',
+      resource: 'Appointment',
+      resource_id: Number(id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Updated appointment: ${Object.keys(updateData).join(', ')}`,
+    });
+
     return NextResponse.json({ message: 'Appointment updated successfully' });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'update',
+      resource: 'Appointment',
+      resource_id: Number((await params).id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
+
     console.error('Error updating appointment:', error);
     return NextResponse.json(
       { error: 'Failed to update appointment' },
@@ -221,6 +266,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
 // DELETE - حذف موعد
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const { id } = await params;
     const appointmentId = Number(id);
@@ -229,6 +279,18 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const currentAppointment = await getAppointmentById(appointmentId);
     
     if (!currentAppointment) {
+      // Log failure - appointment not found
+      await logAuditEvent({
+        user_id: userId,
+        action: 'delete',
+        resource: 'Appointment',
+        resource_id: appointmentId,
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Appointment not found',
+      });
+
       return NextResponse.json(
         { error: 'Appointment not found' },
         { status: 404 }
@@ -236,7 +298,6 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     }
 
     // Get session to check if user is super admin
-    const session = await auth();
     const isSuperAdmin = session?.user?.isAdmin || (session?.user as any)?.roleId === 211;
 
     // Check if appointment can be deleted
@@ -246,6 +307,18 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       (currentAppointment.STATUS === 'pending' && (currentAppointment.PAYMENT_STATUS || 'unpaid') === 'unpaid');
 
     if (!canDelete) {
+      // Log failure - permission denied
+      await logAuditEvent({
+        user_id: userId,
+        action: 'delete',
+        resource: 'Appointment',
+        resource_id: appointmentId,
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Cannot delete this appointment. Only cancelled appointments or unpaid pending appointments can be deleted.',
+      });
+
       return NextResponse.json(
         { error: 'Cannot delete this appointment. Only cancelled appointments or unpaid pending appointments can be deleted.' },
         { status: 403 }
@@ -255,14 +328,52 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     const rowsAffected = await deleteAppointment(appointmentId);
 
     if (rowsAffected === 0) {
+      // Log failure - deletion failed
+      await logAuditEvent({
+        user_id: userId,
+        action: 'delete',
+        resource: 'Appointment',
+        resource_id: appointmentId,
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Deletion failed - no rows affected',
+      });
+
       return NextResponse.json(
         { error: 'Appointment not found' },
         { status: 404 }
       );
     }
 
+    // Log successful deletion
+    await logAuditEvent({
+      user_id: userId,
+      action: 'delete',
+      resource: 'Appointment',
+      resource_id: appointmentId,
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Deleted appointment for patient ${currentAppointment.PATIENT_ID} with doctor ${currentAppointment.DOCTOR_ID}`,
+    });
+
     return NextResponse.json({ message: 'Appointment deleted successfully' });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'delete',
+      resource: 'Appointment',
+      resource_id: Number((await params).id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
+
     console.error('Error deleting appointment:', error);
     return NextResponse.json(
       { error: 'Failed to delete appointment' },

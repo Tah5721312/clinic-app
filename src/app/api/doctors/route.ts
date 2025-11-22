@@ -1,6 +1,9 @@
 // app/api/doctors/route.ts - النسخة المحسنة
 import { NextRequest, NextResponse } from 'next/server';
 import { createDoctor, getAllDoctors } from '@/lib/db_utils';
+import { logAuditEvent } from '@/lib/auditLogger';
+import { getClientIP } from '@/lib/rateLimit';
+import { auth } from '@/auth';
 
 // GET - جلب جميع الأطباء
 export async function GET(request: NextRequest) {
@@ -21,6 +24,11 @@ export async function GET(request: NextRequest) {
 
 // POST - إضافة طبيب جديد
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const body = await request.json();
 
@@ -62,6 +70,18 @@ export async function POST(request: NextRequest) {
 
     const id = await createDoctor(body);
 
+    // Log successful creation
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Doctor',
+      resource_id: Number(id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Created doctor: ${body.name || 'unknown'}`,
+    });
+
     return NextResponse.json(
       {
         success: true,
@@ -73,9 +93,20 @@ export async function POST(request: NextRequest) {
     );
 
   } catch (error: unknown) {
-    console.error('Error adding doctor:', error);
-
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Doctor',
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
+
+    console.error('Error adding doctor:', error);
 
     // التحقق إذا كان الخطأ بسبب تكرار بيانات
     if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {

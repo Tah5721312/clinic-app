@@ -8,6 +8,7 @@ import { useRevenue } from '@/hooks/useRevenue';
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import RoleDebugger from '@/components/RoleDebugger';
 import UserManagement from '@/components/UserManagement';
+import { StatCardSkeleton } from '@/components/LoadingSkeleton';
 
  
 
@@ -106,29 +107,39 @@ export default function Dashboard({ userId, role }: DashboardProps) {
         </div>
 
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-          <StatCard
-            title='Total Patients'
-            value={Array.isArray(patients) ? patients.length : 0}
-            icon={<Users size={32} />}
-            color='bg-gradient-to-r from-blue-500 to-blue-600'
-            loading={patientsLoading}
-          />
+          {patientsLoading || doctorsLoading || appointmentsLoading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              <StatCard
+                title='Total Patients'
+                value={Array.isArray(patients) ? patients.length : 0}
+                icon={<Users size={32} />}
+                color='bg-gradient-to-r from-blue-500 to-blue-600'
+                loading={false}
+              />
 
-          <StatCard
-            title='Total Doctors'
-            value={Array.isArray(doctors) ? doctors.length : 0}
-            icon={<Stethoscope size={32} />}
-            color='bg-gradient-to-r from-green-500 to-green-600'
-            loading={doctorsLoading}
-          />
+              <StatCard
+                title='Total Doctors'
+                value={Array.isArray(doctors) ? doctors.length : 0}
+                icon={<Stethoscope size={32} />}
+                color='bg-gradient-to-r from-green-500 to-green-600'
+                loading={false}
+              />
 
-          <StatCard
-            title='Total Appointments'
-            value={Array.isArray(appointments) ? appointments.length : 0}
-            icon={<Calendar size={32} />}
-            color='bg-gradient-to-r from-purple-500 to-purple-600'
-            loading={appointmentsLoading}
-          />
+              <StatCard
+                title='Total Appointments'
+                value={Array.isArray(appointments) ? appointments.length : 0}
+                icon={<Calendar size={32} />}
+                color='bg-gradient-to-r from-purple-500 to-purple-600'
+                loading={false}
+              />
+            </>
+          )}
         </div>
 
         {/* Revenue Section */}
@@ -137,50 +148,62 @@ export default function Dashboard({ userId, role }: DashboardProps) {
             إحصائيات الإيرادات
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            <StatCard
-              title='إجمالي الإيرادات'
-              value={revenueData?.total || 0}
-              icon={<DollarSign size={32} />}
-              color='bg-gradient-to-r from-emerald-500 to-emerald-600'
-              loading={revenueLoading}
-              isCurrency={true}
-            />
+            {revenueLoading ? (
+              <>
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+                <StatCardSkeleton />
+              </>
+            ) : (
+              <>
+                <StatCard
+                  title='إجمالي الإيرادات'
+                  value={revenueData?.total || 0}
+                  icon={<DollarSign size={32} />}
+                  color='bg-gradient-to-r from-emerald-500 to-emerald-600'
+                  loading={false}
+                  isCurrency={true}
+                />
 
-            <StatCard
-              title='الإيرادات الشهرية'
-              value={revenueData?.monthly || 0}
-              icon={<TrendingUp size={32} />}
-              color='bg-gradient-to-r from-orange-500 to-orange-600'
-              loading={revenueLoading}
-              isCurrency={true}
-            />
+                <StatCard
+                  title='الإيرادات الشهرية'
+                  value={revenueData?.monthly || 0}
+                  icon={<TrendingUp size={32} />}
+                  color='bg-gradient-to-r from-orange-500 to-orange-600'
+                  loading={false}
+                  isCurrency={true}
+                />
 
-            <StatCard
-              title='الإيرادات اليومية'
-              value={revenueData?.daily || 0}
-              icon={<Clock size={32} />}
-              color='bg-gradient-to-r from-cyan-500 to-cyan-600'
-              loading={revenueLoading}
-              isCurrency={true}
-            />
+                <StatCard
+                  title='الإيرادات اليومية'
+                  value={revenueData?.daily || 0}
+                  icon={<Clock size={32} />}
+                  color='bg-gradient-to-r from-cyan-500 to-cyan-600'
+                  loading={false}
+                  isCurrency={true}
+                />
 
-            <StatCard
-              title='الإيرادات المدفوعة'
-              value={revenueData?.paid || 0}
-              icon={<DollarSign size={32} />}
-              color='bg-gradient-to-r from-green-500 to-green-600'
-              loading={revenueLoading}
-              isCurrency={true}
-            />
+                <StatCard
+                  title='الإيرادات المدفوعة'
+                  value={revenueData?.paid || 0}
+                  icon={<DollarSign size={32} />}
+                  color='bg-gradient-to-r from-green-500 to-green-600'
+                  loading={false}
+                  isCurrency={true}
+                />
 
-            <StatCard
-              title='الإيرادات المتبقية'
-              value={revenueData?.remaining || 0}
-              icon={<DollarSign size={32} />}
-              color='bg-gradient-to-r from-red-500 to-red-600'
-              loading={revenueLoading}
-              isCurrency={true}
-            />
+                <StatCard
+                  title='الإيرادات المتبقية'
+                  value={revenueData?.remaining || 0}
+                  icon={<DollarSign size={32} />}
+                  color='bg-gradient-to-r from-red-500 to-red-600'
+                  loading={false}
+                  isCurrency={true}
+                />
+              </>
+            )}
           </div>
         </div>
 

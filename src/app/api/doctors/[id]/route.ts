@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDoctorById, updateDoctor, deleteDoctor, deleteDoctorWithTransaction } from '@/lib/db_utils';
 import { executeQuery } from '@/lib/database';
+import { logAuditEvent } from '@/lib/auditLogger';
+import { getClientIP } from '@/lib/rateLimit';
+import { auth } from '@/auth';
 
 interface Params {
   params: Promise<{
@@ -34,9 +37,12 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 
 // PUT - تحديث طبيب
-
-
 export async function PUT(request: NextRequest, { params }: Params) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const { id } = await params;
     const body = await request.json();
@@ -71,11 +77,35 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const rowsAffected = await updateDoctor(Number(id), body);
 
     if (rowsAffected === 0) {
+      // Log failure
+      await logAuditEvent({
+        user_id: userId,
+        action: 'update',
+        resource: 'Doctor',
+        resource_id: Number(id),
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Doctor not found or no changes made',
+      });
+
       return NextResponse.json(
         { error: 'Doctor not found or no changes made' },
         { status: 404 }
       );
     }
+
+    // Log successful update
+    await logAuditEvent({
+      user_id: userId,
+      action: 'update',
+      resource: 'Doctor',
+      resource_id: Number(id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Updated doctor: ${Object.keys(body).join(', ')}`,
+    });
 
     return NextResponse.json({
       success: true,
@@ -84,9 +114,21 @@ export async function PUT(request: NextRequest, { params }: Params) {
     });
 
   } catch (error: unknown) {
-    console.error('Error updating doctor:', error);
-
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'update',
+      resource: 'Doctor',
+      resource_id: Number((await params).id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
+
+    console.error('Error updating doctor:', error);
 
     // التحقق إذا كان الخطأ بسبب تكرار بيانات
     if (errorMessage.includes('unique constraint') || errorMessage.includes('duplicate')) {
@@ -121,20 +163,51 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // DELETE - حذف طبيب
-// src/app/api/doctors/[id]/route.ts - Modified DELETE function
-
 export async function DELETE(request: NextRequest, { params }: Params) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
   try {
     const { id } = await params;
+    const doctorId = Number(id);
 
-    const rowsAffected = await deleteDoctor(Number(id));
+    // Get doctor info before deletion
+    const doctor = await getDoctorById(doctorId);
+
+    const rowsAffected = await deleteDoctor(doctorId);
 
     if (rowsAffected === 0) {
+      // Log failure
+      await logAuditEvent({
+        user_id: userId,
+        action: 'delete',
+        resource: 'Doctor',
+        resource_id: doctorId,
+        ip_address: ip,
+        user_agent: userAgent,
+        status: 'failure',
+        error_message: 'Doctor not found',
+      });
+
       return NextResponse.json(
         { error: 'Doctor not found' },
         { status: 404 }
       );
     }
+
+    // Log successful deletion
+    await logAuditEvent({
+      user_id: userId,
+      action: 'delete',
+      resource: 'Doctor',
+      resource_id: doctorId,
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Deleted doctor: ${doctor?.NAME || doctorId}`,
+    });
 
     return NextResponse.json({
       success: true,
@@ -142,17 +215,32 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     });
 
   } catch (error: any) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'delete',
+      resource: 'Doctor',
+      resource_id: Number((await params).id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: error?.errorNum === 2292 
+        ? 'Cannot delete doctor with associated appointments'
+        : errorMessage,
+    });
+
     console.error('Error deleting doctor:', error);
 
     if (error?.errorNum === 2292) {
-      // Return success response with constraint message instead of error
       return NextResponse.json(
         {
           success: false,
           cannotDelete: true,
           message: 'لا يمكن الحذف قبل حذف المواعيد المرتبطة بالدكتور'
         },
-        { status: 200 } // Return 200 instead of error status
+        { status: 200 }
       );
     }
 
