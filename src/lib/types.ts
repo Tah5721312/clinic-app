@@ -193,6 +193,57 @@ export interface TimeSlot {
   appointment_id?: number;
 }
 
+// Medical Records Types
+export interface MedicalRecord {
+  MEDICALRECORD_ID: number;
+  PATIENT_ID: number;
+  DOCTOR_ID: number;
+  DIAGNOSIS?: string | null;
+  SYMPTOMS?: string | null;
+  MEDICATIONS?: string | null;
+  TREATMENTPLAN?: string | null;
+  NOTES?: string | null;
+  BLOOD_PRESSURE?: string | null;
+  TEMPERATURE?: number | null;
+  IMAGES?: string | null;
+  HEIGHT?: number | null;
+  WEIGHT?: number | null;
+  CREATED_AT: Date;
+  UPDATED_AT: Date;
+  // Joined fields
+  PATIENT_NAME?: string;
+  DOCTOR_NAME?: string;
+  DOCTOR_SPECIALTY?: string;
+}
+
+export interface CreateMedicalRecordDto {
+  patient_id: number;
+  doctor_id: number;
+  diagnosis?: string;
+  symptoms?: string;
+  medications?: string;
+  treatmentplan?: string;
+  notes?: string;
+  blood_pressure?: string;
+  temperature?: number;
+  images?: string;
+  height?: number;
+  weight?: number;
+}
+
+export interface UpdateMedicalRecordDto {
+  diagnosis?: string;
+  symptoms?: string;
+  medications?: string;
+  treatmentplan?: string;
+  notes?: string;
+  blood_pressure?: string;
+  temperature?: number;
+  images?: string;
+  height?: number;
+  weight?: number;
+}
+
 
 
 // ************* users types *************

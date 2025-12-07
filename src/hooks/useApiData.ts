@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
 
-import { Appointment, Doctor, Patient } from '@/lib/types';
+import { Appointment, Doctor, Patient, MedicalRecord } from '@/lib/types';
 import { DOMAIN } from '@/lib/constants';
 
 interface UseApiDataOptions {
@@ -142,6 +142,17 @@ export function usePatients(params?: { doctorId?: number | string; specialty?: s
 
 export function useAppointments() {
   return useApiData<Appointment[]>(`${DOMAIN}/api/appointments`);
+}
+
+export function useMedicalRecords(params?: { patientId?: number | string; doctorId?: number | string }) {
+  const endpoint = useMemo(() => {
+    const qs = new URLSearchParams();
+    if (params?.patientId) qs.set('patientId', String(params.patientId));
+    if (params?.doctorId) qs.set('doctorId', String(params.doctorId));
+    return qs.toString() ? `${DOMAIN}/api/medical-records?${qs.toString()}` : `${DOMAIN}/api/medical-records`;
+  }, [params?.patientId, params?.doctorId]);
+  
+  return useApiData<MedicalRecord[]>(endpoint);
 }
 
 export function useAppointmentsWithFilters(params?: {

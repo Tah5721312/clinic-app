@@ -5,7 +5,7 @@ export type Role = 'superadmin' | 'admin' | 'doctor' | 'patient' | 'guest';
 
 // تعريف الصلاحيات
 export type Actions = 'manage' | 'read' | 'create' | 'update' | 'delete';
-export type Subjects = 'User' | 'Patient' | 'Doctor' | 'Appointment' | 'Dashboard' | 'INVOICES' | 'all';
+export type Subjects = 'User' | 'Patient' | 'Doctor' | 'Appointment' | 'Dashboard' | 'INVOICES' | 'MedicalRecord' | 'all';
 
 export type AppAbility = PureAbility<[Actions, Subjects]>;
 
@@ -37,6 +37,8 @@ export function defineAbilityRulesFor(role: Role): AbilityRule[] {
       rules.push({ action: 'manage', subject: 'Appointment' });
       // invoices
       rules.push({ action: 'manage', subject: 'INVOICES' });
+      // medical records
+      rules.push({ action: 'manage', subject: 'MedicalRecord' });
       break;
 
     case 'doctor':
@@ -49,6 +51,11 @@ export function defineAbilityRulesFor(role: Role): AbilityRule[] {
       rules.push({ action: 'create', subject: 'Appointment' });
       rules.push({ action: 'read', subject: 'Dashboard' }); // إضافة صلاحية قراءة Dashboard للطبيب
       rules.push({ action: 'read', subject: 'INVOICES' });
+      // medical records - الطبيب يستطيع إدارة السجلات التي أنشأها
+      rules.push({ action: 'read', subject: 'MedicalRecord' });
+      rules.push({ action: 'create', subject: 'MedicalRecord' });
+      rules.push({ action: 'update', subject: 'MedicalRecord' });
+      rules.push({ action: 'delete', subject: 'MedicalRecord' });
       break;
 
     case 'patient':
@@ -57,6 +64,8 @@ export function defineAbilityRulesFor(role: Role): AbilityRule[] {
       rules.push({ action: 'read', subject: 'Appointment' });
       rules.push({ action: 'create', subject: 'Appointment' });
       rules.push({ action: 'read', subject: 'INVOICES' });
+      // medical records - المريض يستطيع قراءة سجلاته فقط
+      rules.push({ action: 'read', subject: 'MedicalRecord' });
       break;
 
     case 'guest':

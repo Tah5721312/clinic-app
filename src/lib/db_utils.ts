@@ -2,7 +2,7 @@ import oracledb from 'oracledb';
 
 // دوال مساعدة للتعامل مع الجداول مباشرة
 import { executeQuery, executeReturningQuery, getConnection } from '@/lib/database';
-import { Patient, DoctorSchedule, CreateScheduleDto, UpdateScheduleDto, TimeSlot, Invoice, CreateInvoiceDto, MonthlyRevenueRow } from '@/lib/types';
+import { Patient, DoctorSchedule, CreateScheduleDto, UpdateScheduleDto, TimeSlot, Invoice, CreateInvoiceDto, MonthlyRevenueRow, MedicalRecord, CreateMedicalRecordDto, UpdateMedicalRecordDto } from '@/lib/types';
 
 /**
  * جلب جميع التخصصات من جدول SPECIALTIES
@@ -2315,4 +2315,299 @@ export async function isTimeSlotAvailable(doctorId: number, date: Date, time: st
   }
 
   return appointmentResult.rows[0].APPOINTMENT_COUNT === 0;
+}
+
+/**
+ * ============ Medical Records CRUD ============
+ */
+
+/**
+ * جلب جميع السجلات الطبية مع الصلاحيات
+ * - الدكتور: يرى فقط السجلات التي أنشأها
+ * - المريض: يرى فقط سجلاته
+ * - الأدمن: يرى جميع السجلات
+ */
+export async function getAllMedicalRecords(filters?: {
+  patientId?: number;
+  doctorId?: number;
+  currentUserId?: number;
+  userRole?: number; // 213 = Doctor, 216 = Patient, 212 = Admin
+  isAdmin?: boolean; // true for superadmin
+}) {
+  let query = `
+    SELECT 
+      mr.MEDICALRECORD_ID,
+      mr.PATIENT_ID,
+      mr.DOCTOR_ID,
+      mr.DIAGNOSIS,
+      mr.SYMPTOMS,
+      mr.MEDICATIONS,
+      mr.TREATMENTPLAN,
+      mr.NOTES,
+      mr.BLOOD_PRESSURE,
+      mr.TEMPERATURE,
+      mr.IMAGES,
+      mr.HEIGHT,
+      mr.WEIGHT,
+      mr.CREATED_AT,
+      mr.UPDATED_AT,
+      p.NAME AS PATIENT_NAME,
+      d.NAME AS DOCTOR_NAME,
+      d.SPECIALTY AS DOCTOR_SPECIALTY
+    FROM TAH57.MEDICALRECORDS mr
+    JOIN TAH57.PATIENTS p ON mr.PATIENT_ID = p.PATIENT_ID
+    JOIN TAH57.DOCTORS d ON mr.DOCTOR_ID = d.DOCTOR_ID
+  `;
+
+  const params: oracledb.BindParameters = {};
+  const where: string[] = [];
+
+  // تطبيق الصلاحيات
+  if (filters?.isAdmin) {
+    // السوبر أدمن: لا توجد قيود - يرى جميع السجلات
+  } else if (filters?.userRole === 213 && filters?.currentUserId) {
+    // الدكتور: يرى فقط السجلات التي أنشأها
+    where.push('mr.DOCTOR_ID = :currentUserId');
+    params.currentUserId = Number(filters.currentUserId);
+  } else if (filters?.userRole === 216) {
+    // المريض: يرى فقط سجلاته
+    // patientId يجب أن يكون موجوداً (يتم تمريره من API route)
+    if (filters.patientId) {
+      where.push('mr.PATIENT_ID = :patientId');
+      params.patientId = Number(filters.patientId);
+    } else {
+      // إذا لم يكن هناك patientId، لا نرجع أي سجلات
+      where.push('1 = 0'); // Always false condition
+    }
+  }
+  // الأدمن: لا توجد قيود
+
+  // Filters إضافية
+  if (filters?.patientId && filters.userRole !== 216) {
+    where.push('mr.PATIENT_ID = :patientId');
+    params.patientId = Number(filters.patientId);
+  }
+
+  if (filters?.doctorId && filters.userRole !== 213) {
+    where.push('mr.DOCTOR_ID = :doctorId');
+    params.doctorId = Number(filters.doctorId);
+  }
+
+  if (where.length > 0) {
+    query += ` WHERE ${where.join(' AND ')}`;
+  }
+
+  query += ' ORDER BY mr.CREATED_AT DESC';
+
+  return executeQuery<MedicalRecord>(query, params).then((result) => result.rows);
+}
+
+/**
+ * جلب سجل طبي محدد
+ */
+export async function getMedicalRecordById(id: number, currentUserId?: number, userRole?: number, isAdmin?: boolean) {
+  let query = `
+    SELECT 
+      mr.MEDICALRECORD_ID,
+      mr.PATIENT_ID,
+      mr.DOCTOR_ID,
+      mr.DIAGNOSIS,
+      mr.SYMPTOMS,
+      mr.MEDICATIONS,
+      mr.TREATMENTPLAN,
+      mr.NOTES,
+      mr.BLOOD_PRESSURE,
+      mr.TEMPERATURE,
+      mr.IMAGES,
+      mr.HEIGHT,
+      mr.WEIGHT,
+      mr.CREATED_AT,
+      mr.UPDATED_AT,
+      p.NAME AS PATIENT_NAME,
+      d.NAME AS DOCTOR_NAME,
+      d.SPECIALTY AS DOCTOR_SPECIALTY
+    FROM TAH57.MEDICALRECORDS mr
+    JOIN TAH57.PATIENTS p ON mr.PATIENT_ID = p.PATIENT_ID
+    JOIN TAH57.DOCTORS d ON mr.DOCTOR_ID = d.DOCTOR_ID
+    WHERE mr.MEDICALRECORD_ID = :id
+  `;
+
+  const params: oracledb.BindParameters = { id: Number(id) };
+
+  // تطبيق الصلاحيات
+  if (isAdmin) {
+    // السوبر أدمن: لا توجد قيود - يرى جميع السجلات
+  } else if (userRole === 213 && currentUserId) {
+    // الدكتور: يرى فقط السجلات التي أنشأها
+    query += ' AND mr.DOCTOR_ID = :currentUserId';
+    params.currentUserId = Number(currentUserId);
+  } else if (userRole === 216 && currentUserId) {
+    // المريض: يرى فقط سجلاته (يحتاج patient_id)
+    // سنتحقق من ذلك في API route
+  }
+
+  const result = await executeQuery<MedicalRecord>(query, params);
+  return result.rows[0] || null;
+}
+
+/**
+ * إضافة سجل طبي جديد
+ */
+export async function createMedicalRecord(record: CreateMedicalRecordDto) {
+  const result = await executeReturningQuery<{ medicalrecord_id: number }>(
+    `
+    INSERT INTO TAH57.MEDICALRECORDS (
+      PATIENT_ID, DOCTOR_ID, DIAGNOSIS, SYMPTOMS, MEDICATIONS,
+      TREATMENTPLAN, NOTES, BLOOD_PRESSURE, TEMPERATURE, IMAGES,
+      HEIGHT, WEIGHT
+    ) VALUES (
+      :patientId, :doctorId, :diagnosis, :symptoms, :medications,
+      :treatmentplan, :notes, :bloodPressure, :temperature, :images,
+      :height, :weight
+    ) RETURNING MEDICALRECORD_ID INTO :id
+    `,
+    {
+      patientId: record.patient_id,
+      doctorId: record.doctor_id,
+      diagnosis: record.diagnosis || null,
+      symptoms: record.symptoms || null,
+      medications: record.medications || null,
+      treatmentplan: record.treatmentplan || null,
+      notes: record.notes || null,
+      bloodPressure: record.blood_pressure || null,
+      temperature: record.temperature || null,
+      images: record.images || null,
+      height: record.height || null,
+      weight: record.weight || null,
+      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+    }
+  );
+
+  const outBinds = result.outBinds as { id: number[] } | undefined;
+  const newRecordId = outBinds?.id?.[0];
+
+  if (!newRecordId) {
+    throw new Error('Failed to get medical record ID after creation');
+  }
+
+  return newRecordId;
+}
+
+/**
+ * تحديث سجل طبي
+ */
+export async function updateMedicalRecord(
+  id: number,
+  record: UpdateMedicalRecordDto,
+  currentUserId?: number,
+  userRole?: number,
+  isAdmin?: boolean
+) {
+  // التحقق من الصلاحيات: فقط الدكتور الذي أنشأ السجل أو الأدمن/السوبر أدمن يمكنه التعديل
+  if (userRole === 213 && currentUserId && !isAdmin) {
+    const existingRecord = await executeQuery<{ DOCTOR_ID: number }>(
+      'SELECT DOCTOR_ID FROM TAH57.MEDICALRECORDS WHERE MEDICALRECORD_ID = :id',
+      { id }
+    );
+
+    if (existingRecord.rows.length === 0) {
+      throw new Error('Medical record not found');
+    }
+
+    if (existingRecord.rows[0].DOCTOR_ID !== Number(currentUserId)) {
+      throw new Error('Unauthorized: You can only update your own medical records');
+    }
+  }
+
+  const updates: string[] = [];
+  const params: oracledb.BindParameters = { id };
+
+  if (record.diagnosis !== undefined) {
+    updates.push('DIAGNOSIS = :diagnosis');
+    params.diagnosis = record.diagnosis || null;
+  }
+
+  if (record.symptoms !== undefined) {
+    updates.push('SYMPTOMS = :symptoms');
+    params.symptoms = record.symptoms || null;
+  }
+
+  if (record.medications !== undefined) {
+    updates.push('MEDICATIONS = :medications');
+    params.medications = record.medications || null;
+  }
+
+  if (record.treatmentplan !== undefined) {
+    updates.push('TREATMENTPLAN = :treatmentplan');
+    params.treatmentplan = record.treatmentplan || null;
+  }
+
+  if (record.notes !== undefined) {
+    updates.push('NOTES = :notes');
+    params.notes = record.notes || null;
+  }
+
+  if (record.blood_pressure !== undefined) {
+    updates.push('BLOOD_PRESSURE = :bloodPressure');
+    params.bloodPressure = record.blood_pressure || null;
+  }
+
+  if (record.temperature !== undefined) {
+    updates.push('TEMPERATURE = :temperature');
+    params.temperature = record.temperature || null;
+  }
+
+  if (record.images !== undefined) {
+    updates.push('IMAGES = :images');
+    params.images = record.images || null;
+  }
+
+  if (record.height !== undefined) {
+    updates.push('HEIGHT = :height');
+    params.height = record.height || null;
+  }
+
+  if (record.weight !== undefined) {
+    updates.push('WEIGHT = :weight');
+    params.weight = record.weight || null;
+  }
+
+  if (updates.length === 0) {
+    return;
+  }
+
+  await executeQuery(
+    `
+    UPDATE TAH57.MEDICALRECORDS
+    SET ${updates.join(', ')}
+    WHERE MEDICALRECORD_ID = :id
+    `,
+    params
+  );
+}
+
+/**
+ * حذف سجل طبي
+ */
+export async function deleteMedicalRecord(id: number, currentUserId?: number, userRole?: number, isAdmin?: boolean) {
+  // التحقق من الصلاحيات: فقط الدكتور الذي أنشأ السجل أو الأدمن/السوبر أدمن يمكنه الحذف
+  if (userRole === 213 && currentUserId && !isAdmin) {
+    const existingRecord = await executeQuery<{ DOCTOR_ID: number }>(
+      'SELECT DOCTOR_ID FROM TAH57.MEDICALRECORDS WHERE MEDICALRECORD_ID = :id',
+      { id }
+    );
+
+    if (existingRecord.rows.length === 0) {
+      throw new Error('Medical record not found');
+    }
+
+    if (existingRecord.rows[0].DOCTOR_ID !== Number(currentUserId)) {
+      throw new Error('Unauthorized: You can only delete your own medical records');
+    }
+  }
+
+  await executeQuery(
+    'DELETE FROM TAH57.MEDICALRECORDS WHERE MEDICALRECORD_ID = :id',
+    { id }
+  );
 }

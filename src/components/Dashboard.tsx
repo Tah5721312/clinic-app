@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Stethoscope, Users, DollarSign, TrendingUp, Clock, Settings } from 'lucide-react';
+import { Calendar, Stethoscope, Users, DollarSign, TrendingUp, Clock, Settings, FileText } from 'lucide-react';
 import { useState } from 'react';
 
 import { useAppointments, useDoctors, usePatients } from '@/hooks/useApiData';
@@ -254,6 +254,19 @@ export default function Dashboard({ userId, role }: DashboardProps) {
                 </h3>
                 <p className='text-sm card-title'>
                   Schedule and manage appointments
+                </p>
+              </div>
+            </a>
+
+            <a
+              href='/medical-records'
+              className='flex items-center p-4 card-border rounded-lg card-hover transition-colors'
+            >
+              <FileText className='text-indigo-500 mr-3' size={24} />
+              <div>
+                <h3 className='font-medium card-title'>Medical Records</h3>
+                <p className='text-sm card-title'>
+                  عرض وإدارة السجلات الطبية
                 </p>
               </div>
             </a>

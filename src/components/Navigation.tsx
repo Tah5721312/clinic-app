@@ -29,6 +29,7 @@ export default function Navigation() {
     { href: '/patients', label: 'Patients', permission: { do: 'read', on: 'Patient' } },
     { href: '/appointments', label: 'Appointments', permission: { do: 'read', on: 'Appointment' } },
     // { href: '/appointments/new', label: 'New Appointment', permission: { do: 'create', on: 'Appointment' } },
+    { href: '/medical-records', label: 'Medical Records', permission: { do: 'read', on: 'MedicalRecord' } },
     { href: '/invoices', label: 'Invoices', permission: { do: 'read', on: 'INVOICES' } },
   ];
 

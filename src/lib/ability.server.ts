@@ -20,6 +20,10 @@ const subjectMap: Record<string, Subjects> = {
   APPOINTMENTS: 'Appointment',
   APPOINTMENT: 'Appointment',
   DASHBOARD: 'Dashboard',
+  MEDICALRECORDS: 'MedicalRecord',
+  MEDICALRECORD: 'MedicalRecord',
+  INVOICES: 'INVOICES',
+  INVOICE: 'INVOICES',
 };
 
 const actionMap: Record<string, Actions> = {
