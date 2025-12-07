@@ -35,11 +35,11 @@ export function successResponse<T>(
 /**
  * Create an error response
  */
-export function errorResponse(
+export function errorResponse<T = unknown>(
   error: string | Error,
   status: number = 500,
   message?: string
-): NextResponse<ApiResponse> {
+): NextResponse<ApiResponse<T>> {
   const errorMessage = error instanceof Error ? error.message : error;
 
   return NextResponse.json(
@@ -105,6 +105,7 @@ export async function handleApiRoute<T>(
     return successResponse(result);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorToPass: string | Error = error instanceof Error ? error : errorMessage;
 
     // Log failed action
     await logAuditEvent({
@@ -135,7 +136,7 @@ export async function handleApiRoute<T>(
       status = 400;
     }
 
-    return errorResponse(error, status);
+    return errorResponse<T>(errorToPass, status);
   }
 }
 

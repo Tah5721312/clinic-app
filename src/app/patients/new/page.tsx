@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { DOMAIN } from '@/lib/constants';
-import { useDoctors, useSpecialties } from '@/hooks/useApiData';
 
 interface ApiError {
   error: string;
@@ -12,18 +12,17 @@ interface ApiError {
 
 export default function AddPatientPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [success, setSuccess] = useState(false);
   const [newPatientId, setNewPatientId] = useState<number | null>(null);
   
-  // Specialty and doctor filtering
-  const [selectedSpecialty, setSelectedSpecialty] = useState('');
-  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  // Check if user is a patient
+  const isPatient = (session?.user as any)?.roleId === 216;
+  const userEmail = (session?.user as any)?.email;
+  const userName = (session?.user as any)?.name;
   
-  // Fetch specialties and doctors
-  const { data: specialties, loading: specialtiesLoading, error: specialtiesError } = useSpecialties();
-  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -35,7 +34,6 @@ export default function AddPatientPage() {
     occupation: '',
     emergencyContactName: '',
     emergencyContactNumber: '',
-    primaryPhysician: '',
     insuranceProvider: '',
     insurancePolicyNumber: '',
     allergies: '',
@@ -48,6 +46,17 @@ export default function AddPatientPage() {
     treatmentConsent: false,
     disclosureConsent: false,
   });
+
+  // Auto-fill form data if user is a patient
+  useEffect(() => {
+    if (isPatient && session?.user) {
+      setFormData(prev => ({
+        ...prev,
+        name: userName || prev.name,
+        email: userEmail || prev.email,
+      }));
+    }
+  }, [isPatient, session, userName, userEmail]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -79,13 +88,29 @@ export default function AddPatientPage() {
         },
         body: JSON.stringify({
           ...formData,
-          primaryPhysician: selectedDoctorId || formData.primaryPhysician,
         }),
       });
       
       const responseData = await response.json();
       
       if (!response.ok) {
+        // If email already exists and we have existingPatientId, redirect to edit page
+        if (responseData.code === 'EMAIL_EXISTS' && responseData.existingPatientId) {
+          setError({
+            error: responseData.error || 'البريد الإلكتروني مستخدم بالفعل',
+            details: 'لديك بالفعل سجل مريض في النظام. سيتم توجيهك إلى صفحة تحديث بياناتك...'
+          });
+          // Redirect to edit page after 2 seconds
+          setTimeout(() => {
+            if (isPatient) {
+              window.location.href = `/patients/${responseData.existingPatientId}/edit`;
+            } else {
+              window.location.href = `/patients/${responseData.existingPatientId}`;
+            }
+          }, 2000);
+          setLoading(false);
+          return;
+        }
         throw new Error(responseData.details || responseData.error || 'فشل في إضافة المريض');
       }
       
@@ -103,7 +128,6 @@ export default function AddPatientPage() {
         occupation: '',
         emergencyContactName: '',
         emergencyContactNumber: '',
-        primaryPhysician: '',
         insuranceProvider: '',
         insurancePolicyNumber: '',
         allergies: '',
@@ -116,17 +140,18 @@ export default function AddPatientPage() {
         treatmentConsent: false,
         disclosureConsent: false,
       });
-      
-      // Reset specialty and doctor selections
-      setSelectedSpecialty('');
-      setSelectedDoctorId('');
 
-      // توجيه إلى صفحة المريض بعد 3 ثواني
+      // توجيه إلى صفحة المريض بعد 2 ثواني
       setTimeout(() => {
         if (responseData.id) {
-          router.push(`/patients/${responseData.id}`);
+          if (isPatient) {
+            // If patient added their own data, use window.location to force full page reload
+            window.location.href = '/patients';
+          } else {
+            router.push(`/patients/${responseData.id}`);
+          }
         }
-      }, 3000);
+      }, 2000);
     } catch (err) {
       setError({
         error: 'فشل في إضافة المريض',
@@ -139,7 +164,16 @@ export default function AddPatientPage() {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">إضافة مريض جديد</h1>
+      <h1 className="text-2xl font-bold mb-6">
+        {isPatient ? 'إضافة بياناتي الشخصية' : 'إضافة مريض جديد'}
+      </h1>
+      {isPatient && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded mb-4">
+          <p className="text-sm">
+            أنت تقوم بإضافة بياناتك الشخصية كـ مريض. يرجى ملء جميع الحقول المطلوبة.
+          </p>
+        </div>
+      )}
       
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -290,59 +324,6 @@ export default function AddPatientPage() {
               onChange={handleChange}
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
             />
-          </div>
-          
-          {/* معلومات الطبيب */}
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="selectedSpecialty">
-              تخصص الطبيب
-            </label>
-            <select
-              id="selectedSpecialty"
-              value={selectedSpecialty}
-              onChange={(e) => {
-                setSelectedSpecialty(e.target.value);
-                setSelectedDoctorId(''); // Reset doctor selection when specialty changes
-              }}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            >
-              <option value="">اختر التخصص</option>
-              {specialtiesLoading ? (
-                <option disabled>جاري التحميل...</option>
-              ) : specialtiesError ? (
-                <option disabled>خطأ في التحميل</option>
-              ) : specialties && specialties.length > 0 ? (
-                specialties.map((spec, index) => (
-                  <option key={spec || `specialty-${index}`} value={spec}>{spec}</option>
-                ))
-              ) : (
-                <option disabled>لا توجد تخصصات</option>
-              )}
-            </select>
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="selectedDoctorId">
-              الطبيب المعالج
-            </label>
-            <select
-              id="selectedDoctorId"
-              value={selectedDoctorId}
-              onChange={(e) => setSelectedDoctorId(e.target.value)}
-              disabled={!selectedSpecialty}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-              <option value="">اختر الطبيب</option>
-              {doctors && doctors.length > 0 ? (
-                doctors.map((doctor) => (
-                  <option key={doctor.DOCTOR_ID} value={doctor.DOCTOR_ID}>
-                    {doctor.NAME}
-                  </option>
-                ))
-              ) : (
-                <option disabled>لا توجد أطباء في هذا التخصص</option>
-              )}
-            </select>
           </div>
           
           {/* معلومات التأمين */}

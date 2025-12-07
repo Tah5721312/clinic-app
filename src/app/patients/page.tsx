@@ -1,12 +1,12 @@
 'use client';
 
-import { Plus, Stethoscope, Search, User } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { Plus, Search, User } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 import { Patient } from '@/lib/types';
-import { useDoctors, usePatients, useSpecialties } from '@/hooks/useApiData';
+import { usePatients } from '@/hooks/useApiData';
 
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import ButtonLink from '@/components/links/ButtonLink';
@@ -17,13 +17,11 @@ export default function PatientsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
-  const initialSpecialty = searchParams.get('specialty') || '';
-  const initialDoctorId = searchParams.get('doctorId') || '';
   const initialIdentificationNumber = searchParams.get('identificationNumber') || '';
+  const initialName = searchParams.get('name') || '';
 
-  const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty);
-  const [selectedDoctorId, setSelectedDoctorId] = useState(initialDoctorId);
   const [identificationNumber, setIdentificationNumber] = useState(initialIdentificationNumber);
+  const [patientName, setPatientName] = useState(initialName);
 
   // Determine user role and get their ID
   const currentUserId = (session?.user as any)?.id;
@@ -32,43 +30,23 @@ export default function PatientsPage() {
   const isPatient = (session?.user as any)?.roleId === 216;
   
   // For doctors, automatically filter by their own patients
-  const effectiveDoctorId = isDoctor ? currentUserId : (initialDoctorId || undefined);
+  const effectiveDoctorId = isDoctor ? currentUserId : undefined;
 
   const { data: patients, loading, error, refetch } = usePatients(
     isPatient 
       ? {} // For patients, don't pass any filters - backend will handle filtering
       : {
           doctorId: effectiveDoctorId,
-          specialty: initialSpecialty || undefined,
           identificationNumber: initialIdentificationNumber || undefined,
+          name: initialName || undefined,
         }
   );
-  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
-  const { data: specialties, loading: specialtiesLoading, error: specialtiesError } = useSpecialties();
-
-  // Debug logging
-  console.log('🔍 Frontend Debug:', {
-    roleId: (session?.user as any)?.roleId,
-    email: (session?.user as any)?.email,
-    isPatient: isPatient,
-    patientsCount: patients?.length || 0,
-    patients: patients?.map(p => ({ name: p.NAME, email: p.EMAIL }))
-  });
-  
-  console.log('🔍 Specialties Debug:', {
-    data: specialties,
-    loading: specialtiesLoading,
-    error: specialtiesError,
-    length: specialties?.length
-  });
 
   useEffect(() => {
-    const s = searchParams.get('specialty') || '';
-    const d = searchParams.get('doctorId') || '';
     const i = searchParams.get('identificationNumber') || '';
-    setSelectedSpecialty(s);
-    setSelectedDoctorId(d);
+    const n = searchParams.get('name') || '';
     setIdentificationNumber(i);
+    setPatientName(n);
   }, [searchParams]);
 
   if (loading) {
@@ -103,65 +81,22 @@ export default function PatientsPage() {
                 أنت تشاهد بياناتك الشخصية فقط
               </p>
             )}
-            {/* Debug Info */}
-            <div className='hidden sm:block text-xs card-text mt-2'>
-              Specialties: {specialties?.length || 0} | Loading: {specialtiesLoading ? 'Yes' : 'No'} | Error: {specialtiesError ? 'Yes' : 'No'}
-              {isDoctor && ` | Doctor ID: ${currentUserId}`}
-              {isPatient && ` | Patient ID: ${currentUserId}`}
-            </div>
           </div>
           <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
             <div className='grid grid-cols-2 gap-2 w-full sm:flex sm:items-center'>
-              {/* Only show specialty filter for admins */}
-              {!isDoctor && !isPatient && (
-                <div className='relative w-full sm:w-56'>
-                  <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
-                    <Stethoscope className='w-4 h-4' />
-                  </span>
-                  <select
-                    id='specialtyFilter'
-                    value={selectedSpecialty}
-                    onChange={(e) => {
-                      setSelectedSpecialty(e.target.value);
-                      setSelectedDoctorId('');
-                    }}
-                    className='w-full pl-3 pr-10  py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                  >
-                    <option value=''>اختر التخصص</option>
-                    {specialtiesLoading ? (
-                      <option disabled>جاري التحميل...</option>
-                    ) : specialtiesError ? (
-                      <option disabled>خطأ في التحميل</option>
-                    ) : specialties && specialties.length > 0 ? (
-                      specialties.map((spec, index) => (
-                        <option key={spec || `specialty-${index}`} value={spec}>{spec}</option>
-                      ))
-                    ) : (
-                      <option disabled>لا توجد تخصصات</option>
-                    )}
-                  </select>
-                </div>
-              )}
-              {/* Only show doctor filter for admins */}
-              {!isDoctor && !isPatient && (
-                <div className='relative w-full sm:w-56'>
+              {/* Search by patient name - show for non-patients */}
+              {!isPatient && (
+                <div className='relative w-full sm:w-64'>
                   <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
                     <User className='w-4 h-4' />
                   </span>
-                  <select
-                    id='doctorFilter'
-                    value={selectedDoctorId}
-                    onChange={(e) => setSelectedDoctorId(e.target.value)}
+                  <input
+                    type='text'
+                    placeholder='اسم المريض'
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
                     className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                    disabled={!selectedSpecialty}
-                  >
-                    <option value=''>اختر الطبيب</option>
-                    {(doctors || []).map((d) => (
-                      <option key={d.DOCTOR_ID} value={d.DOCTOR_ID}>
-                        {d.NAME}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               )}
               {/* Only show identification number filter for non-patients */}
@@ -183,10 +118,7 @@ export default function PatientsPage() {
                 <button
                   onClick={() => {
                     const sp = new URLSearchParams(Array.from(searchParams.entries()));
-                    if (!isDoctor) {
-                      if (selectedSpecialty) sp.set('specialty', selectedSpecialty); else sp.delete('specialty');
-                      if (selectedDoctorId) sp.set('doctorId', selectedDoctorId); else sp.delete('doctorId');
-                    }
+                    if (patientName && patientName.trim()) sp.set('name', patientName.trim()); else sp.delete('name');
                     if (identificationNumber && identificationNumber.trim()) sp.set('identificationNumber', identificationNumber.trim()); else sp.delete('identificationNumber');
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
@@ -198,17 +130,13 @@ export default function PatientsPage() {
                   <span>بحث</span>
                 </button>
               )}
-              {!isPatient && (identificationNumber || (!isDoctor && (selectedSpecialty || selectedDoctorId))) && (
+              {!isPatient && (patientName || identificationNumber) && (
                 <button
                   onClick={() => {
-                    setSelectedSpecialty('');
-                    setSelectedDoctorId('');
+                    setPatientName('');
                     setIdentificationNumber('');
                     const sp = new URLSearchParams(Array.from(searchParams.entries()));
-                    if (!isDoctor) {
-                      sp.delete('specialty');
-                      sp.delete('doctorId');
-                    }
+                    sp.delete('name');
                     sp.delete('identificationNumber');
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
@@ -248,11 +176,15 @@ export default function PatientsPage() {
             </h3>
             <p className='text-gray-600 mb-6'>
               {isPatient 
-                ? 'لم يتم العثور على سجل مريض مرتبط بحسابك. يرجى التواصل مع الإدارة لإضافة بياناتك الطبية.' 
+                ? 'لم يتم العثور على سجل مريض مرتبط بحسابك. يرجى إضافة بياناتك الشخصية للمتابعة.' 
                 : 'ابدأ بإضافة أول مريض إلى النظام.'
               }
             </p>
-            {!isPatient && (
+            {isPatient ? (
+              <ButtonLink href='/patients/new' variant='primary' leftIcon={Plus}>
+                إضافة بياناتي الشخصية
+              </ButtonLink>
+            ) : (
               <ButtonLink href='/patients/new' variant='primary' leftIcon={Plus}>
                 إضافة أول مريض
               </ButtonLink>

@@ -15,7 +15,6 @@ interface Patient {
   OCCUPATION: string;
   EMERGENCYCONTACTNAME: string;
   EMERGENCYCONTACTNUMBER: string;
-  PRIMARYPHYSICIAN: number;
   INSURANCEPROVIDER: string;
   INSURANCEPOLICYNUMBER: string;
   ALLERGIES: string;

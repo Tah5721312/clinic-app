@@ -455,11 +455,6 @@ export default function PatientDetailPage() {
                       <span className="font-medium">المهنة:</span> {patient.OCCUPATION}
                     </p>
                   )}
-                  {patient.PRIMARYPHYSICIANNAME && (
-                    <p className="text-gray-600 mb-2">
-                      <span className="font-medium">الطبيب المعالج:</span> {patient.PRIMARYPHYSICIANNAME}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>

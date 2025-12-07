@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const specialty = searchParams.get('specialty') || undefined;
-    const doctors = await getAllDoctors(specialty);
+    const name = searchParams.get('name') || undefined;
+    const doctors = await getAllDoctors(specialty, name);
     return NextResponse.json(doctors);
   } catch (error: unknown) {
     console.error('Error fetching doctors:', error);

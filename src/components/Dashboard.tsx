@@ -1,6 +1,7 @@
 'use client';
 
-import { Calendar, Stethoscope, Users, DollarSign, TrendingUp, Clock } from 'lucide-react';
+import { Calendar, Stethoscope, Users, DollarSign, TrendingUp, Clock, Settings } from 'lucide-react';
+import { useState } from 'react';
 
 import { useAppointments, useDoctors, usePatients } from '@/hooks/useApiData';
 import { useRevenue } from '@/hooks/useRevenue';
@@ -8,6 +9,7 @@ import { useRevenue } from '@/hooks/useRevenue';
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import RoleDebugger from '@/components/RoleDebugger';
 import UserManagement from '@/components/UserManagement';
+import SpecialtiesManagement from '@/components/SpecialtiesManagement';
 import { StatCardSkeleton } from '@/components/LoadingSkeleton';
 
  
@@ -60,6 +62,8 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ userId, role }: DashboardProps) {
+  const [isSpecialtiesModalOpen, setIsSpecialtiesModalOpen] = useState(false);
+  
   const {
     data: patients,
     loading: patientsLoading,
@@ -212,7 +216,7 @@ export default function Dashboard({ userId, role }: DashboardProps) {
           <h2 className='text-xl font-semibold card-title mb-4'>
             Quick Actions
           </h2>
-          <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
             <a
               href='/patients'
               className='flex items-center p-4 card-border rounded-lg card-hover transition-colors'
@@ -253,8 +257,27 @@ export default function Dashboard({ userId, role }: DashboardProps) {
                 </p>
               </div>
             </a>
+
+            <button
+              onClick={() => setIsSpecialtiesModalOpen(true)}
+              className='flex items-center p-4 card-border rounded-lg card-hover transition-colors text-left w-full'
+            >
+              <Settings className='text-orange-500 mr-3' size={24} />
+              <div>
+                <h3 className='font-medium card-title'>Manage Specialties</h3>
+                <p className='text-sm card-title'>
+                  إدارة التخصصات الطبية
+                </p>
+              </div>
+            </button>
           </div>
         </div>
+
+        {/* Specialties Management Modal */}
+        <SpecialtiesManagement
+          isOpen={isSpecialtiesModalOpen}
+          onClose={() => setIsSpecialtiesModalOpen(false)}
+        />
 
         <UserManagement />
 

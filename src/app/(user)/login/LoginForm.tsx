@@ -2,13 +2,14 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import ButtonSpinner from "@/components/ButtonSpinner";
 import { EyeSlashIcon, EyeIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 
 const LoginForm = () => {
   const router = useRouter();
+  const { update } = useSession();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,6 +32,8 @@ const LoginForm = () => {
       setLoading(false);
       if (res && !res.error) {
         toast.success("Login successful");
+        // Update session to reflect the new authentication state
+        await update();
         router.replace("/");
         router.refresh();
       } else {
@@ -54,6 +57,8 @@ const LoginForm = () => {
       setLoading(false);
       if (res && !res.error) {
         toast.success("Signed in as Guest");
+        // Update session to reflect the new authentication state
+        await update();
         router.replace("/");
         router.refresh();
       } else {

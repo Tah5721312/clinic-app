@@ -9,7 +9,10 @@ import 'react-toastify/dist/ReactToastify.css';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider
+      // refetchInterval={5 * 60} // Refetch session every 5 minutes
+      refetchOnWindowFocus={true} // Refetch session when window regains focus
+    >
       <ThemeProvider>
         <AutoLogout inactivityTimeout={60 * 60 * 1000} /> {/* 1 hour inactivity timeout */}
         {children}

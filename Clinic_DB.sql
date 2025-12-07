@@ -1107,3 +1107,34 @@ VALUES (1004, 504, 600, 60, 540, 540, 'Bank Transfer', 'دفع كامل', 201);
 
 COMMIT;
 
+
+
+----------------------------------------------------
+-- جدول التخصصات (Specialties)
+-----------------------------------------------------
+DROP TABLE TAH57.SPECIALTIES CASCADE CONSTRAINTS;
+
+CREATE TABLE TAH57.SPECIALTIES (
+    specialty_id      NUMBER(20) GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name              VARCHAR2(255 CHAR) NOT NULL,
+    description       VARCHAR2(1000 CHAR),
+    CONSTRAINT uq_specialties_name UNIQUE (name)
+);
+
+-- إنشاء index للبحث السريع
+CREATE INDEX idx_specialties_name ON TAH57.SPECIALTIES(name);
+
+-- إدراج التخصصات الأساسية
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('الجراحة العامة', 'تخصص الجراحة العامة');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب الأسنان', 'تخصص طب الأسنان');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب الأطفال', 'تخصص طب الأطفال');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب الأعصاب', 'تخصص طب الأعصاب');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب الباطنة', 'تخصص طب الباطنة');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب الجلدية', 'تخصص طب الجلدية');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب الروماتيزم', 'تخصص طب الروماتيزم');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب الطوارئ', 'تخصص طب الطوارئ');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب العيون', 'تخصص طب العيون');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب القلب', 'تخصص طب القلب');
+INSERT INTO TAH57.SPECIALTIES (name, description) VALUES ('طب النساء والتوليد', 'تخصص طب النساء والتوليد');
+
+COMMIT;

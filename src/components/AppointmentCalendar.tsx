@@ -76,7 +76,7 @@ export default function AppointmentCalendar({ initialDoctorId: propsDoctorId, in
   // Fetch appointments with filters
   const { data: appointments, loading, error, refetch } = useAppointmentsWithFilters(filterParams);
 
-  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
+  const { data: doctors } = useDoctors(selectedSpecialty ? { specialty: selectedSpecialty } : undefined);
   const { data: specialties } = useSpecialties();
 
   // If doctor, automatically filter by their ID
@@ -291,10 +291,17 @@ export default function AppointmentCalendar({ initialDoctorId: propsDoctorId, in
     return appointment.STATUS;
   };
 
-  // Format time
-  const formatTime = (date: Date | string) => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  // Format time - use SCHEDULE_AT if available (avoids timezone issues)
+  const formatTime = (appointment: Appointment | Date | string) => {
+    // If it's an Appointment object, use SCHEDULE_AT if available
+    if (typeof appointment === 'object' && 'SCHEDULE_AT' in appointment && appointment.SCHEDULE_AT) {
+      return appointment.SCHEDULE_AT;
+    }
+    // Otherwise, format from Date
+    const d = typeof appointment === 'string' ? new Date(appointment) : 
+              typeof appointment === 'object' && 'SCHEDULE' in appointment ? appointment.SCHEDULE :
+              appointment;
+    return d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   const viewDates = getViewDatesList();
@@ -522,7 +529,7 @@ export default function AppointmentCalendar({ initialDoctorId: propsDoctorId, in
                             status as AppointmentStatus,
                             appointment.PAYMENT_STATUS
                           )} text-white text-[10px] sm:text-xs p-1 sm:p-1.5 rounded ${canDrag ? 'cursor-move hover:opacity-80' : 'cursor-default'} transition-opacity`}
-                          title={`${appointment.PATIENT_NAME || 'مريض'} - ${formatTime(appointment.SCHEDULE)}${!canDrag ? ' (غير قابل للسحب)' : ''}`}
+                          title={`${appointment.PATIENT_NAME || 'مريض'} - ${formatTime(appointment)}${!canDrag ? ' (غير قابل للسحب)' : ''}`}
                         >
                           <Link
                             href={`/appointments/${appointment.APPOINTMENT_ID}`}
@@ -532,7 +539,7 @@ export default function AppointmentCalendar({ initialDoctorId: propsDoctorId, in
                             <div className="flex items-center gap-0.5 sm:gap-1">
                               <Clock className="w-2 h-2 sm:w-3 sm:h-3 flex-shrink-0" />
                               <span className="truncate text-[10px] sm:text-xs">
-                                {formatTime(appointment.SCHEDULE)}
+                                {formatTime(appointment)}
                               </span>
                             </div>
                             <div className="truncate mt-0.5 text-[10px] sm:text-xs">

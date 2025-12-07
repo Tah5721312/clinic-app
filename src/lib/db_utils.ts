@@ -5,9 +5,129 @@ import { executeQuery, executeReturningQuery, getConnection } from '@/lib/databa
 import { Patient, DoctorSchedule, CreateScheduleDto, UpdateScheduleDto, TimeSlot, Invoice, CreateInvoiceDto, MonthlyRevenueRow } from '@/lib/types';
 
 /**
+ * جلب جميع التخصصات من جدول SPECIALTIES
+ */
+export async function getAllSpecialties(activeOnly: boolean = true) {
+  let query = `
+    SELECT specialty_id, name, description
+    FROM TAH57.SPECIALTIES
+  `;
+  
+  const params: oracledb.BindParameters = {};
+  
+  // Note: activeOnly parameter is kept for compatibility but not used since is_active field is removed
+  // All specialties are considered active
+  
+  query += ' ORDER BY name';
+  
+  console.log('🔍 Executing query:', query);
+  console.log('🔍 Parameters:', params);
+  
+  const result = await executeQuery<{
+    SPECIALTY_ID: number;
+    NAME: string;
+    DESCRIPTION?: string;
+  }>(query, params);
+  
+  console.log('✅ Query result:', result.rows?.length || 0, 'rows');
+  
+  return result.rows;
+}
+
+/**
+ * إضافة تخصص جديد
+ */
+export async function createSpecialty(name: string, description?: string) {
+  console.log('➕ Creating specialty in database:', { name, description });
+  
+  const result = await executeReturningQuery<{ specialty_id: number }>(
+    `
+    INSERT INTO TAH57.SPECIALTIES (name, description)
+    VALUES (:name, :description)
+    RETURNING specialty_id INTO :id
+    `,
+    {
+      name,
+      description: description || null,
+      id: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+    }
+  );
+  
+  // الحصول على ID من outBinds بشكل آمن
+  const outBinds = result.outBinds as { id: number[] } | undefined;
+  const newSpecialtyId = outBinds?.id?.[0];
+  
+  console.log('✅ Specialty created with ID:', newSpecialtyId);
+  
+  if (!newSpecialtyId) {
+    throw new Error('Failed to get specialty ID after creation');
+  }
+  
+  return newSpecialtyId;
+}
+
+/**
+ * تحديث تخصص
+ */
+export async function updateSpecialty(specialtyId: number, name: string, description?: string, isActive?: boolean) {
+  console.log('✏️ Updating specialty in database:', { specialtyId, name, description });
+  
+  const updates: string[] = [];
+  const params: oracledb.BindParameters = { specialtyId };
+  
+  if (name) {
+    updates.push('name = :name');
+    params.name = name;
+  }
+  
+  if (description !== undefined) {
+    updates.push('description = :description');
+    params.description = description || null;
+  }
+  
+  // Note: isActive parameter is kept for compatibility but not used since is_active field is removed
+  
+  if (updates.length === 0) {
+    console.warn('⚠️ No updates to apply');
+    return;
+  }
+  
+  const query = `
+    UPDATE TAH57.SPECIALTIES
+    SET ${updates.join(', ')}
+    WHERE specialty_id = :specialtyId
+  `;
+  
+  console.log('🔍 Executing update query:', query);
+  console.log('🔍 Parameters:', params);
+  
+  await executeQuery(query, params);
+  
+  console.log('✅ Specialty updated successfully');
+}
+
+/**
+ * حذف تخصص (hard delete - حذف فعلي)
+ */
+export async function deleteSpecialty(specialtyId: number) {
+  console.log('🗑️ Deleting specialty from database (hard delete):', specialtyId);
+  
+  const query = `
+    DELETE FROM TAH57.SPECIALTIES
+    WHERE specialty_id = :specialtyId
+  `;
+  
+  console.log('🔍 Executing delete query:', query);
+  
+  await executeQuery(query, { specialtyId });
+  
+  console.log('✅ Specialty deleted successfully');
+}
+
+/**
  * جلب جميع الأطباء
  */
-export async function getAllDoctors(specialty?: string) {
+export async function getAllDoctors(specialty?: string, name?: string) {
   let query = `
     SELECT DOCTOR_ID, NAME, EMAIL, PHONE, SPECIALTY, 
            EXPERIENCE, QUALIFICATION, IMAGE, BIO,
@@ -15,10 +135,20 @@ export async function getAllDoctors(specialty?: string) {
     FROM TAH57.DOCTORS`;
 
   const params: oracledb.BindParameters = {};
+  const where: string[] = [];
 
   if (specialty && specialty.trim()) {
-    query += ' WHERE LOWER(SPECIALTY) = :specialty';
+    where.push('LOWER(SPECIALTY) = :specialty');
     params.specialty = specialty.toLowerCase();
+  }
+
+  if (name && name.trim()) {
+    where.push('UPPER(NAME) LIKE UPPER(:name)');
+    params.name = `%${name.trim()}%`;
+  }
+
+  if (where.length > 0) {
+    query += ` WHERE ${where.join(' AND ')}`;
   }
 
   query += ' ORDER BY name';
@@ -266,11 +396,94 @@ export async function deleteDoctorWithTransaction(id: number, cascade: boolean =
  * جلب جميع المرضى
  */
 
-export async function getAllPatients(filters?: { doctorId?: number; specialty?: string; identificationNumber?: string; patientId?: number }) {
+/**
+ * جلب المرضى من جدول APPOINTMENTS للدكتور (مرضى حجزوا معاه من قبل)
+ */
+export async function getPatientsFromAppointments(doctorId: number, filters?: { name?: string; identificationNumber?: string }) {
   let query = `
-    SELECT p.*, d.name as PRIMARYPHYSICIANNAME 
-    FROM TAH57.PATIENTS p 
-    LEFT JOIN TAH57.DOCTORS d ON p.primaryphysician = d.doctor_id`;
+    SELECT DISTINCT 
+      p.patient_id,
+      p.name,
+      p.email,
+      p.phone,
+      p.dateofbirth,
+      p.gender,
+      p.address,
+      p.occupation,
+      p.emergencycontactname,
+      p.emergencycontactnumber,
+      p.insuranceprovider,
+      p.insurancepolicynumber,
+      p.allergies,
+      p.currentmedication,
+      p.familymedicalhistory,
+      p.pastmedicalhistory,
+      p.identificationtype,
+      p.identificationnumber,
+      p.privacyconsent,
+      p.treatmentconsent,
+      p.disclosureconsent 
+    FROM TAH57.APPOINTMENTS a
+    JOIN TAH57.PATIENTS p ON a.patient_id = p.patient_id
+    WHERE a.doctor_id = :doctorId
+  `;
+
+  const params: oracledb.BindParameters = { doctorId: Number(doctorId) };
+  const where: string[] = [];
+
+  if (filters?.name && filters.name.trim()) {
+    where.push('UPPER(p.name) LIKE UPPER(:name)');
+    params.name = `%${filters.name.trim()}%`;
+  }
+
+  if (filters?.identificationNumber && filters.identificationNumber.trim()) {
+    where.push('p.identificationnumber LIKE :identificationNumber');
+    params.identificationNumber = `%${filters.identificationNumber.trim()}%`;
+  }
+
+  if (where.length > 0) {
+    query += ` AND ${where.join(' AND ')}`;
+  }
+
+  query += ' ORDER BY p.name';
+
+  return executeQuery<{
+    PATIENT_ID: number;
+    NAME: string;
+    EMAIL: string;
+    PHONE: string;
+    DATEOFBIRTH: Date;
+    GENDER: string;
+    ADDRESS: string;
+    OCCUPATION: string;
+    EMERGENCYCONTACTNAME: string;
+    EMERGENCYCONTACTNUMBER: string;
+    INSURANCEPROVIDER: string;
+    INSURANCEPOLICYNUMBER: string;
+    ALLERGIES: string;
+    CURRENTMEDICATION: string;
+    FAMILYMEDICALHISTORY: string;
+    PASTMEDICALHISTORY: string;
+    IDENTIFICATIONTYPE: string;
+    IDENTIFICATIONNUMBER: string;
+    PRIVACYCONSENT: number;
+    TREATMENTCONSENT: number;
+    DISCLOSURECONSENT: number;
+  }>(query, params).then((result) => result.rows);
+}
+
+export async function getAllPatients(filters?: { doctorId?: number; specialty?: string; identificationNumber?: string; patientId?: number; name?: string; fromAppointments?: boolean }) {
+  // إذا كان fromAppointments = true و doctorId موجود، استخدم الدالة الجديدة
+  if (filters?.fromAppointments && filters?.doctorId) {
+    return getPatientsFromAppointments(filters.doctorId, {
+      name: filters.name,
+      identificationNumber: filters.identificationNumber,
+    });
+  }
+
+  let query = `
+    SELECT p.*
+    FROM TAH57.PATIENTS p`;
 
   const params: oracledb.BindParameters = {};
   const where: string[] = [];
@@ -280,19 +493,17 @@ export async function getAllPatients(filters?: { doctorId?: number; specialty?: 
     params.patientId = Number(filters.patientId);
   }
 
-  if (filters?.doctorId) {
-    where.push('p.primaryphysician = :doctorId');
-    params.doctorId = Number(filters.doctorId);
-  }
-
-  if (filters?.specialty && filters.specialty.trim()) {
-    where.push('LOWER(d.specialty) = :specialty');
-    params.specialty = filters.specialty.toLowerCase();
-  }
+  // Note: doctorId and specialty filters removed as primaryphysician is no longer used
+  // Doctors get their patients from APPOINTMENTS table via getPatientsFromAppointments
 
   if (filters?.identificationNumber && filters.identificationNumber.trim()) {
     where.push('p.identificationnumber LIKE :identificationNumber');
     params.identificationNumber = `%${filters.identificationNumber}%`;
+  }
+
+  if (filters?.name && filters.name.trim()) {
+    where.push('UPPER(p.name) LIKE UPPER(:name)');
+    params.name = `%${filters.name.trim()}%`;
   }
 
   if (where.length > 0) {
@@ -320,7 +531,6 @@ export async function getPatientById(id: number) {
     OCCUPATION: string;
     EMERGENCYCONTACTNAME: string;
     EMERGENCYCONTACTNUMBER: string;
-    PRIMARYPHYSICIAN: number;
     INSURANCEPROVIDER: string;
     INSURANCEPOLICYNUMBER: string;
     ALLERGIES: string;
@@ -332,7 +542,6 @@ export async function getPatientById(id: number) {
     PRIVACYCONSENT: number;
     TREATMENTCONSENT: number;
     DISCLOSURECONSENT: number;
-    PRIMARYPHYSICIANNAME: string;
   }>(
     `
        SELECT 
@@ -346,7 +555,6 @@ export async function getPatientById(id: number) {
     p.OCCUPATION,
     p.EMERGENCYCONTACTNAME,
     p.EMERGENCYCONTACTNUMBER,
-    p.PRIMARYPHYSICIAN,
     p.INSURANCEPROVIDER,
     p.INSURANCEPOLICYNUMBER,
     p.ALLERGIES,
@@ -357,10 +565,8 @@ export async function getPatientById(id: number) {
     p.IDENTIFICATIONNUMBER,
     p.PRIVACYCONSENT,
     p.TREATMENTCONSENT,
-    p.DISCLOSURECONSENT,
-    d.NAME AS PRIMARYPHYSICIANNAME
+    p.DISCLOSURECONSENT
 FROM TAH57.PATIENTS p
-LEFT JOIN TAH57.DOCTORS d ON d.DOCTOR_ID = p.PRIMARYPHYSICIAN
 WHERE p.PATIENT_ID = :id
 `,
     { id }
@@ -380,7 +586,6 @@ export async function createPatient(patient: {
   occupation?: string;
   emergencyContactName?: string;
   emergencyContactNumber?: string;
-  primaryPhysician?: number;
   insuranceProvider?: string;
   insurancePolicyNumber?: string;
   allergies?: string;
@@ -403,7 +608,6 @@ export async function createPatient(patient: {
     occupation,
     emergencyContactName,
     emergencyContactNumber,
-    primaryPhysician,
     insuranceProvider,
     insurancePolicyNumber,
     allergies,
@@ -427,14 +631,14 @@ export async function createPatient(patient: {
     INSERT INTO TAH57.PATIENTS (
       name, email, phone, dateofbirth, gender, address,
       occupation, emergencycontactname, emergencycontactnumber,
-      primaryphysician, insuranceprovider, insurancepolicynumber,
+      insuranceprovider, insurancepolicynumber,
       allergies, currentmedication, familymedicalhistory,
       pastmedicalhistory, identificationtype, identificationnumber,
       privacyconsent, treatmentconsent, disclosureconsent
     ) VALUES (
       :name, :email, :phone, TO_DATE(:dateOfBirth, 'YYYY-MM-DD'), :gender, :address,
       :occupation, :emergencyContactName, :emergencyContactNumber,
-      :primaryPhysician, :insuranceProvider, :insurancePolicyNumber,
+      :insuranceProvider, :insurancePolicyNumber,
       :allergies, :currentMedication, :familyMedicalHistory,
       :pastMedicalHistory, :identificationType, :identificationNumber,
       :privacyConsent, :treatmentConsent, :disclosureConsent
@@ -449,7 +653,6 @@ export async function createPatient(patient: {
       occupation: occupation || null,
       emergencyContactName: emergencyContactName || null,
       emergencyContactNumber: emergencyContactNumber || null,
-      primaryPhysician: primaryPhysician || null,
       insuranceProvider: insuranceProvider || null,
       insurancePolicyNumber: insurancePolicyNumber || null,
       allergies: allergies || null,
@@ -492,7 +695,6 @@ export async function updatePatient(
     OCCUPATION?: string;
     EMERGENCYCONTACTNAME?: string;
     EMERGENCYCONTACTNUMBER?: string;
-    PRIMARYPHYSICIAN?: number;
     INSURANCEPROVIDER?: string;
     INSURANCEPOLICYNUMBER?: string;
     ALLERGIES?: string;
@@ -517,7 +719,6 @@ export async function updatePatient(
     'OCCUPATION': 'OCCUPATION',
     'EMERGENCYCONTACTNAME': 'EMERGENCYCONTACTNAME',
     'EMERGENCYCONTACTNUMBER': 'EMERGENCYCONTACTNUMBER',
-    'PRIMARYPHYSICIAN': 'PRIMARYPHYSICIAN',
     'INSURANCEPROVIDER': 'INSURANCEPROVIDER',
     'INSURANCEPOLICYNUMBER': 'INSURANCEPOLICYNUMBER',
     'ALLERGIES': 'ALLERGIES',
@@ -612,7 +813,7 @@ export async function getAllAppointments(filters?: {
   scheduleDate?: string;
 }) {
   let query = `
-    SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.reason, a.note, a.status, a.cancellationreason,
+    SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.schedule_at, a.reason, a.note, a.status, a.cancellationreason,
            NVL(a.appointment_type, 'consultation') as appointment_type,
            NVL(a.payment_status, 'unpaid') as payment_status,
            NVL(a.payment_amount, 0) as payment_amount,
@@ -667,6 +868,7 @@ export async function getAllAppointments(filters?: {
     PATIENT_ID: number;
     DOCTOR_ID: number;
     SCHEDULE: Date;
+    SCHEDULE_AT?: string;
     REASON: string;
     NOTE: string;
     STATUS: string;
@@ -696,6 +898,7 @@ export async function getPatientAppointments(patientId: number) {
     PATIENT_ID: number;
     DOCTOR_ID: number;
     SCHEDULE: Date;
+    SCHEDULE_AT?: string;
     REASON: string;
     NOTE: string;
     STATUS: string;
@@ -714,7 +917,7 @@ export async function getPatientAppointments(patientId: number) {
     INVOICE_PAYMENT_STATUS: string | null;
   }>(
     `
-    SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.reason, a.note, a.status, a.cancellationreason,
+    SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.schedule_at, a.reason, a.note, a.status, a.cancellationreason,
            NVL(a.appointment_type, 'consultation') as appointment_type,
            NVL(a.payment_status, 'unpaid') as payment_status,
            NVL(a.payment_amount, 0) as payment_amount,

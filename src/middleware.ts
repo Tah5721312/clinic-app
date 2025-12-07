@@ -11,8 +11,14 @@ const rateLimitConfig = {
 // API routes that should be rate limited
 const apiRoutes = ['/api'];
 
-// Routes that should have stricter rate limiting
-const strictRateLimitRoutes = ['/api/auth', '/api/users/login', '/api/users/register'];
+// Routes that should have stricter rate limiting (very strict for security)
+const veryStrictRateLimitRoutes = ['/api/users/login', '/api/users/register'];
+
+// Routes that should have moderate rate limiting
+const moderateRateLimitRoutes = ['/api/auth'];
+
+// Routes that should be excluded from strict rate limiting (but still have normal rate limiting)
+const excludedFromStrictRateLimit = ['/api/auth/session'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -22,14 +28,36 @@ export async function middleware(request: NextRequest) {
     const ip = getClientIP(request.headers);
     const identifier = `${ip}:${pathname}`;
 
-    // Stricter rate limiting for auth routes
-    const isStrictRoute = strictRateLimitRoutes.some((route) =>
+    // Check if route should be excluded from strict rate limiting
+    const isExcluded = excludedFromStrictRateLimit.some((route) =>
       pathname.startsWith(route)
     );
-    const limit = isStrictRoute
+
+    // Very strict rate limiting for login/register (security critical)
+    const isVeryStrictRoute = veryStrictRateLimitRoutes.some((route) =>
+      pathname.startsWith(route)
+    );
+
+    // Moderate rate limiting for other auth routes (except session endpoint)
+    const isModerateRoute = !isExcluded && moderateRateLimitRoutes.some((route) =>
+      pathname.startsWith(route)
+    );
+    
+    // Apply appropriate rate limiting based on route type
+    const limit = isExcluded
       ? rateLimit(identifier, {
           ...rateLimitConfig,
-          maxRequests: 20, // 20 requests per 15 minutes for auth
+          maxRequests: 200, // 200 requests per 15 minutes for session checks
+        })
+      : isVeryStrictRoute
+      ? rateLimit(identifier, {
+          ...rateLimitConfig,
+          maxRequests: 20, // 20 requests per 15 minutes for login/register (security)
+        })
+      : isModerateRoute
+      ? rateLimit(identifier, {
+          ...rateLimitConfig,
+          maxRequests: 200, // 200 requests per 15 minutes for other auth routes
         })
       : rateLimit(identifier, rateLimitConfig);
 

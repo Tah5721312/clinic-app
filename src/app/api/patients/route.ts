@@ -12,11 +12,22 @@ export async function GET(request: NextRequest) {
     const doctorId = searchParams.get('doctorId');
     const specialty = searchParams.get('specialty') || undefined;
     const identificationNumber = searchParams.get('identificationNumber') || undefined;
+    const name = searchParams.get('name') || undefined;
 
     // Get current user session
     const session = await auth();
     let finalDoctorId = doctorId ? Number(doctorId) : undefined;
     let patientId = undefined;
+    let fromAppointments = false;
+
+    // If user is a doctor (role ID 213), get patients from APPOINTMENTS instead of primaryphysician
+    if (session?.user?.roleId === 213) {
+      console.log('🔍 Doctor user detected:', session.user.email, 'Role ID:', session.user.roleId);
+      // Use the current user's ID as doctor ID
+      finalDoctorId = Number(session.user.id);
+      fromAppointments = true; // Flag to use appointments table
+      console.log('🔍 Doctor ID:', finalDoctorId, 'Will fetch patients from APPOINTMENTS');
+    }
 
     // If user is a patient (role ID 216), filter patients to only show their own data
     if (session?.user?.roleId === 216 && session?.user?.email) {
@@ -34,15 +45,17 @@ export async function GET(request: NextRequest) {
         // If patient user has no patient record, return empty array
         return NextResponse.json([]);
       }
-    } else {
-      console.log('🔍 User is not a patient. Role ID:', session?.user?.roleId, 'Email:', session?.user?.email);
+    } else if (session?.user?.roleId !== 213) {
+      console.log('🔍 User is not a patient or doctor. Role ID:', session?.user?.roleId, 'Email:', session?.user?.email);
     }
 
     const patients = await getAllPatients({
       doctorId: finalDoctorId,
       specialty,
       identificationNumber,
+      name,
       patientId, // Add patientId filter
+      fromAppointments, // Flag to use appointments table for doctors
     });
     
     console.log('🔍 Retrieved patients count:', patients?.length || 0);
@@ -77,6 +90,22 @@ export async function POST(request: NextRequest) {
       // تحويل السلسلة النصية إلى كائن Date
       // هذا لضمان أن الكائن لديه النوع الصحيح للمتغير
       body.dateOfBirth = new Date(body.dateOfBirth);
+    }
+
+    // Check if patient with this email already exists
+    if (body.email) {
+      const existingPatientId = await getPatientIdByUserEmail(body.email);
+      if (existingPatientId) {
+        return NextResponse.json(
+          {
+            error: 'البريد الإلكتروني مستخدم بالفعل',
+            details: `يوجد مريض مسجل بهذا البريد الإلكتروني. Patient ID: ${existingPatientId}`,
+            existingPatientId: existingPatientId,
+            code: 'EMAIL_EXISTS'
+          },
+          { status: 409 } // Conflict status code
+        );
+      }
     }
 
     const id = await createPatient(body);

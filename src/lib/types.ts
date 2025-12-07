@@ -24,7 +24,6 @@ export interface Patient {
   OCCUPATION?: string | null;
   EMERGENCYCONTACTNAME?: string | null;
   EMERGENCYCONTACTNUMBER?: string | null;
-  PRIMARYPHYSICIAN?: number | null;
   INSURANCEPROVIDER?: string | null;
   INSURANCEPOLICYNUMBER?: string | null;
   ALLERGIES?: string | null;
@@ -36,7 +35,6 @@ export interface Patient {
   PRIVACYCONSENT?: number | null;
   TREATMENTCONSENT?: number | null;
   DISCLOSURECONSENT?: number | null;
-  PRIMARYPHYSICIANNAME?: string;
 }
 
 export interface Appointment {

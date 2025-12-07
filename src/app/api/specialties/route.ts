@@ -1,6 +1,9 @@
 // app/api/specialties/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getConnection } from '@/lib/database';
+import { getAllSpecialties, createSpecialty } from '@/lib/db_utils';
+import { auth } from '@/auth';
+import { logAuditEvent } from '@/lib/auditLogger';
+import { getClientIP } from '@/lib/rateLimit';
 
 // ✅ قائمة تخصصات احتياطية (Fallback)
 const fallbackSpecialties = [
@@ -22,44 +25,94 @@ const fallbackSpecialties = [
   'المختبرات الطبية'
 ];
 
-// ✅ GET - جلب التخصصات الفريدة من قاعدة البيانات أو fallback
+// ✅ GET - جلب التخصصات من جدول SPECIALTIES
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Starting specialties API call...');
 
-    const connection = await getConnection();
-    console.log('✅ Database connection established');
-
-    const result = await connection.execute(`
-      SELECT DISTINCT SPECIALTY 
-      FROM TAH57.DOCTORS 
-      WHERE SPECIALTY IS NOT NULL 
-      ORDER BY SPECIALTY
-    `);
-
-    console.log('📊 Raw database result:', result);
-
-    await connection.close();
-    console.log('✅ Database connection closed');
-
-    // ✅ تحويل النتائج إلى مصفوفة تخصصات
-    const specialties = result.rows?.map((row: any) => row.SPECIALTY?.trim())
-      .filter((spec: string) => spec && spec !== '') || [];
-
+    const specialties = await getAllSpecialties(true); // Get only active specialties
+    
     console.log('🎯 Processed specialties:', specialties);
 
+    // ✅ تحويل النتائج إلى مصفوفة أسماء فقط (للتوافق مع الكود الحالي)
+    const specialtyNames = specialties.map((spec) => spec.NAME);
+
     // ✅ إذا لم يتم العثور على نتائج، استخدام fallback
-    if (specialties.length === 0) {
+    if (specialtyNames.length === 0) {
       console.warn('⚠️ No specialties found in database. Using fallback list.');
       return NextResponse.json(fallbackSpecialties);
     }
 
-    return NextResponse.json(specialties);
+    return NextResponse.json(specialtyNames);
 
   } catch (error) {
     console.error('❌ Error fetching specialties:', error);
     console.warn('⚠️ Using fallback specialties due to error.');
 
     return NextResponse.json(fallbackSpecialties);
+  }
+}
+
+// ✅ POST - إضافة تخصص جديد
+export async function POST(request: NextRequest) {
+  const session = await auth();
+  const userId = (session?.user as any)?.id;
+  const ip = getClientIP(request.headers);
+  const userAgent = request.headers.get('user-agent') || undefined;
+
+  try {
+    const body = await request.json();
+    const { name, description } = body;
+
+    if (!name || !name.trim()) {
+      return NextResponse.json(
+        { error: 'اسم التخصص مطلوب' },
+        { status: 400 }
+      );
+    }
+
+    const id = await createSpecialty(name.trim(), description?.trim());
+
+    // Log successful creation
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Specialty',
+      resource_id: Number(id),
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'success',
+      details: `Created specialty: ${name}`,
+    });
+
+    return NextResponse.json(
+      {
+        message: 'تم إضافة التخصص بنجاح',
+        id: id
+      },
+      { status: 201 }
+    );
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Log failure
+    await logAuditEvent({
+      user_id: userId,
+      action: 'create',
+      resource: 'Specialty',
+      ip_address: ip,
+      user_agent: userAgent,
+      status: 'failure',
+      error_message: errorMessage,
+    });
+
+    console.error('خطأ في إضافة التخصص:', error);
+    return NextResponse.json(
+      {
+        error: 'فشل في إضافة التخصص',
+        details: errorMessage
+      },
+      { status: 500 }
+    );
   }
 }

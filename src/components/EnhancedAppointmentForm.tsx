@@ -1,6 +1,6 @@
 'use client';
 
-import { Calendar, Clock, FileText, User, ChevronDown, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, FileText, User, ChevronDown, CheckCircle, XCircle, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -55,6 +55,11 @@ export default function EnhancedAppointmentForm({
   // Custom dropdown states
   const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  
+  // Patient search and dropdown states
+  const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
 
   const [formData, setFormData] = useState<FormData>({
     patient_id: patientId ? parseInt(patientId) : 0,
@@ -76,6 +81,32 @@ export default function EnhancedAppointmentForm({
       doctor_id: doctorId ? parseInt(doctorId) : prev.doctor_id,
     }));
   }, [doctorId, patientId]);
+
+  // Set selected patient when patients are loaded and formData.patient_id changes
+  useEffect(() => {
+    if (patients && patients.length > 0 && formData.patient_id) {
+      const patient = patients.find(p => p.PATIENT_ID === formData.patient_id);
+      if (patient) {
+        setSelectedPatient(patient);
+      }
+    }
+  }, [patients, formData.patient_id]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isPatientDropdownOpen && !target.closest('[data-patient-dropdown]')) {
+        setIsPatientDropdownOpen(false);
+      }
+      if (isDoctorDropdownOpen && !target.closest('[data-doctor-dropdown]')) {
+        setIsDoctorDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isPatientDropdownOpen, isDoctorDropdownOpen]);
 
   // Handle initial doctor selection and specialty auto-selection when doctorId is provided
   useEffect(() => {
@@ -213,6 +244,21 @@ export default function EnhancedAppointmentForm({
     setAvailableTimeSlots([]);
     setSelectedDate('');
   };
+
+  const handlePatientSelect = (patient: Patient | null) => {
+    setSelectedPatient(patient);
+    setFormData(prev => ({
+      ...prev,
+      patient_id: patient ? patient.PATIENT_ID : 0
+    }));
+    setIsPatientDropdownOpen(false);
+    setPatientSearchQuery('');
+  };
+
+  // Filter patients based on search query
+  const filteredPatients = patients.filter(patient =>
+    patient.NAME.toLowerCase().includes(patientSearchQuery.toLowerCase())
+  );
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const date = e.target.value;
@@ -376,20 +422,79 @@ export default function EnhancedAppointmentForm({
             <User className="inline w-4 h-4 mr-1" />
             المريض *
           </label>
-          <select
-            name="patient_id"
-            value={formData.patient_id}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            required
-          >
-            <option value={0}>اختر المريض</option>
-            {patients.map((patient) => (
-              <option key={patient.PATIENT_ID} value={patient.PATIENT_ID}>
-                {patient.NAME}
-              </option>
-            ))}
-          </select>
+          <div className="relative" data-patient-dropdown>
+            <button
+              type="button"
+              onClick={() => setIsPatientDropdownOpen(!isPatientDropdownOpen)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between"
+            >
+              <div className="flex items-center">
+                {selectedPatient ? (
+                  <>
+                    {/* Patient Avatar */}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getAvatarColor(selectedPatient.NAME)} shadow-sm ml-3`}>
+                      {getInitials(selectedPatient.NAME)}
+                    </div>
+                    <span>{selectedPatient.NAME}</span>
+                  </>
+                ) : (
+                  <span>اختر المريض</span>
+                )}
+              </div>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            
+            {isPatientDropdownOpen && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden flex flex-col">
+                {/* Search Input */}
+                <div className="p-2 border-b border-gray-200">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="ابحث عن المريض..."
+                      value={patientSearchQuery}
+                      onChange={(e) => setPatientSearchQuery(e.target.value)}
+                      className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      onClick={(e) => e.stopPropagation()}
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                
+                {/* Patients List */}
+                <div className="overflow-y-auto max-h-48">
+                  {filteredPatients.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500 text-center">
+                      {patientSearchQuery ? 'لا توجد نتائج' : 'لا يوجد مرضى'}
+                    </div>
+                  ) : (
+                    filteredPatients.map((patient) => (
+                      <button
+                        key={patient.PATIENT_ID}
+                        type="button"
+                        onClick={() => handlePatientSelect(patient)}
+                        className="w-full px-3 py-2 text-right hover:bg-gray-100 flex items-center justify-between"
+                      >
+                        <div className="flex items-center">
+                          {/* Patient Avatar */}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getAvatarColor(patient.NAME)} shadow-sm ml-3`}>
+                            {getInitials(patient.NAME)}
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">{patient.NAME}</div>
+                            {patient.IDENTIFICATIONNUMBER && (
+                              <div className="text-sm text-gray-500">{patient.IDENTIFICATIONNUMBER}</div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Specialty Selection */}
@@ -416,7 +521,7 @@ export default function EnhancedAppointmentForm({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             الطبيب *
           </label>
-          <div className="relative">
+          <div className="relative" data-doctor-dropdown>
             <button
               type="button"
               onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}

@@ -173,15 +173,6 @@ export default function PatientCard({ patient }: PatientCardProps) {
           </div>
         )}
 
-        {/* Primary Physician */}
-        {patient.PRIMARYPHYSICIANNAME && (
-          <div className='border-t pt-4 mb-4'>
-            <p className='text-sm text-gray-600'>
-              <span className='font-medium text-gray-700'>الطبيب المعالج:</span>{' '}
-              <span className='text-right'>{patient.PRIMARYPHYSICIANNAME}</span>
-            </p>
-          </div>
-        )}
 
         {/* Action Buttons */}
         <div className='flex justify-between items-center pt-4 border-t gap-3'>

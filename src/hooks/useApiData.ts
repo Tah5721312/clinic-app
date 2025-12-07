@@ -112,24 +112,30 @@ export function useApiData<T>(
 }
 
 // Specific hooks for common endpoints
-export function useDoctors(specialty?: string) {
+export function useDoctors(params?: { specialty?: string; name?: string }) {
   const endpoint = useMemo(() => {
-    return specialty && specialty.trim()
-      ? `${DOMAIN}/api/doctors?specialty=${encodeURIComponent(specialty)}`
-      : `${DOMAIN}/api/doctors`;
-  }, [specialty]);
+    const qs = new URLSearchParams();
+    if (params?.specialty && params.specialty.trim()) {
+      qs.set('specialty', params.specialty);
+    }
+    if (params?.name && params.name.trim()) {
+      qs.set('name', params.name);
+    }
+    return qs.toString() ? `${DOMAIN}/api/doctors?${qs.toString()}` : `${DOMAIN}/api/doctors`;
+  }, [params?.specialty, params?.name]);
   
   return useApiData<Doctor[]>(endpoint);
 }
 
-export function usePatients(params?: { doctorId?: number | string; specialty?: string; identificationNumber?: string }) {
+export function usePatients(params?: { doctorId?: number | string; specialty?: string; identificationNumber?: string; name?: string }) {
   const endpoint = useMemo(() => {
     const qs = new URLSearchParams();
     if (params?.doctorId) qs.set('doctorId', String(params.doctorId));
     if (params?.specialty && params.specialty.trim()) qs.set('specialty', params.specialty);
     if (params?.identificationNumber && params.identificationNumber.trim()) qs.set('identificationNumber', params.identificationNumber);
+    if (params?.name && params.name.trim()) qs.set('name', params.name);
     return qs.toString() ? `${DOMAIN}/api/patients?${qs.toString()}` : `${DOMAIN}/api/patients`;
-  }, [params?.doctorId, params?.specialty, params?.identificationNumber]);
+  }, [params?.doctorId, params?.specialty, params?.identificationNumber, params?.name]);
   
   return useApiData<Patient[]>(endpoint);
 }

@@ -73,7 +73,7 @@ export function sanitizeObject<T extends Record<string, unknown>>(
         value as Record<string, unknown>
       ) as T[keyof T];
     } else {
-      sanitized[key as keyof T] = value;
+      sanitized[key as keyof T] = value as T[keyof T];
     }
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Stethoscope, Search, Lock } from 'lucide-react';
+import { Plus, Stethoscope, Search, Lock, User } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -18,17 +18,26 @@ export default function DoctorsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSpecialty = searchParams.get('specialty') || '';
-  const { data: doctors, loading, error, refetch } = useDoctors(initialSpecialty);
+  const initialName = searchParams.get('name') || '';
+  const { data: doctors, loading, error, refetch } = useDoctors({
+    specialty: initialSpecialty || undefined,
+    name: initialName || undefined,
+  });
   const { data: specialties } = useSpecialties();
 
   const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty);
   const [appliedSpecialty, setAppliedSpecialty] = useState(initialSpecialty);
+  const [doctorName, setDoctorName] = useState(initialName);
+  const [appliedName, setAppliedName] = useState(initialName);
 
   // Sync state when URL changes (e.g., via back/forward or external link)
   useEffect(() => {
     const s = searchParams.get('specialty') || '';
+    const n = searchParams.get('name') || '';
     setSelectedSpecialty(s);
     setAppliedSpecialty(s);
+    setDoctorName(n);
+    setAppliedName(n);
   }, [searchParams]);
 
   const displayedDoctors = useMemo(() => {
@@ -76,7 +85,22 @@ export default function DoctorsPage() {
               </p>
             </div>
             <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto'>
-              <div className='flex items-center gap-2'>
+              <div className='flex flex-wrap items-center gap-2'>
+                {/* Search by Doctor Name */}
+                <div className='relative w-full sm:w-64'>
+                  <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
+                    <User className='w-4 h-4' />
+                  </span>
+                  <input
+                    type='text'
+                    placeholder='اسم الدكتور'
+                    value={doctorName}
+                    onChange={(e) => setDoctorName(e.target.value)}
+                    className='w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  />
+                </div>
+                
+                {/* Specialty Filter */}
                 <label htmlFor='specialtyFilter' className='sr-only'>Specialty</label>
                 <div className='relative w-full sm:w-64'>
                   <span className='pointer-events-none absolute inset-y-0 right-6 pr-3 flex items-center text-gray-400'>
@@ -94,14 +118,22 @@ export default function DoctorsPage() {
                     ))}
                   </select>
                 </div>
+                
+                {/* Search Button */}
                 <button
                   onClick={() => {
                     setAppliedSpecialty(selectedSpecialty);
+                    setAppliedName(doctorName);
                     const sp = new URLSearchParams(Array.from(searchParams.entries()));
                     if (selectedSpecialty) {
                       sp.set('specialty', selectedSpecialty);
                     } else {
                       sp.delete('specialty');
+                    }
+                    if (doctorName && doctorName.trim()) {
+                      sp.set('name', doctorName.trim());
+                    } else {
+                      sp.delete('name');
                     }
                     const query = sp.toString();
                     router.push(query ? `?${query}` : '?', { scroll: false });
@@ -112,13 +144,18 @@ export default function DoctorsPage() {
                   <Search className='w-4 h-4 ml-1' />
                   <span>بحث</span>
                 </button>
-                {(selectedSpecialty || appliedSpecialty) && (
+                
+                {/* Clear Filters Button */}
+                {(selectedSpecialty || appliedSpecialty || doctorName || appliedName) && (
                   <button
                     onClick={() => {
                       setSelectedSpecialty('');
                       setAppliedSpecialty('');
+                      setDoctorName('');
+                      setAppliedName('');
                       const sp = new URLSearchParams(Array.from(searchParams.entries()));
                       sp.delete('specialty');
+                      sp.delete('name');
                       const query = sp.toString();
                       router.push(query ? `?${query}` : '?', { scroll: false });
                     }}
