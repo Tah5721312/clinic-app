@@ -26,12 +26,14 @@ export default function AppointmentsPage() {
   const initialIdentificationNumber = searchParams.get('identificationNumber') || '';
   const initialInvoiceNumber = searchParams.get('invoiceNumber') || '';
   const initialScheduleDate = searchParams.get('scheduleDate') || '';
+  const initialPatientName = searchParams.get('patientName') || '';
 
   const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty);
   const [selectedDoctorId, setSelectedDoctorId] = useState(initialDoctorId);
   const [identificationNumber, setIdentificationNumber] = useState(initialIdentificationNumber);
   const [invoiceNumber, setInvoiceNumber] = useState(initialInvoiceNumber);
   const [scheduleDate, setScheduleDate] = useState(initialScheduleDate);
+  const [patientName, setPatientName] = useState(initialPatientName);
   const [filter, setFilter] = useState<
     'all' | 'pending' | 'scheduled' | 'cancelled'
   >('all');
@@ -46,8 +48,9 @@ export default function AppointmentsPage() {
     identificationNumber: initialIdentificationNumber || undefined,
     invoiceNumber: initialInvoiceNumber || undefined,
     scheduleDate: initialScheduleDate || undefined,
+    patientName: initialPatientName || undefined,
   });
-  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
+  const { data: doctors } = useDoctors(selectedSpecialty ? { specialty: selectedSpecialty } : undefined);
   const { data: specialties } = useSpecialties();
 
   useEffect(() => {
@@ -56,11 +59,13 @@ export default function AppointmentsPage() {
     const i = searchParams.get('identificationNumber') || '';
     const inv = searchParams.get('invoiceNumber') || '';
     const sd = searchParams.get('scheduleDate') || '';
+    const pn = searchParams.get('patientName') || '';
     setSelectedSpecialty(s);
     setSelectedDoctorId(d);
     setIdentificationNumber(i);
     setInvoiceNumber(inv);
     setScheduleDate(sd);
+    setPatientName(pn);
   }, [searchParams]);
 
   // Helper function to get display status
@@ -285,6 +290,21 @@ export default function AppointmentsPage() {
                 {!isPatient && (
                   <div className='relative w-full sm:w-auto lg:w-56'>
                     <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
+                      <User className='w-4 h-4' />
+                    </span>
+                    <input
+                      type='text'
+                      placeholder='اسم المريض'
+                      value={patientName}
+                      onChange={(e) => setPatientName(e.target.value)}
+                      className='w-full pl-3 pr-10 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    />
+                  </div>
+                )}
+
+                {!isPatient && (
+                  <div className='relative w-full sm:w-auto lg:w-56'>
+                    <span className='pointer-events-none absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400'>
                       <Search className='w-4 h-4' />
                     </span>
                     <input
@@ -334,6 +354,7 @@ export default function AppointmentsPage() {
                         const sp = new URLSearchParams(Array.from(searchParams.entries()));
                         if (selectedSpecialty) sp.set('specialty', selectedSpecialty); else sp.delete('specialty');
                         if (!isDoctor && selectedDoctorId) sp.set('doctorId', selectedDoctorId); else sp.delete('doctorId');
+                        if (patientName && patientName.trim()) sp.set('patientName', patientName.trim()); else sp.delete('patientName');
                         if (identificationNumber && identificationNumber.trim()) sp.set('identificationNumber', identificationNumber.trim()); else sp.delete('identificationNumber');
                         if (invoiceNumber && invoiceNumber.trim()) sp.set('invoiceNumber', invoiceNumber.trim()); else sp.delete('invoiceNumber');
                         if (scheduleDate && scheduleDate.trim()) sp.set('scheduleDate', scheduleDate.trim()); else sp.delete('scheduleDate');
@@ -347,17 +368,19 @@ export default function AppointmentsPage() {
                       <span>بحث</span>
                     </button>
                   )}
-                  {!isPatient && (selectedSpecialty || (!isDoctor && selectedDoctorId) || identificationNumber || invoiceNumber || scheduleDate) && (
+                  {!isPatient && (selectedSpecialty || (!isDoctor && selectedDoctorId) || patientName || identificationNumber || invoiceNumber || scheduleDate) && (
                     <button
                       onClick={() => {
                         setSelectedSpecialty('');
                         setSelectedDoctorId('');
+                        setPatientName('');
                         setIdentificationNumber('');
                         setInvoiceNumber('');
                         setScheduleDate('');
                         const sp = new URLSearchParams(Array.from(searchParams.entries()));
                         sp.delete('specialty');
                         sp.delete('doctorId');
+                        sp.delete('patientName');
                         sp.delete('identificationNumber');
                         sp.delete('invoiceNumber');
                         sp.delete('scheduleDate');

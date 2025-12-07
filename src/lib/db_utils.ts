@@ -811,6 +811,7 @@ export async function getAllAppointments(filters?: {
   identificationNumber?: string;
   invoiceNumber?: string;
   scheduleDate?: string;
+  patientName?: string;
 }) {
   let query = `
     SELECT a.appointment_id, a.patient_id, a.doctor_id, a.schedule, a.schedule_at, a.reason, a.note, a.status, a.cancellationreason,
@@ -855,6 +856,11 @@ export async function getAllAppointments(filters?: {
   if (filters?.scheduleDate && filters.scheduleDate.trim()) {
     where.push('TRUNC(a.schedule) = TO_DATE(:scheduleDate, \'YYYY-MM-DD\')');
     params.scheduleDate = filters.scheduleDate;
+  }
+
+  if (filters?.patientName && filters.patientName.trim()) {
+    where.push('LOWER(p.name) LIKE :patientName');
+    params.patientName = `%${filters.patientName.toLowerCase()}%`;
   }
 
   if (where.length > 0) {

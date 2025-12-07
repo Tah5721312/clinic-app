@@ -161,6 +161,7 @@ export function useAppointmentsWithFilters(params?: {
   identificationNumber?: string;
   invoiceNumber?: string;
   scheduleDate?: string;
+  patientName?: string;
 }) {
   // Extract values for proper memoization
   const doctorId = params?.doctorId;
@@ -168,6 +169,7 @@ export function useAppointmentsWithFilters(params?: {
   const identificationNumber = params?.identificationNumber?.trim() || undefined;
   const invoiceNumber = params?.invoiceNumber?.trim() || undefined;
   const scheduleDate = params?.scheduleDate?.trim() || undefined;
+  const patientName = params?.patientName?.trim() || undefined;
   
   // Memoize endpoint to prevent unnecessary re-fetches
   const endpoint = useMemo(() => {
@@ -177,8 +179,9 @@ export function useAppointmentsWithFilters(params?: {
     if (identificationNumber) qs.set('identificationNumber', identificationNumber);
     if (invoiceNumber) qs.set('invoiceNumber', invoiceNumber);
     if (scheduleDate) qs.set('scheduleDate', scheduleDate);
+    if (patientName) qs.set('patientName', patientName);
     return qs.toString() ? `${DOMAIN}/api/appointments?${qs.toString()}` : `${DOMAIN}/api/appointments`;
-  }, [doctorId, specialty, identificationNumber, invoiceNumber, scheduleDate]);
+  }, [doctorId, specialty, identificationNumber, invoiceNumber, scheduleDate, patientName]);
   
   return useApiData<Appointment[]>(endpoint);
 }
