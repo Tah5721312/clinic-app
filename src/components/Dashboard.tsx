@@ -1,10 +1,11 @@
 'use client';
 
-import { Calendar, Stethoscope, Users, DollarSign, TrendingUp, Clock, Settings, FileText } from 'lucide-react';
-import { useState } from 'react';
+import { Calendar, Stethoscope, Users, DollarSign, TrendingUp, Clock, Settings, FileText, Activity, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { useState, useMemo } from 'react';
 
-import { useAppointments, useDoctors, usePatients } from '@/hooks/useApiData';
+import { useAppointments, useDoctors, usePatients, useMedicalRecords } from '@/hooks/useApiData';
 import { useRevenue } from '@/hooks/useRevenue';
+import { Appointment, Doctor, Patient } from '@/lib/types';
 
 import ErrorBoundary, { ErrorFallback } from '@/components/ErrorBoundary';
 import RoleDebugger from '@/components/RoleDebugger';
@@ -84,9 +85,74 @@ export default function Dashboard({ userId, role }: DashboardProps) {
     loading: revenueLoading,
     error: revenueError,
   } = useRevenue();
+  const {
+    data: medicalRecords,
+    loading: medicalRecordsLoading,
+    error: medicalRecordsError,
+  } = useMedicalRecords();
 
-  const _loading = patientsLoading || doctorsLoading || appointmentsLoading || revenueLoading;
-  const error = patientsError || doctorsError || appointmentsError || revenueError;
+  const _loading = patientsLoading || doctorsLoading || appointmentsLoading || revenueLoading || medicalRecordsLoading;
+  const error = patientsError || doctorsError || appointmentsError || revenueError || medicalRecordsError;
+
+  // Calculate additional statistics
+  const statistics = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    const appointmentsList = Array.isArray(appointments) ? appointments : [];
+    const doctorsList = Array.isArray(doctors) ? doctors : [];
+    const patientsList = Array.isArray(patients) ? patients : [];
+    const recordsList = Array.isArray(medicalRecords) ? medicalRecords : [];
+
+    // Appointments by status
+    const pendingAppointments = appointmentsList.filter((apt: Appointment) => apt.STATUS === 'pending').length;
+    const scheduledAppointments = appointmentsList.filter((apt: Appointment) => apt.STATUS === 'scheduled').length;
+    const cancelledAppointments = appointmentsList.filter((apt: Appointment) => apt.STATUS === 'cancelled').length;
+
+    // Appointments by time period
+    const todayAppointments = appointmentsList.filter((apt: Appointment) => {
+      const aptDate = typeof apt.SCHEDULE === 'string' ? new Date(apt.SCHEDULE) : apt.SCHEDULE;
+      aptDate.setHours(0, 0, 0, 0);
+      return aptDate.getTime() === today.getTime();
+    }).length;
+
+    const weekAppointments = appointmentsList.filter((apt: Appointment) => {
+      const aptDate = typeof apt.SCHEDULE === 'string' ? new Date(apt.SCHEDULE) : apt.SCHEDULE;
+      return aptDate >= startOfWeek && aptDate <= today;
+    }).length;
+
+    const monthAppointments = appointmentsList.filter((apt: Appointment) => {
+      const aptDate = typeof apt.SCHEDULE === 'string' ? new Date(apt.SCHEDULE) : apt.SCHEDULE;
+      return aptDate >= startOfMonth;
+    }).length;
+
+    // Available doctors
+    const availableDoctors = doctorsList.filter((doc: Doctor) => doc.IS_AVAILABLE === 1).length;
+
+    // New patients this month
+    const newPatientsThisMonth = patientsList.filter((pat: Patient) => {
+      // Assuming we can check creation date if available, otherwise return 0
+      // This would need to be adjusted based on your Patient interface
+      return true; // Placeholder - adjust based on actual data structure
+    }).length;
+
+    return {
+      totalMedicalRecords: recordsList.length,
+      pendingAppointments,
+      scheduledAppointments,
+      cancelledAppointments,
+      todayAppointments,
+      weekAppointments,
+      monthAppointments,
+      availableDoctors,
+      newPatientsThisMonth,
+    };
+  }, [appointments, doctors, patients, medicalRecords]);
 
   if (error) {
     return (
@@ -110,9 +176,10 @@ export default function Dashboard({ userId, role }: DashboardProps) {
           </p>
         </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+        <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
           {patientsLoading || doctorsLoading || appointmentsLoading ? (
             <>
+              <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
@@ -120,7 +187,7 @@ export default function Dashboard({ userId, role }: DashboardProps) {
           ) : (
             <>
               <StatCard
-                title='Total Patients'
+                title='إجمالي المرضى'
                 value={Array.isArray(patients) ? patients.length : 0}
                 icon={<Users size={32} />}
                 color='bg-gradient-to-r from-blue-500 to-blue-600'
@@ -128,7 +195,7 @@ export default function Dashboard({ userId, role }: DashboardProps) {
               />
 
               <StatCard
-                title='Total Doctors'
+                title='إجمالي الأطباء'
                 value={Array.isArray(doctors) ? doctors.length : 0}
                 icon={<Stethoscope size={32} />}
                 color='bg-gradient-to-r from-green-500 to-green-600'
@@ -136,14 +203,94 @@ export default function Dashboard({ userId, role }: DashboardProps) {
               />
 
               <StatCard
-                title='Total Appointments'
+                title='إجمالي المواعيد'
                 value={Array.isArray(appointments) ? appointments.length : 0}
                 icon={<Calendar size={32} />}
                 color='bg-gradient-to-r from-purple-500 to-purple-600'
                 loading={false}
               />
+
+              <StatCard
+                title='السجلات الطبية'
+                value={statistics.totalMedicalRecords}
+                icon={<FileText size={32} />}
+                color='bg-gradient-to-r from-indigo-500 to-indigo-600'
+                loading={medicalRecordsLoading}
+              />
             </>
           )}
+        </div>
+
+        {/* Appointments Statistics */}
+        <div className='card rounded-lg shadow p-6'>
+          <h2 className='text-xl font-semibold card-title mb-4'>
+            إحصائيات المواعيد
+          </h2>
+          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
+            <StatCard
+              title='مواعيد اليوم'
+              value={statistics.todayAppointments}
+              icon={<Clock size={32} />}
+              color='bg-gradient-to-r from-cyan-500 to-cyan-600'
+              loading={appointmentsLoading}
+            />
+
+            <StatCard
+              title='مواعيد هذا الأسبوع'
+              value={statistics.weekAppointments}
+              icon={<Calendar size={32} />}
+              color='bg-gradient-to-r from-teal-500 to-teal-600'
+              loading={appointmentsLoading}
+            />
+
+            <StatCard
+              title='مواعيد هذا الشهر'
+              value={statistics.monthAppointments}
+              icon={<TrendingUp size={32} />}
+              color='bg-gradient-to-r from-blue-500 to-blue-600'
+              loading={appointmentsLoading}
+            />
+
+            <StatCard
+              title='أطباء متاحون'
+              value={statistics.availableDoctors}
+              icon={<CheckCircle size={32} />}
+              color='bg-gradient-to-r from-emerald-500 to-emerald-600'
+              loading={doctorsLoading}
+            />
+          </div>
+        </div>
+
+        {/* Appointments by Status */}
+        <div className='card rounded-lg shadow p-6'>
+          <h2 className='text-xl font-semibold card-title mb-4'>
+            حالة المواعيد
+          </h2>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+            <StatCard
+              title='مواعيد معلقة'
+              value={statistics.pendingAppointments}
+              icon={<AlertCircle size={32} />}
+              color='bg-gradient-to-r from-yellow-500 to-yellow-600'
+              loading={appointmentsLoading}
+            />
+
+            <StatCard
+              title='مواعيد مجدولة'
+              value={statistics.scheduledAppointments}
+              icon={<CheckCircle size={32} />}
+              color='bg-gradient-to-r from-green-500 to-green-600'
+              loading={appointmentsLoading}
+            />
+
+            <StatCard
+              title='مواعيد ملغاة'
+              value={statistics.cancelledAppointments}
+              icon={<XCircle size={32} />}
+              color='bg-gradient-to-r from-red-500 to-red-600'
+              loading={appointmentsLoading}
+            />
+          </div>
         </div>
 
         {/* Revenue Section */}
