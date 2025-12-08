@@ -4,6 +4,8 @@ import {
   getAllInvoices,
   createInvoice,
   getMonthlyRevenue,
+  getPatientIdByUserEmail,
+  getDoctorIdByUserEmail,
 } from '@/lib/db_utils';
 import { auth } from '@/auth';
 import { logAuditEvent } from '@/lib/auditLogger';
@@ -23,19 +25,41 @@ export async function GET(request: NextRequest) {
 
     // Get current user session
     const session = await auth();
-
-    // If user is a patient (role ID 216), filter invoices to only show their own data
     let finalPatientId = patientId ? Number(patientId) : undefined;
+    let finalDoctorId = doctorId ? Number(doctorId) : undefined;
+
+    // If user is a patient (role ID 216), filter invoices to only show their own
     if (session?.user?.roleId === 216 && session?.user?.email) {
-      // For patients, we need to get their patient ID from their email
-      // This would require a function to get patient ID by user email
-      // For now, we'll handle this in the frontend by passing the patient ID
-      console.log(
-        '🔍 Patient user detected:',
-        session.user.email,
-        'Role ID:',
-        session.user.roleId
-      );
+      console.log('🔍 Patient user detected for invoices:', session.user.email, 'Role ID:', session.user.roleId);
+      const userPatientId = await getPatientIdByUserEmail(session.user.email);
+      console.log('🔍 Patient ID lookup result for invoices:', userPatientId);
+      if (userPatientId) {
+        // Override any patientId parameter to ensure patient only sees their own invoices
+        finalPatientId = userPatientId;
+        console.log('🔍 Filtering invoices by patient ID:', finalPatientId);
+      } else {
+        console.log('⚠️ No patient record found for email:', session.user.email);
+        console.log('🔍 Returning empty array for patient without record');
+        // If patient user has no patient record, return empty array
+        return NextResponse.json([]);
+      }
+    }
+
+    // If user is a doctor (role ID 213), filter invoices to only show their own
+    if (session?.user?.roleId === 213 && session?.user?.email) {
+      console.log('🔍 Doctor user detected for invoices:', session.user.email, 'Role ID:', session.user.roleId);
+      const userDoctorId = await getDoctorIdByUserEmail(session.user.email);
+      console.log('🔍 Doctor ID lookup result for invoices:', userDoctorId);
+      if (userDoctorId) {
+        // Override any doctorId parameter to ensure doctor only sees their own invoices
+        finalDoctorId = userDoctorId;
+        console.log('🔍 Filtering invoices by doctor ID:', finalDoctorId);
+      } else {
+        console.log('⚠️ No doctor record found for email:', session.user.email);
+        console.log('🔍 Returning empty array for doctor without record');
+        // If doctor user has no doctor record, return empty array
+        return NextResponse.json([]);
+      }
     }
 
     // If requesting monthly revenue data
@@ -49,7 +73,7 @@ export async function GET(request: NextRequest) {
       payment_status: paymentStatus || undefined,
       date_from: dateFrom || undefined,
       date_to: dateTo || undefined,
-      doctor_id: doctorId ? Number(doctorId) : undefined,
+      doctor_id: finalDoctorId,
       identificationNumber: identificationNumber || undefined,
     };
 
