@@ -44,7 +44,7 @@ export default function AppointmentForm({
   
   // Fetch specialties and doctors
   const { data: specialties, loading: specialtiesLoading, error: specialtiesError } = useSpecialties();
-  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
+  const { data: doctors } = useDoctors(selectedSpecialty ? { specialty: selectedSpecialty } : undefined);
   
   // Custom dropdown states
   const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false);

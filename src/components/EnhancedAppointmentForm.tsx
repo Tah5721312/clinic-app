@@ -47,7 +47,7 @@ export default function EnhancedAppointmentForm({
   
   // Fetch specialties and doctors
   const { data: specialties, loading: specialtiesLoading, error: specialtiesError } = useSpecialties();
-  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
+  const { data: doctors } = useDoctors(selectedSpecialty ? { specialty: selectedSpecialty } : undefined);
   
   // Fetch all doctors when doctorId is provided to get the doctor's specialty
   const { data: allDoctors } = useDoctors();

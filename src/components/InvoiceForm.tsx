@@ -44,7 +44,7 @@ export default function InvoiceForm({
   // Specialty and doctor filtering for appointments
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const { data: specialties } = useSpecialties();
-  const { data: doctors } = useDoctors(selectedSpecialty || undefined);
+  const { data: doctors } = useDoctors(selectedSpecialty ? { specialty: selectedSpecialty } : undefined);
   
   // Custom dropdown states
   const [isAppointmentDropdownOpen, setIsAppointmentDropdownOpen] = useState(false);

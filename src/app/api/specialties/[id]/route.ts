@@ -8,13 +8,14 @@ import { getClientIP } from '@/lib/rateLimit';
 // PUT - تحديث تخصص
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   const userId = (session?.user as any)?.id;
   const ip = getClientIP(request.headers);
   const userAgent = request.headers.get('user-agent') || undefined;
-  const specialtyId = Number(params.id);
+  const { id } = await params;
+  const specialtyId = Number(id);
 
   try {
     const body = await request.json();
@@ -74,13 +75,14 @@ export async function PUT(
 // DELETE - حذف تخصص (soft delete)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
   const userId = (session?.user as any)?.id;
   const ip = getClientIP(request.headers);
   const userAgent = request.headers.get('user-agent') || undefined;
-  const specialtyId = Number(params.id);
+  const { id } = await params;
+  const specialtyId = Number(id);
 
   try {
     await deleteSpecialty(specialtyId);
@@ -132,10 +134,11 @@ export async function DELETE(
 // GET - جلب تخصص محدد
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const specialtyId = Number(params.id);
+    const { id } = await params;
+    const specialtyId = Number(id);
     const specialties = await getAllSpecialties(false); // Get all including inactive
     const specialty = specialties.find(s => s.SPECIALTY_ID === specialtyId);
 
